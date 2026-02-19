@@ -1,7 +1,9 @@
 using System;
 using System.IO;
+using System.Reflection;
 using log4net;
 using Microsoft.Xna.Framework;
+using MonoMod.RuntimeDetour;
 using Terraria;
 using Terraria.Enums;
 using Terraria.ModLoader;
@@ -12,9 +14,21 @@ namespace Reese;
 
 public class Replayer : ModSystem
 {
+    private delegate void HighFpsSupportConfigEnsureValidateStateDelegate(object self);
+
+    private Hook _highFpsSupportConfigEnsureValidStateHook;
+
     public override void Load()
     {
         On_Netplay.ClientLoopSetup += OnClientLoopSetup;
+    }
+
+    public override void PostSetupContent()
+    {
+        _highFpsSupportConfigEnsureValidStateHook = new Hook(
+            ModLoader.GetMod("HighFPSSupport").GetType().Assembly.GetType("HighFPSSupport.Config")
+                .GetMethod("EnsureValidState", BindingFlags.Public | BindingFlags.Instance),
+            OnHighFpsSupportConfigEnsureValidState);
     }
 
     private void OnClientLoopSetup(On_Netplay.orig_ClientLoopSetup orig, RemoteAddress address)
@@ -29,6 +43,18 @@ public class Replayer : ModSystem
             Netplay.Connection.ReadBuffer = new byte[ushort.MaxValue]; // TML: 1024 -> ushort.MaxValue
             Netplay.Connection.Socket = new ReplaySocket(ReplayFile.Read(File.OpenRead("record.bin")));
         }
+    }
+
+    private void OnHighFpsSupportConfigEnsureValidState(HighFpsSupportConfigEnsureValidateStateDelegate orig,
+        object self)
+    {
+    }
+
+
+    public override void Unload()
+    {
+        _highFpsSupportConfigEnsureValidStateHook?.Dispose();
+        _highFpsSupportConfigEnsureValidStateHook = null;
     }
 
     private class ReplayRemoteAddress : RemoteAddress
