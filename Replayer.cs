@@ -2,10 +2,8 @@ using System;
 using System.IO;
 using System.Reflection;
 using log4net;
-using Microsoft.Xna.Framework;
 using MonoMod.RuntimeDetour;
 using Terraria;
-using Terraria.Enums;
 using Terraria.ModLoader;
 using Terraria.Net;
 using Terraria.Net.Sockets;
@@ -25,10 +23,19 @@ public class Replayer : ModSystem
 
     public override void PostSetupContent()
     {
-        _highFpsSupportConfigEnsureValidStateHook = new Hook(
-            ModLoader.GetMod("HighFPSSupport").GetType().Assembly.GetType("HighFPSSupport.Config")
-                .GetMethod("EnsureValidState", BindingFlags.Public | BindingFlags.Instance),
-            OnHighFpsSupportConfigEnsureValidState);
+        if (!Main.dedServ)
+        {
+            if (ModLoader.TryGetMod("HighFPSSupport", out var highFpsSupport))
+            {
+                Mod.Logger.Info("Enabling HighFPSSupport interop to allow tick rate modification for replays");
+                // If we have the High FPS Support mod installed and loaded, we want to override their config validator
+                // (which ensures their tick rate modification only functions in single-player) to also function for
+                // multiplayer clients if a replay is being played.
+                _highFpsSupportConfigEnsureValidStateHook = new Hook(
+                    highFpsSupport.GetType().Assembly.GetType("HighFPSSupport.Config").GetMethod("EnsureValidState",
+                        BindingFlags.Public | BindingFlags.Instance), OnHighFpsSupportConfigEnsureValidState);
+            }
+        }
     }
 
     private void OnClientLoopSetup(On_Netplay.orig_ClientLoopSetup orig, RemoteAddress address)
@@ -48,6 +55,13 @@ public class Replayer : ModSystem
     private void OnHighFpsSupportConfigEnsureValidState(HighFpsSupportConfigEnsureValidateStateDelegate orig,
         object self)
     {
+        // If we are watching a replay, then don't allow this to be invoked -- it will reset the tick rate option to the
+        // default, because it is only meant to function in single-player. In our scenario, it's totally okay for it to
+        // function with this multiplayer client.
+        if (Netplay.Connection?.Socket is ReplaySocket)
+            return;
+
+        orig(self);
     }
 
 
@@ -115,24 +129,5 @@ public class Replayer : ModSystem
         public void StopListening() => throw new InvalidOperationException("The replaying socket cannot listen");
 
         public RemoteAddress GetRemoteAddress() => _remoteAddress;
-
-        public class UpdateRateCommand : ModCommand
-        {
-            public override void Action(CommandCaller caller, string input, string[] args)
-            {
-                if (args.Length < 1 || !int.TryParse(args[0], out var updateRate))
-                    return;
-
-                Main.instance.TargetElapsedTime = TimeSpan.FromSeconds(1.0 / updateRate);
-                caller.Reply(
-                    $"Update rate is now {updateRate}/s ({Main.instance.TargetElapsedTime.TotalMilliseconds:F4}ms)");
-
-                if (Main.FrameSkipMode != FrameSkipMode.On)
-                    caller.Reply("Hey, check your frame skip setting!", Color.Orange);
-            }
-
-            public override string Command => "updaterate";
-            public override CommandType Type => CommandType.Chat;
-        }
     }
 }
