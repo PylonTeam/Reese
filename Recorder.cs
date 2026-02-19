@@ -78,8 +78,9 @@ public class Recorder : ModSystem
         // Not really needed, because we probably just did it above, but why not.
         recordClient.Reset();
         recordClient.Name = RecordClientName;
-        recordClient.Socket =
-            new RecordSocket(recordClient, ReplayFile.Write(File.Open("record.bin", FileMode.Create)));
+        // FIXME: File name too long? file path too long? do we care is that our problem??
+        recordClient.Socket = new RecordSocket(recordClient,
+            ReplayFile.Write(File.Open($"{Main.worldName}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.reese", FileMode.Create)));
 
         // RemoteClient.Update would set this because Socket.IsConnected() returned true, but we need this now, so
         // fast-track it.
