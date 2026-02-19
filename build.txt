@@ -1,6 +1,6 @@
 displayName = Reese
-author = James Puleo <james@jame.xyz>
+author = resin <hey@amberres.in>
 version = 0.1.0
 hideCode = true
-homepage = https://jame.xyz
+homepage = https://amberres.in
 side = NoSync
