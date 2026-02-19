@@ -3,7 +3,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using log4net;
-using Terraria;
 
 namespace Reese;
 
@@ -18,8 +17,7 @@ public class ReplayFile : IDisposable
     private BinaryWriter _binaryWriter;
     private BinaryReader _binaryReader;
 
-    // FIXME: Implementation detail to rely on this bullshit like we are
-    public uint GameUpdateCount { get; private set; }
+    public uint Tick { get; private set; }
 
     // FIXME: We should just buffer this.
     public int NumberOfPacketDataBytesRemaining { get; private set; }
@@ -34,8 +32,15 @@ public class ReplayFile : IDisposable
     }
 
     // FIXME: Ever heard of async? We have the opportunity upstream.
-    public void WritePacketData(byte[] data)
+    public void WritePacketData(byte[] data, uint tick)
     {
+        // Can't go backwards
+        if (Tick > tick)
+            throw new Exception("Cannot write packet data into the past");
+
+        if (Tick < tick)
+            FlushTick(tick);
+
         if (NumberOfPacketDataBytesRemaining == 0)
         {
             _binaryWriter.Write(0);
@@ -51,12 +56,12 @@ public class ReplayFile : IDisposable
         // FIXME: This seems like a shitty way to handle EOF? idek
         try
         {
-            GameUpdateCount = Main.GameUpdateCount + _binaryReader.ReadUInt32();
+            Tick += _binaryReader.ReadUInt32();
             NumberOfPacketDataBytesRemaining = _binaryReader.ReadInt32();
         }
         catch (EndOfStreamException)
         {
-            GameUpdateCount = 0;
+            Tick = 0;
             NumberOfPacketDataBytesRemaining = 0;
         }
     }
@@ -74,14 +79,19 @@ public class ReplayFile : IDisposable
 
     public void FlushTick()
     {
+        FlushTick(Tick);
+    }
+
+    private void FlushTick(uint tick)
+    {
         if (NumberOfPacketDataBytesRemaining > 0)
         {
             _binaryWriter.Seek((-NumberOfPacketDataBytesRemaining) - 8, SeekOrigin.Current);
-            _binaryWriter.Write(Main.GameUpdateCount - GameUpdateCount);
+            _binaryWriter.Write(tick - Tick);
             _binaryWriter.Write(NumberOfPacketDataBytesRemaining);
             _binaryWriter.Seek(0, SeekOrigin.End);
 
-            GameUpdateCount = Main.GameUpdateCount;
+            Tick = tick;
             NumberOfPacketDataBytesRemaining = 0;
         }
     }

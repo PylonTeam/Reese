@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using log4net;
+using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using Terraria;
 using Terraria.ModLoader;
@@ -10,15 +11,29 @@ using Terraria.Net.Sockets;
 
 namespace Reese;
 
-public class Replayer : ModSystem
+[Autoload(Side = ModSide.Client)]
+public class Replayer : ModSystem, ITicker
 {
     private delegate void HighFpsSupportConfigEnsureValidateStateDelegate(object self);
 
+    public uint Ticks { get; private set; }
     private Hook _highFpsSupportConfigEnsureValidStateHook;
 
     public override void Load()
     {
         On_Netplay.ClientLoopSetup += OnClientLoopSetup;
+        IL_Main.DoUpdate += il =>
+        {
+            var cursor = new ILCursor(il);
+            cursor.GotoNext(i => i.MatchStsfld<Main>("drawSkip"));
+            // cursor.Index += 1;
+            cursor.EmitDelegate(() =>
+            {
+                Ticks++;
+                if ((Ticks % 60) == 0)
+                    Mod.Logger.Info("Tick!");
+            });
+        };
     }
 
     public override void PostSetupContent()
@@ -45,10 +60,11 @@ public class Replayer : ModSystem
         // FIXME: shitty way to start watching replays from a specific magic IP lol
         if (address.GetIdentifier() == "10.2.3.4")
         {
+            Ticks = 0;
             Mod.Logger.Info("Connecting to magic replay IP thingy!");
             Netplay.Connection = new RemoteServer();
             Netplay.Connection.ReadBuffer = new byte[ushort.MaxValue]; // TML: 1024 -> ushort.MaxValue
-            Netplay.Connection.Socket = new ReplaySocket(ReplayFile.Read(File.OpenRead("record.bin")));
+            Netplay.Connection.Socket = new ReplaySocket(this, ReplayFile.Read(File.OpenRead("record.bin")));
         }
     }
 
@@ -63,7 +79,6 @@ public class Replayer : ModSystem
 
         orig(self);
     }
-
 
     public override void Unload()
     {
@@ -80,7 +95,7 @@ public class Replayer : ModSystem
         public override string ToString() => GetFriendlyName();
     }
 
-    private class ReplaySocket(ReplayFile replayFile) : ISocket
+    private class ReplaySocket(ITicker ticker, ReplayFile replayFile) : ISocket
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(ReplaySocket));
         private readonly ReplayRemoteAddress _remoteAddress = new();
@@ -115,8 +130,7 @@ public class Replayer : ModSystem
 
         public bool IsDataAvailable()
         {
-            return Main.GameUpdateCount >= replayFile.GameUpdateCount &&
-                   replayFile.NumberOfPacketDataBytesRemaining > 0;
+            return ticker.Ticks >= replayFile.Tick && replayFile.NumberOfPacketDataBytesRemaining > 0;
         }
 
         public void SendQueuedPackets()

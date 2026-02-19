@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Reflection;
 using log4net;
+using Microsoft.Xna.Framework;
 using MonoMod.Cil;
 using Terraria;
 using Terraria.GameContent.Creative;
@@ -26,9 +27,11 @@ namespace Reese;
 //
 // Packet packets[while($ < std::mem::size())] @ 0x0;
 
-public class Recorder : ModSystem
+[Autoload(Side = ModSide.Server)]
+public class Recorder : ModSystem, ITicker
 {
     // FIXME: Become delegate
+    public uint Ticks { get; private set; }
     private static MethodInfo _modNetSyncMods;
     private static MethodInfo _modNetSendNetIds;
     private static MethodInfo _netMessageSyncOnePlayer;
@@ -65,20 +68,37 @@ public class Recorder : ModSystem
         // FIXME: This should only be done for the replay client, not ALL clients!
         // Always broadcast DamageNPC regardless of distance to the client's player.
         IL_NetMessage.SendData += EditNetMessageSendData;
+
+        // IL_Main.DoUpdate += il =>
+        // {
+        //     var cursor = new ILCursor(il);
+        //     cursor.GotoNext(i => i.MatchStsfld<Main>("drawSkip"));
+        //     // cursor.Index += 1;
+        //     cursor.EmitDelegate(() =>
+        //     {
+        //         Ticks++;
+        //         if ((Ticks % 60) == 0)
+        //             Mod.Logger.Info("Tick!");
+        //     });
+        // };
     }
 
     private void StartRecording()
     {
+        // FIXME: Will this break an existing recording that we try to end? prob need to do it later.
+        Ticks = 0;
         const int RecordClientIndex = 254;
         const string RecordClientName = "Recording";
+
+        var replayFile = ReplayFile.Write(File.Open($"{Main.worldName}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.reese",
+            FileMode.Create));
 
         var recordClient = Netplay.Clients[RecordClientIndex];
         // Not really needed, because we probably just did it above, but why not.
         recordClient.Reset();
         recordClient.Name = RecordClientName;
         // FIXME: File name too long? file path too long? do we care is that our problem??
-        recordClient.Socket = new RecordSocket(recordClient,
-            ReplayFile.Write(File.Open($"{Main.worldName}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.reese", FileMode.Create)));
+        recordClient.Socket = new RecordSocket(this, recordClient, replayFile);
 
         // RemoteClient.Update would set this because Socket.IsConnected() returned true, but we need this now, so
         // fast-track it.
@@ -183,7 +203,7 @@ public class Recorder : ModSystem
         NetMessage.SendData(MessageID.FinishedConnectingToServer, recordClient.Id);
 
         // Flush now, so that it comes at update delta 0
-        recordClient.Socket.SendQueuedPackets();
+        replayFile.FlushTick();
     }
 
     private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
@@ -206,6 +226,13 @@ public class Recorder : ModSystem
         cursor.Remove();
         // ...and replace it with 1/true.
         cursor.EmitLdcI4(1);
+    }
+
+    public override void PostUpdateEverything()
+    {
+        Ticks++;
+        if (Ticks % 60 == 0)
+            Mod.Logger.Info("Tick!");
     }
 
     public override void OnWorldUnload()
@@ -242,7 +269,7 @@ public class Recorder : ModSystem
         public override string ToString() => GetFriendlyName();
     }
 
-    private class RecordSocket(RemoteClient remoteClient, ReplayFile replayFile) : ISocket
+    private class RecordSocket(ITicker ticker, RemoteClient remoteClient, ReplayFile replayFile) : ISocket
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(RecordSocket));
         private readonly RecordRemoteAddress _remoteAddress = new();
@@ -264,7 +291,7 @@ public class Recorder : ModSystem
         public void AsyncSend(byte[] data, int offset, int size, SocketSendCallback callback, object state = null)
         {
             // FIXME: Actually do this async
-            replayFile.WritePacketData(data[offset..(offset + size)]);
+            replayFile.WritePacketData(data[offset..(offset + size)], ticker.Ticks);
 
             callback(state);
         }
@@ -276,7 +303,6 @@ public class Recorder : ModSystem
 
         public void SendQueuedPackets()
         {
-            replayFile.FlushTick();
             // TODO: Verify this is actually preventing us from timing out
             //       (and that this is an issue at all which i think it is)
             remoteClient.TimeOutTimer = 0;
