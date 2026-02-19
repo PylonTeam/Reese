@@ -1,7 +1,9 @@
 using System;
 using System.IO;
 using log4net;
+using Microsoft.Xna.Framework;
 using Terraria;
+using Terraria.Enums;
 using Terraria.ModLoader;
 using Terraria.Net;
 using Terraria.Net.Sockets;
@@ -87,5 +89,24 @@ public class Replayer : ModSystem
         public void StopListening() => throw new InvalidOperationException("The replaying socket cannot listen");
 
         public RemoteAddress GetRemoteAddress() => _remoteAddress;
+
+        public class UpdateRateCommand : ModCommand
+        {
+            public override void Action(CommandCaller caller, string input, string[] args)
+            {
+                if (args.Length < 1 || !int.TryParse(args[0], out var updateRate))
+                    return;
+
+                Main.instance.TargetElapsedTime = TimeSpan.FromSeconds(1.0 / updateRate);
+                caller.Reply(
+                    $"Update rate is now {updateRate}/s ({Main.instance.TargetElapsedTime.TotalMilliseconds:F4}ms)");
+
+                if (Main.FrameSkipMode != FrameSkipMode.On)
+                    caller.Reply("Hey, check your frame skip setting!", Color.Orange);
+            }
+
+            public override string Command => "updaterate";
+            public override CommandType Type => CommandType.Chat;
+        }
     }
 }
