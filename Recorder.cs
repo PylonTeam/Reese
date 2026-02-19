@@ -67,12 +67,10 @@ public class Recorder : ModSystem
         IL_NetMessage.SendData += EditNetMessageSendData;
     }
 
-    private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
+    private void StartRecording()
     {
         const int RecordClientIndex = 254;
         const string RecordClientName = "Recording";
-
-        orig();
 
         var recordClient = Netplay.Clients[RecordClientIndex];
         // Not really needed, because we probably just did it above, but why not.
@@ -188,6 +186,12 @@ public class Recorder : ModSystem
         recordClient.Socket.SendQueuedPackets();
     }
 
+    private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
+    {
+        orig();
+        StartRecording();
+    }
+
     // FIXME: This is a shitty edit I think?
     private void EditNetMessageSendData(ILContext il)
     {
@@ -216,6 +220,17 @@ public class Recorder : ModSystem
                     recordSocket.Close();
             }
         }
+    }
+
+    public class RecordCommand : ModCommand
+    {
+        public override void Action(CommandCaller caller, string input, string[] args)
+        {
+            ModContent.GetInstance<Recorder>().StartRecording();
+        }
+
+        public override string Command => "record";
+        public override CommandType Type => CommandType.Console;
     }
 
     private class RecordRemoteAddress : RemoteAddress
