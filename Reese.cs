@@ -4,10 +4,17 @@ namespace Reese;
 
 // General FIXMEs in architecture and implementation
 // FIXME: We don't handle how servers do updates well at all, because it requires Netplay.HasClients!
+// FIXME: Graceful replay ending? handle errors and eof? what do?
 // FIXME: Oops, I changed order of operations when abstracting towards ReplayFile, now we get a value from
 //        Main.GameUpdateCount too soon! it's contents is from the previous play state. it causes the replay to be
 //        delayed by however long you last played.
 // FIXME: You probably can't open chests! Could track the data and forge the proper packet responses.
 // FIXME: Just playing on a server that's being recorded, NPCs seem to slide around?
+// FIXME: Something is wrong with our baseline, because we for sure see trees change style randomly in the middle of a replay -- proving that our WorldData packet is wrong probably?
+// FIXME: At some point the left side of the world just ends! The right side is all good though.
+//        I also saw tile rects get synced over inside of the void, which probably indicates that the server believes
+//        the client has that section (because tile rects only happen for players that have synced that section). probably.
+// FIXME: Obviously we need a better interface for interacting with a replay that isn't just dropping a player into the same world (allowing some influence)
+// FIXME: Sleeping is fucked up, causes mispredictions, because the client needs EVERYONE sleeping to advance time, and the replay player isn't sleeping but has influence.
 
 public class Reese : Mod;
