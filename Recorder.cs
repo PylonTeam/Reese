@@ -1,8 +1,8 @@
 using System;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using log4net;
+using MonoMod.Cil;
 using Terraria;
 using Terraria.GameContent.Creative;
 using Terraria.GameContent.Events;
@@ -54,13 +54,17 @@ public class Recorder : ModSystem
         // IL_Main.DedServ_PostModLoad += EditMainDedServ_PostModLoad;
 
         // FIXME: REMOVE THIS BULLSHIT TEST
-        On_Netplay.UpdateConnectedClients += orig =>
-        {
-            orig();
-            var trueCount = Netplay.Clients.Count(client => client.IsConnected());
-            // remove the recording client from consideration i guess???
-            Netplay.HasClients = trueCount - 1 > 0;
-        };
+        // On_Netplay.UpdateConnectedClients += orig =>
+        // {
+        //     orig();
+        //     var trueCount = Netplay.Clients.Count(client => client.IsConnected());
+        //     // remove the recording client from consideration i guess???
+        //     Netplay.HasClients = trueCount - 1 > 0;
+        // };
+
+        // FIXME: This should only be done for the replay client, not ALL clients!
+        // Always broadcast DamageNPC regardless of distance to the client's player.
+        IL_NetMessage.SendData += EditNetMessageSendData;
     }
 
     private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
@@ -181,6 +185,22 @@ public class Recorder : ModSystem
 
         // Flush now, so that it comes at update delta 0
         recordClient.Socket.SendQueuedPackets();
+    }
+
+    // FIXME: This is a shitty edit I think?
+    private void EditNetMessageSendData(ILContext il)
+    {
+        var cursor = new ILCursor(il);
+
+        // Find the first store to local 115...
+        // (determines whether this player should receive the packet -- this is its initialization)
+        cursor.GotoNext(i => i.MatchStloc(115));
+        // ...and go back one instruction, to the load of the initial value...
+        cursor.Index -= 1;
+        // ...to remove it...
+        cursor.Remove();
+        // ...and replace it with 1/true.
+        cursor.EmitLdcI4(1);
     }
 
     public override void OnWorldUnload()
