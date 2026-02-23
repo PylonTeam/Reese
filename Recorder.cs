@@ -38,6 +38,8 @@ public class Recorder : ModSystem, ITicker
     private static MethodInfo _netMessageSendNPCHousesAndTravelShop;
     private static MethodInfo _netPlayKickClient;
 
+    private static string _lastReplayPath; // temporary path to store latest replay, useful for quick testing and debugging rn.
+
     public override void Load()
     {
         _modNetSyncMods = typeof(ModNet).GetMethod("SyncMods", BindingFlags.NonPublic | BindingFlags.Static);
@@ -90,8 +92,12 @@ public class Recorder : ModSystem, ITicker
         const int RecordClientIndex = 254;
         const string RecordClientName = "Recording";
 
-        var replayFile = ReplayFile.Write(File.Open($"{Main.worldName}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.reese",
-            FileMode.Create));
+        var dir = ReeseReplayPaths.GetFolder();
+        Directory.CreateDirectory(dir);
+        var filePath = Path.Combine(dir, $"{Main.worldName}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.reese");
+        _lastReplayPath = filePath;
+
+        var replayFile = ReplayFile.Write(File.Open(filePath, FileMode.Create, FileAccess.Write, FileShare.Read));
 
         var recordClient = Netplay.Clients[RecordClientIndex];
         // Not really needed, because we probably just did it above, but why not.
@@ -232,10 +238,15 @@ public class Recorder : ModSystem, ITicker
     {
         Ticks++;
         if (Ticks % 60 == 0)
-            Mod.Logger.Info("Tick!");
+            Log.Info("Server tick: " + Ticks);
     }
 
     public override void OnWorldUnload()
+    {
+        StopRecording();
+    }
+
+    public void StopRecording()
     {
         if (Main.dedServ)
         {
@@ -247,8 +258,30 @@ public class Recorder : ModSystem, ITicker
                     recordSocket.Close();
             }
         }
+
+        try
+        {
+            var recordBinPath = ReeseReplayPaths.GetFile();
+
+            if (!string.IsNullOrWhiteSpace(_lastReplayPath) && File.Exists(_lastReplayPath))
+            {
+                File.Copy(_lastReplayPath, recordBinPath, true);
+                Log.Info($"Wrote record.bin: {recordBinPath} (source: {Path.GetFileName(_lastReplayPath)})");
+            }
+            else
+            {
+                Log.Warn("record.bin not written (no last replay path / file missing)");
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Warn("Failed to write record.bin: " + e);
+        }
     }
 
+    // Erky comment:
+    // If we always start recording when the server is started, why is this command needed?
+    // Is it just for future use? If so, that's fine. We'll supply an API for start/stop recording anyways.
     public class RecordCommand : ModCommand
     {
         public override void Action(CommandCaller caller, string input, string[] args)
@@ -279,7 +312,11 @@ public class Recorder : ModSystem, ITicker
             _netPlayKickClient.Invoke(null, [this, NetworkText.FromLiteral("Recording closed")]);
             // This is essentially a flush operation
             SendQueuedPackets();
-            Logger.Info("Closing record socket");
+            Log.Info("Closing record socket");
+
+            // Erky comment: I added the below line of code, I assume you forgot to
+            try { replayFile.FlushTick(); } catch { }
+
             replayFile.Dispose();
         }
 

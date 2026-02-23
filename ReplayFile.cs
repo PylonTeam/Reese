@@ -12,7 +12,6 @@ public class ReplayFile : IDisposable
 {
     public const string Identifier = "Reese";
     private static readonly byte[] IdentifierASCII = Encoding.ASCII.GetBytes(Identifier);
-    private static readonly ILog Logger = LogManager.GetLogger(typeof(ReplayFile));
 
     private BinaryWriter _binaryWriter;
     private BinaryReader _binaryReader;
