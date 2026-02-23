@@ -1,1 +1,8 @@
-Mods.Reese.Keybinds.ReplayUI.DisplayName: Replay U I
+Mods: {
+	Reese: {
+		Keybinds: {
+			ReplayUI.DisplayName: Open Replay UI
+			TimescaleUI.DisplayName: Open Timescale UI
+		}
+	}
+}

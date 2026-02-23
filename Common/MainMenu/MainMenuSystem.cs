@@ -6,10 +6,10 @@ using Terraria.UI;
 namespace Reese.Common.MainMenu;
 
 [Autoload(Side = ModSide.Client)]
-internal sealed class ReplaysMainMenuUISystem : ModSystem
+internal sealed class MainMenuSystem : ModSystem
 {
     private UserInterface reeseMainMenuUI;
-    private ReplaysMainMenuUIState reeseMainMenuState;
+    private ReplaysBrowserUIState reeseMainMenuState;
 
     public override void PostSetupContent()
     {
@@ -17,7 +17,7 @@ internal sealed class ReplaysMainMenuUISystem : ModSystem
             return;
 
         reeseMainMenuUI = new UserInterface();
-        reeseMainMenuState = new ReplaysMainMenuUIState();
+        reeseMainMenuState = new ReplaysBrowserUIState();
         reeseMainMenuUI.SetState(reeseMainMenuState);
 
         On_Main.DrawMenu += DrawMenu;
