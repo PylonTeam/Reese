@@ -13,6 +13,7 @@ internal class SliderElement : UIElement
     private readonly string labelTextKey;
     private readonly float step;
     private readonly Action<float> onValueChangedCallback;
+    private readonly Func<float, string> labelFormatter;
     private readonly float[] snapValues;
 
     public UIText Label;
@@ -22,7 +23,15 @@ internal class SliderElement : UIElement
 
     private float appliedValue;
 
-    public SliderElement(string label, float min, float max, float defaultValue, float step = 0.01f, Action<float> onValueChanged = null, float[] snapValues = null)
+    public SliderElement(
+        string label,
+        float min,
+        float max,
+        float defaultValue,
+        float step = 0.01f,
+        Action<float> onValueChanged = null,
+        float[] snapValues = null,
+        Func<float, string> labelFormatter = null)
     {
         Min = min;
         Max = max;
@@ -30,6 +39,7 @@ internal class SliderElement : UIElement
         this.step = step;
         onValueChangedCallback = onValueChanged;
         this.snapValues = snapValues;
+        this.labelFormatter = labelFormatter;
 
         Width.Set(0f, 1f);
         Height.Set(46f, 0f);
@@ -120,6 +130,12 @@ internal class SliderElement : UIElement
 
     private void UpdateLabelText()
     {
+        if (labelFormatter != null)
+        {
+            Label.SetText(labelFormatter(appliedValue));
+            return;
+        }
+
         if (labelTextKey == "Timescale")
         {
             Label.SetText($"Timescale: {appliedValue:0.###}x");

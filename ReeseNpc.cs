@@ -7,8 +7,7 @@ public class ReeseNpc : GlobalNPC
 {
     public override void SetDefaults(NPC entity)
     {
-        // Only NPCs nearby the player are transmitted -- this forces all NPCs to always be transmitted.
-        // FIXME: This should only be done for the replay client, not ALL clients!
-        entity.netAlways = true;
+        // Replay capture now force-syncs active NPCs only to the recording client.
+        // Do not make real multiplayer clients receive every NPC globally.
     }
 }

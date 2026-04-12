@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.UI;
 using ReLogic.Content;
+using System;
 using System.IO;
 using System.Linq;
 using Terraria;
@@ -14,7 +16,7 @@ public class ReplayListItem : UIPanel
 {
     private readonly string fullPath;
     private readonly UICharacter preview;
-    private readonly UIImageButton playButton;
+    private readonly ReeseUIImageButton playButton;
     private readonly HoverInfoPill datePill;
     private readonly HoverInfoPill durationPill;
     private readonly HoverInfoPill worldSizePill;
@@ -31,12 +33,15 @@ public class ReplayListItem : UIPanel
         BackgroundColor = new Color(63, 82, 151) * 0.95f;
         BorderColor = new Color(89, 116, 213) * 0.95f;
 
-        preview = new UICharacter(BuildPreviewPlayer(), animated: true, hasBackPanel: true, characterScale: 0.9f, useAClone: true);
+        ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(fullPath);
+
+        //preview = new UICharacter(BuildPreviewPlayer(info.PlayerNameRaw), animated: true, hasBackPanel: true, characterScale: 0.9f, useAClone: true);
+        preview = BuildPreviewCharacter(info.PlayerNameRaw);
         preview.Left.Set(4f, 0f);
         preview.Top.Set(0f, 0f);
         Append(preview);
 
-        string fileName = Path.GetFileName(fullPath);
+        string fileName = info.FileName;
         string dateText = File.GetLastWriteTime(fullPath).ToString("MMM d, yyyy, h:mm tt");
 
         UIText name = new(fileName, 0.9f)
@@ -54,7 +59,7 @@ public class ReplayListItem : UIPanel
         };
         Append(datePill);
 
-        durationPill = new HoverInfoPill("00:00", "Duration")
+        durationPill = new HoverInfoPill(info.DurationText, "Duration")
         {
             Left = { Pixels = 220f },
             Top = { Pixels = 30f },
@@ -62,7 +67,7 @@ public class ReplayListItem : UIPanel
         };
         Append(durationPill);
 
-        difficultyPill = new HoverInfoPill("PlayerName", "Player name")
+        difficultyPill = new HoverInfoPill(info.PlayerName, "Player name")
         {
             Left = { Pixels = 280 },
             Top = { Pixels = 30f },
@@ -70,7 +75,7 @@ public class ReplayListItem : UIPanel
         };
         Append(difficultyPill);
 
-        worldSizePill = new HoverInfoPill("WorldName", "World name")
+        worldSizePill = new HoverInfoPill(info.WorldName, "World name")
         {
             Left = { Pixels = 360 },
             Top = { Pixels = 30f },
@@ -82,7 +87,7 @@ public class ReplayListItem : UIPanel
         Asset<Texture2D> playAsset = Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay");
         const float playScale = 2.0f;
 
-        playButton = new UIImageButton(playAsset);
+        playButton = new(playAsset);
         playButton.Width.Set(playAsset.Width() * playScale, 0f);
         playButton.Height.Set(playAsset.Height() * playScale, 0f);
         //playButton.Left.Set(-18f, 1f);
@@ -110,7 +115,42 @@ public class ReplayListItem : UIPanel
         Append(playButton);
     }
 
-    private static Player BuildPreviewPlayer()
+
+    private static UICharacter BuildPreviewCharacter(string playerName)
+    {
+        try
+        {
+            return new UICharacter(BuildPreviewPlayer(playerName), animated: true, hasBackPanel: true, characterScale: 0.9f, useAClone: true);
+        }
+        catch (Exception e)
+        {
+            Log.Warn($"Failed to build replay preview character for '{playerName}': {e.Message}");
+            return new UICharacter(BuildFallbackPreviewPlayer(), animated: true, hasBackPanel: true, characterScale: 0.9f, useAClone: false);
+        }
+    }
+
+    private static Player BuildFallbackPreviewPlayer()
+    {
+        Player player = new()
+        {
+            active = true,
+            dead = false,
+            name = "Player",
+            Male = true,
+            hair = 0,
+            skinVariant = 0,
+            hairColor = Color.Brown,
+            skinColor = Color.White,
+            eyeColor = Color.White,
+            shirtColor = Color.White,
+            underShirtColor = Color.White,
+            pantsColor = Color.White,
+            shoeColor = Color.White
+        };
+
+        return player;
+    }
+    private static Player BuildPreviewPlayer(string playerName)
     {
         Main.LoadPlayers();
 
@@ -118,10 +158,17 @@ public class ReplayListItem : UIPanel
             .Where(x => x?.Player != null)
             .ToArray();
 
+        if (!string.IsNullOrWhiteSpace(playerName))
+        {
+            var match = players.FirstOrDefault(x => string.Equals(x.Player.name, playerName, StringComparison.OrdinalIgnoreCase));
+            if (match?.Player != null)
+                return (Player)match.Player.clientClone();
+        }
+
         if (players.Length > 0)
         {
-            int index = Main.rand.Next(players.Length);
-            return (Player)players[index].Player.clientClone();
+            var selected = players.FirstOrDefault(x => x.Player == Main.LocalPlayer) ?? players[0];
+            return (Player)selected.Player.clientClone();
         }
 
         return new Player();

@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework;
 using System;
 using System.Diagnostics;
 using Terraria;
+using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace Reese.Common.TimeScaleTool;
@@ -167,6 +168,9 @@ internal sealed class TimeScaleSystem : ModSystem
     private static void NotifyWorldTickAdvanced()
     {
         ModContent.GetInstance<LocalWorldSessionSystem>().AdvanceWorldTick();
+
+        if (Main.netMode != NetmodeID.Server && ReplaySession.IsReplayPlayback)
+            ModContent.GetInstance<Replayer>().AdvancePlaybackTick();
     }
 
     private void HookUpdateTime(On_Main.orig_UpdateTime orig)

@@ -45,11 +45,14 @@ internal sealed class ReplaysBrowserUIState : UIState
         header.SetPadding(6f);
         root.Append(header);
 
-        UIHoverImage openFolderButton = new(UICommon.ButtonOpenFolder, "Open Replays Folder")
+        string path = ReeseReplayPaths.GetFolder();
+        string folderName = path.Split(['/', '\\'], StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
+        ReeseUIHoverImage openFolderButton = new(UICommon.ButtonOpenFolder, $"Open {folderName}")
         {
             RemoveFloatingPointsFromDrawPosition = true,
             UseTooltipMouseText = true,
             Left = { Pixels = 6f },
+            Top = { Pixels = 0f },
             VAlign = 0.5f
         };
         openFolderButton.OnLeftClick += (_, _) =>
@@ -59,6 +62,16 @@ internal sealed class ReplaysBrowserUIState : UIState
             try { Utils.OpenFolder(dir); } catch { }
         };
         header.Append(openFolderButton);
+
+        ReeseUIHoverImage refreshButton = new(UICommon.ButtonDownloadTexture, $"Refresh {folderName}")
+        {
+            RemoveFloatingPointsFromDrawPosition = true,
+            UseTooltipMouseText = true,
+            Left = { Pixels = 36f },
+            VAlign = 0.5f
+        };
+        refreshButton.OnLeftClick += (_, _) => Rebuild();
+        header.Append(refreshButton);
 
         searchBox = new("Type to search")
         {
@@ -156,19 +169,13 @@ internal sealed class ReplaysBrowserUIState : UIState
 
             try
             {
-                Replayer.PendingReplayPath = demoPath;
-                Log.Debug("Set pending replay path in Replayer to: " + Replayer.PendingReplayPath);
-
-                Netplay.SetRemoteIP("10.2.3.4");
-                Main.autoPass = true;
-                Main.statusText = Lang.menu[8].Value;
-                Netplay.StartTcpClient();
-                Main.menuMode = 10;
+                Replayer.BeginPlayback(demoPath);
             }
-            catch
+            catch (Exception e)
             {
-                Log.Error("Failed to join magic IP thingy");
-                Main.statusText = "Failed to join magic IP thingy";
+                Log.Error("Failed to start replay: " + e);
+                Main.statusText = "Failed to start replay";
+                ReplaySession.End("playback launch failed");
             }
         });
     }
