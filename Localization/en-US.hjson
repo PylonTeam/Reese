@@ -1,8 +1,81 @@
 Mods: {
 	Reese: {
-		Keybinds: {
-			ReplayUI.DisplayName: Open Replay UI
-			TimescaleUI.DisplayName: Open Timescale UI
+		Keybinds.ReplayUI.DisplayName: Open Replay UI
+
+		Configs: {
+			ClientConfig: {
+				DisplayName: Client Config
+
+				Headers: {
+					MainMenu: Main Menu
+					UI: UI
+					Chat: Chat
+					Replaying: Replaying
+				}
+
+				AddExtraMenuState: {
+					Label: Add Extra Menu State
+					Tooltip: Adds the extra Reese button to the main menu
+				}
+
+				ShowInMainMenu: {
+					Label: Show In Main Menu
+					Tooltip: Always shows the replay browser in main menu
+				}
+
+				ShowCameraFade: {
+					Label: Show Camera Fade
+					Tooltip: Fade to black when switching camera target
+				}
+
+				ShowDebugMessages: {
+					Label: Show Debug Messages
+					Tooltip: ""
+				}
+
+				replayHUDPosition: {
+					Label: Replay HUD Position
+					Tooltip: ""
+				}
+
+				replayHUDSize: {
+					Label: Replay HUD Size
+					Tooltip: ""
+				}
+			}
+
+			ReplayHUDPosition: {
+				Tooltip: ""
+
+				Top: {
+					Label: Top
+					Tooltip: ""
+				}
+
+				Bottom: {
+					Label: Bottom
+					Tooltip: ""
+				}
+			}
+
+			ReplayHUDSize: {
+				Tooltip: ""
+
+				Small: {
+					Label: Small
+					Tooltip: ""
+				}
+
+				Medium: {
+					Label: Medium
+					Tooltip: ""
+				}
+
+				Big: {
+					Label: Big
+					Tooltip: ""
+				}
+			}
 		}
 	}
 }

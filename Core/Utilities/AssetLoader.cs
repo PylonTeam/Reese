@@ -15,13 +15,13 @@ namespace Reese.Core.Utilities;
 /// </summary>
 public static class Ass
 {
-    // --- Assets start here --- (prefer alphabetical order for readability)
-
-    // Replay tool icons
+    // Replay tool assets
+    public static Asset<Texture2D> Icon_Camera;
     public static Asset<Texture2D> Icon_NextFrame;
     public static Asset<Texture2D> Icon_Pause;
     public static Asset<Texture2D> Icon_Play;
     public static Asset<Texture2D> Icon_Reset;
+    public static Asset<Texture2D> Icon_Refresh;
     public static Asset<Texture2D> Icon_Resize;
     public static Asset<Texture2D> Icon_Stop;
     public static Asset<Texture2D> Icon_SpeedUp;
@@ -32,7 +32,13 @@ public static class Ass
     public static Asset<Texture2D> SliderHighlight;
     public static Asset<Texture2D> SliderGradient;
 
-    // Ghost spectate
+    // Main menu assets
+    public static Asset<Texture2D> ButtonOpenFolder;
+    public static Asset<Texture2D> ButtonRefresh;
+    public static Asset<Texture2D> ButtonTableColumn;
+    public static Asset<Texture2D> ButtonTableColumn_Border;
+
+    // Ghost spectate assets
     public static Asset<Texture2D> Biome_Shimmer;
     public static Asset<Texture2D> GhostRight;
     public static Asset<Texture2D> GhostLeft;
@@ -47,6 +53,7 @@ public static class Ass
     public static Asset<Texture2D> Icon_Dead;
     public static Asset<Texture2D> Icon_Distance;
     public static Asset<Texture2D> Icon_Eye;
+    public static Asset<Texture2D> Icon_Eye_Off;
     public static Asset<Texture2D> Icon_FilmProjectorOn;
     public static Asset<Texture2D> Icon_FilmProjectorOff;
     public static Asset<Texture2D> Icon_GhostTeleport;
@@ -80,7 +87,7 @@ public static class Ass
             return;
         }
 
-        const string ModName = "GhostSpectating";
+        const string ModName = "Reese";
 
         MapBG = new Asset<Texture2D>[42];
 

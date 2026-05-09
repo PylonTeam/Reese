@@ -1,5 +1,5 @@
 using GhostSpectating.Common;
-using Reese.Common.GhostSpectate.SpectatorMode;
+using Reese.Common.ReplaySpectate.SpectatorMode;
 using Reese.Core.Debug;
 using System.Collections.Generic;
 

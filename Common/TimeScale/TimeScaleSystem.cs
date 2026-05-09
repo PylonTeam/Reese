@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualBasic;
 using Microsoft.Xna.Framework;
+using Reese.Common.Replayer;
 using System;
 using System.Diagnostics;
 using Terraria;
@@ -37,6 +38,9 @@ internal sealed class TimeScaleSystem : ModSystem
 
     public override void Load()
     {
+        if (Main.dedServ)
+            return;
+
         On_Main.DoUpdate += HookDoUpdate;
         On_Main.DoUpdateInWorld += HookDoUpdateInWorld;
         On_Main.UpdateTime += HookUpdateTime;
@@ -44,6 +48,9 @@ internal sealed class TimeScaleSystem : ModSystem
 
     public override void Unload()
     {
+        if (Main.dedServ)
+            return;
+
         On_Main.DoUpdate -= HookDoUpdate;
         On_Main.DoUpdateInWorld -= HookDoUpdateInWorld;
         On_Main.UpdateTime -= HookUpdateTime;
@@ -167,10 +174,10 @@ internal sealed class TimeScaleSystem : ModSystem
 
     private static void NotifyWorldTickAdvanced()
     {
-        ModContent.GetInstance<LocalWorldSessionSystem>().AdvanceWorldTick();
+        ModContent.GetInstance<LocalWorldSessionSystem>()?.AdvanceWorldTick();
 
         if (Main.netMode != NetmodeID.Server && ReplaySession.IsReplayPlayback)
-            ModContent.GetInstance<Replayer>().AdvancePlaybackTick();
+            ModContent.GetInstance<Replayer.Replayer>()?.AdvancePlaybackTick();
     }
 
     private void HookUpdateTime(On_Main.orig_UpdateTime orig)

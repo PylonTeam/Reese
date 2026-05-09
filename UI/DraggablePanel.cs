@@ -30,6 +30,7 @@ public abstract class DraggablePanel : UIElement
     // Overridable properties
     protected abstract void OnClosePanelLeftClick();
     protected virtual void OnRefreshPanelLeftClick() { }
+    protected virtual bool HasResizeButton() => true;
 
     /// <summary> Gets the minimum allowed width, in pixels, for resizing operations. </summary>
     protected virtual float MinResizeWidth => 350f;
@@ -134,6 +135,9 @@ public abstract class DraggablePanel : UIElement
         TitlePanel.Append(RefreshPanel);
 
         // Resize
+        if (!HasResizeButton())
+            return;
+
         ResizeButton = Ass.Icon_Resize != null ? new ResizeButton(Ass.Icon_Resize) : new ResizeButton(TextureAssets.MagicPixel);
 
         ResizeButton.OnDragX += dx =>

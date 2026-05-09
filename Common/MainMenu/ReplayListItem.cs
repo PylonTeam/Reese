@@ -1,6 +1,6 @@
-﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.MainMenu.State;
+using Reese.Common.GhostSpectate.Drawers;
 using Reese.Core.Debug;
 using Reese.UI;
 using ReLogic.Content;
@@ -8,126 +8,202 @@ using System;
 using System.IO;
 using System.Linq;
 using Terraria;
+using Terraria.Audio;
+using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
+using Terraria.ID;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
 namespace Reese.Common.MainMenu;
 
-public class ReplayListItem : UIPanel
+internal sealed class ReplayListItem : UIPanel
 {
-    private readonly string fullPath;
     private readonly UICharacter preview;
-    private readonly CustomUIImageButton playButton;
-    private readonly HoverInfoPill datePill;
-    private readonly HoverInfoPill durationPill;
-    private readonly HoverInfoPill worldSizePill;
-    private readonly HoverInfoPill difficultyPill;
 
-    public ReplayListItem(string fullPath)
+    public ReplayListItem(string fullPath, Action onDeleted)
     {
-        this.fullPath = fullPath;
+        ReplayBrowserLayout.Update();
 
         Width.Set(0f, 1f);
-        Height.Set(68f, 0f);
-        SetPadding(6f);
+        Height.Set(ReplayBrowserLayout.ReplayItemHeight, 0f);
+        SetPadding(0f);
 
         BackgroundColor = new Color(63, 82, 151) * 0.95f;
         BorderColor = new Color(89, 116, 213) * 0.95f;
+        OnLeftDoubleClick += (_, _) => ReplayMenuActions.Play(fullPath);
 
         ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(fullPath);
 
-        //preview = new UICharacter(BuildPreviewPlayer(info.PlayerNameRaw), animated: true, hasBackPanel: true, characterScale: 0.9f, useAClone: true);
-        preview = BuildPreviewCharacter(info.PlayerNameRaw);
-        preview.Left.Set(4f, 0f);
-        preview.Top.Set(0f, 0f);
-        Append(preview);
+        preview = BuildPreviewCharacter(info);
+        preview.SetAnimated(false);
+        Append(new ReplayPreviewElement(preview, ReplayBrowserLayout.ReplayItemHeight));
 
-        string fileName = info.FileName;
-        string dateText = File.GetLastWriteTime(fullPath).ToString("MMM d, yyyy, h:mm tt");
+        string dateLine = info.Date.ToString("yyyy-MM-dd");
+        string timeLine = info.Date.ToString("HH:mm");
+        string dateTooltip = $"Date: {dateLine} {timeLine}";
 
-        UIText name = new(fileName, 0.9f)
+        Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(info.FileName), info.MetadataTooltip, () => ReplayMenuActions.Play(fullPath))
         {
             Left = { Pixels = 68f },
-            Top = { Pixels = 4f }
-        };
-        Append(name);
+            Top = { Pixels = 4f },
+            Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - 76f },
+            Height = { Pixels = 22f }
+        });
 
-        datePill = new HoverInfoPill(dateText, "Date")
+        Append(new MainMenuStatElement(info.PlayerNameRaw, world: false)
         {
-            Left = { Pixels = 68f },
-            Top = { Pixels = 30f },
-            Width = { Pixels = 150f },
-        };
-        Append(datePill);
-
-        durationPill = new HoverInfoPill(info.DurationText, "Duration")
+            Left = { Pixels = 72f },
+            Top = { Pixels = 22f },
+            Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - 106f },
+            Height = { Pixels = 20f }
+        });
+        Append(new MainMenuStatElement(info.WorldNameRaw, world: true)
         {
-            Left = { Pixels = 220f },
-            Top = { Pixels = 30f },
-            Width = { Pixels = 60f },
-        };
-        Append(durationPill);
+            Left = { Pixels = 72f },
+            Top = { Pixels = 44f },
+            Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - 106f },
+            Height = { Pixels = 20f }
+        });
 
-        difficultyPill = new HoverInfoPill(info.PlayerName, "Player name")
-        {
-            Left = { Pixels = 280 },
-            Top = { Pixels = 30f },
-            Width = { Pixels = 80f }
-        };
-        Append(difficultyPill);
+        Append(UISortableTableColumn.CreateCenteredTwoLineCell(dateLine, timeLine, ReplayBrowserLayout.DateLeft, ReplayBrowserLayout.DateColumnWidth, dateTooltip));
+        Append(UISortableTableColumn.CreateLeftTextCell(info.DurationText, ReplayBrowserLayout.DurationLeft, ReplayBrowserLayout.DurationColumnWidth - ReplayBrowserLayout.ActionColumnWidth, $"Duration: {info.DurationText}"));
+        Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DateLeft, 68f));
+        Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DurationLeft, 68f));
 
-        worldSizePill = new HoverInfoPill(info.WorldName, "World name")
-        {
-            Left = { Pixels = 360 },
-            Top = { Pixels = 30f },
-            Width = { Pixels = 80f }
-        };
-        Append(worldSizePill);
-
-
-        Asset<Texture2D> playAsset = Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay");
-        const float playScale = 2.0f;
-
-        playButton = new(playAsset);
-        playButton.Width.Set(playAsset.Width() * playScale, 0f);
-        playButton.Height.Set(playAsset.Height() * playScale, 0f);
-        //playButton.Left.Set(-18f, 1f);
-        playButton.Left.Set(0, 0);
-        playButton.Top.Set(0f, 0f);
-        playButton.HAlign = 1f;
-        playButton.VAlign = 1f;
-        playButton.SetVisibility(0f, 0f);
-        playButton.OnLeftClick += (_, _) => ReplaysBrowserUIState.EnterReplay(fullPath);
-        playButton.OnMouseOver += (_, _) => UICommon.TooltipMouseText("Play");
-
-        playButton.OnDraw += _ =>
-        {
-            CalculatedStyle dim = playButton.GetDimensions();
-            float alpha = playButton.IsMouseHovering ? 1f : 0.55f;
-
-            Main.spriteBatch.Draw(playAsset.Value, dim.Position(), null, Color.White * alpha, 0f, Vector2.Zero, playScale, SpriteEffects.None, 0f);
-
-            if (playButton._borderTexture != null && playButton.IsMouseHovering)
-                Main.spriteBatch.Draw(playButton._borderTexture.Value, dim.Position(), null, Color.White, 0f, Vector2.Zero, playScale, SpriteEffects.None, 0f);
-
-            if (playButton.IsMouseHovering)
-                UICommon.TooltipMouseText("Play");
-        };
-        Append(playButton);
+        const float buttonSize = 22f;
+        const float buttonGap = 2f;
+        float buttonTop = (ReplayBrowserLayout.ReplayItemHeight - buttonSize) * 0.5f;
+        float actionLeft = -ReplayBrowserLayout.ActionColumnWidth - 1f;
+        Append(CreateVanillaImageButton(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", actionLeft, buttonTop, buttonSize, () => ReplayMenuActions.Play(fullPath)));
+        Append(CreateVanillaImageButton(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", actionLeft + buttonSize + buttonGap, buttonTop, buttonSize, () => ReplayMenuActions.Delete(fullPath, onDeleted)));
     }
 
+    private sealed class ReplayNameElement : UIElement
+    {
+        private const float TextScale = 0.86f;
 
-    private static UICharacter BuildPreviewCharacter(string playerName)
+        private readonly string text;
+        private readonly string tooltip;
+        private readonly Action onDoubleClick;
+
+        public ReplayNameElement(string text, string tooltip, Action onDoubleClick)
+        {
+            this.text = string.IsNullOrWhiteSpace(text) ? "-" : text;
+            this.tooltip = tooltip;
+            this.onDoubleClick = onDoubleClick;
+            OnLeftDoubleClick += (_, _) => this.onDoubleClick?.Invoke();
+        }
+
+        protected override void DrawSelf(SpriteBatch spriteBatch)
+        {
+            Rectangle area = GetDimensions().ToRectangle();
+            var font = FontAssets.MouseText.Value;
+            string drawText = FitText(font, text, area.Width);
+            Vector2 size = font.MeasureString(drawText) * TextScale;
+            Vector2 position = new(area.X, area.Y + (area.Height - size.Y) * 0.5f);
+
+            Utils.DrawBorderString(spriteBatch, drawText, position, Color.White, TextScale);
+
+            if (IsMouseHovering && !string.IsNullOrWhiteSpace(tooltip))
+                UICommon.TooltipMouseText(tooltip);
+        }
+
+        private static string FitText(ReLogic.Graphics.DynamicSpriteFont font, string value, float maxWidth)
+        {
+            if (font.MeasureString(value).X * TextScale <= maxWidth)
+                return value;
+
+            const string suffix = "..";
+            for (int length = value.Length - 1; length > 0; length--)
+            {
+                string candidate = value[..length] + suffix;
+                if (font.MeasureString(candidate).X * TextScale <= maxWidth)
+                    return candidate;
+            }
+
+            return font.MeasureString(suffix).X * TextScale <= maxWidth ? suffix : string.Empty;
+        }
+    }
+
+    private static UIImageButton CreateVanillaImageButton(Asset<Texture2D> texture, string tooltip, float left, float top, float size, Action onClick)
+    {
+        UIImageButton button = new(texture);
+        button.Left.Set(left, 1f);
+        button.Top.Set(top, 0f);
+        button.Width.Set(size, 0f);
+        button.Height.Set(size, 0f);
+        button.SetVisibility(1f, 0.55f);
+
+        bool playedTick = false;
+        button.OnMouseOver += (_, _) =>
+        {
+            if (!playedTick)
+            {
+                SoundEngine.PlaySound(SoundID.MenuTick);
+                playedTick = true;
+            }
+        };
+        button.OnMouseOut += (_, _) => playedTick = false;
+        button.OnUpdate += _ =>
+        {
+            if (button.IsMouseHovering)
+                UICommon.TooltipMouseText(tooltip);
+        };
+        button.OnLeftClick += (_, _) => onClick?.Invoke();
+        return button;
+    }
+
+    private sealed class MainMenuStatElement : UIElement
+    {
+        private readonly string text;
+        private readonly bool world;
+
+        public MainMenuStatElement(string text, bool world)
+        {
+            this.text = text;
+            this.world = world;
+        }
+
+        protected override void DrawSelf(SpriteBatch spriteBatch)
+        {
+            Rectangle area = GetDimensions().ToRectangle();
+
+            if (world)
+                StatDrawer.DrawWorldNameStatInMainMenu(spriteBatch, area, text, 0.78f);
+            else
+                StatDrawer.DrawPlayerNameStatInMainMenu(spriteBatch, area, text, 0.78f);
+        }
+    }
+
+    private sealed class ReplayPreviewElement : UIElement
+    {
+        public ReplayPreviewElement(UICharacter preview, float size)
+        {
+            Width.Set(size, 0f);
+            Height.Set(size, 0f);
+
+            preview.Width.Set(size, 0f);
+            preview.Height.Set(size, 0f);
+            Append(preview);
+        }
+
+        protected override void DrawSelf(SpriteBatch spriteBatch)
+        {
+            EntityDrawer.DrawEntityBackground(spriteBatch, GetDimensions().ToRectangle());
+        }
+    }
+
+    private static UICharacter BuildPreviewCharacter(ReplayDisplayInfo info)
     {
         try
         {
-            return new UICharacter(BuildPreviewPlayer(playerName), animated: true, hasBackPanel: true, characterScale: 0.9f, useAClone: true);
+            return new UICharacter(BuildPreviewPlayer(info), animated: false, hasBackPanel: false, characterScale: 0.9f, useAClone: false);
         }
         catch (Exception e)
         {
-            Log.Warn($"Failed to build replay preview character for '{playerName}': {e.Message}");
-            return new UICharacter(BuildFallbackPreviewPlayer(), animated: true, hasBackPanel: true, characterScale: 0.9f, useAClone: false);
+            Log.Warn($"Failed to build replay preview character for '{info?.PlayerNameRaw}': {e.Message}");
+            return new UICharacter(BuildFallbackPreviewPlayer(), animated: false, hasBackPanel: false, characterScale: 0.9f, useAClone: false);
         }
     }
 
@@ -152,8 +228,13 @@ public class ReplayListItem : UIPanel
 
         return player;
     }
-    private static Player BuildPreviewPlayer(string playerName)
+
+    private static Player BuildPreviewPlayer(ReplayDisplayInfo info)
     {
+        if (info?.PlayerSnapshot != null)
+            return info.PlayerSnapshot.ToPlayer();
+
+        string playerName = info?.PlayerNameRaw;
         Main.LoadPlayers();
 
         var players = Main.PlayerList
@@ -180,7 +261,7 @@ public class ReplayListItem : UIPanel
     {
         base.Update(gameTime);
 
-        if (IsMouseHovering || playButton.IsMouseHovering)
+        if (IsMouseHovering)
             Main.LocalPlayer.mouseInterface = true;
     }
 

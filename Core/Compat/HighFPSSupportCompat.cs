@@ -3,7 +3,7 @@ using Reese.Core.Debug;
 using System.Reflection;
 using Terraria;
 using Terraria.ModLoader;
-using static Reese.Replayer;
+using static Reese.Common.Replayer.Replayer;
 
 namespace Reese.Core.Compat;
 

@@ -1,0 +1,438 @@
+using Microsoft.Xna.Framework;
+using Reese.Common.Replayer;
+using Reese.Core.Configs;
+using Reese.Core.Debug;
+using Reese.Core.Utilities;
+using Reese.UI;
+using System;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using Terraria;
+using Terraria.GameContent.UI.Elements;
+using Terraria.ModLoader.UI;
+using Terraria.UI;
+
+namespace Reese.Common.MainMenu;
+
+internal sealed class ReplayBrowser : UIElement
+{
+    internal const float PanelWidth = 540f;
+    internal const float BrowserPanelHeight = 540f;
+
+    private ReplayBrowserPanel browserPanel;
+
+    public event Action OnRefreshStarted;
+
+    public override void OnActivate()
+    {
+        RemoveAllChildren();
+
+        Width.Set(PanelWidth, 0f);
+        Height.Set(BrowserPanelHeight, 0f);
+
+        browserPanel = new ReplayBrowserPanel();
+        browserPanel.Width.Set(0f, 1f);
+        browserPanel.Height.Set(BrowserPanelHeight, 0f);
+        browserPanel.OnRefreshStarted += () => OnRefreshStarted?.Invoke();
+        Append(browserPanel);
+        browserPanel.Build();
+    }
+
+    public void Refresh()
+    {
+        browserPanel?.Refresh();
+    }
+
+    public static void EnterReplay(string demoPath)
+    {
+        Main.QueueMainThreadAction(() =>
+        {
+            Main.LoadPlayers();
+            var player = Main.PlayerList.FirstOrDefault();
+            if (player == null)
+            {
+                Main.menuMode = 0;
+                return;
+            }
+
+            Main.SelectPlayer(player);
+            Log.Debug($"Successfully selected {player.Player.name} for replay");
+
+            if (!File.Exists(demoPath))
+            {
+                Log.Error("Error: No file demo found at: " + demoPath);
+                Main.menuMode = 0;
+                return;
+            }
+
+            long replayMegaBytes = new FileInfo(demoPath).Length / (1024 * 1024);
+            Log.Debug("Successfully found replay file, size: " + replayMegaBytes + " MB");
+
+            try
+            {
+                Replayer.Replayer.BeginPlayback(demoPath);
+            }
+            catch (Exception e)
+            {
+                Log.Error("Failed to start replay: " + e);
+                Main.statusText = "Failed to start replay";
+                ReplaySession.End("playback launch failed");
+            }
+        });
+    }
+}
+
+internal sealed class ReplayBrowserPanel : UIElement
+{
+    private enum SortColumn
+    {
+        Name,
+        Date,
+        Duration,
+    }
+
+    private UIList list;
+    private Searchbox searchBox;
+    private SortColumn sortColumn = SortColumn.Date;
+    private bool sortAscending;
+
+    public event Action OnRefreshStarted;
+
+    // Cache entries
+    private ReplayEntry[] cachedEntries = [];
+    private int refreshGeneration;
+
+    public void Build()
+    {
+        ReplayBrowserLayout.Update();
+
+        const float headerHeight = 46f;
+        const float headerButtonSize = 36f * 0.85f;
+        const float headerButtonGap = 4f;
+
+        RemoveAllChildren();
+        SetPadding(0f);
+        Width.Set(0f, 1f);
+        Height.Set(0f, 1f);
+
+        UIPanel container = new()
+        {
+            BackgroundColor = new Color(33, 43, 79) * 0.8f,
+            BorderColor = Color.Black
+        };
+        container.Width.Set(0f, 1f);
+        container.Height.Set(-headerHeight, 1f);
+        container.Top.Set(headerHeight, 0f);
+        container.SetPadding(ReplayBrowserLayout.ContentPadding);
+        Append(container);
+
+        UIElement tableHeader = new();
+        tableHeader.Width.Set(ReplayBrowserLayout.TableWidth, 0f);
+        tableHeader.Height.Set(ReplayBrowserLayout.TableColumnHeight, 0f);
+        container.Append(tableHeader);
+
+        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Replay", 0f, ReplayBrowserLayout.NameColumnWidth);
+        UISortableTableColumn dateColumn = UISortableTableColumn.AppendHeader(tableHeader, "Date", ReplayBrowserLayout.NameColumnWidth, ReplayBrowserLayout.DateColumnWidth);
+        UISortableTableColumn durationColumn = UISortableTableColumn.AppendHeader(tableHeader, "Session", ReplayBrowserLayout.NameColumnWidth + ReplayBrowserLayout.DateColumnWidth, ReplayBrowserLayout.DurationColumnWidth);
+
+        void RefreshColumnStates()
+        {
+            nameColumn.SetSortState(sortColumn == SortColumn.Name, sortAscending);
+            dateColumn.SetSortState(sortColumn == SortColumn.Date, sortAscending);
+            durationColumn.SetSortState(sortColumn == SortColumn.Duration, sortAscending);
+        }
+
+        void SortBy(SortColumn column)
+        {
+            if (sortColumn == column)
+                sortAscending = !sortAscending;
+            else
+            {
+                sortColumn = column;
+                sortAscending = true;
+            }
+
+            RefreshColumnStates();
+            Refresh();
+        }
+
+        nameColumn.OnLeftClick += (_, _) => SortBy(SortColumn.Name);
+        dateColumn.OnLeftClick += (_, _) => SortBy(SortColumn.Date);
+        durationColumn.OnLeftClick += (_, _) => SortBy(SortColumn.Duration);
+        RefreshColumnStates();
+
+        list = new UIList();
+        list.Width.Set(-ReplayBrowserLayout.ScrollbarWidth - 4f, 1f);
+        list.Height.Set(-ReplayBrowserLayout.ListTop, 1f);
+        list.Top.Set(ReplayBrowserLayout.ListTop, 0f);
+        list.ListPadding = 4f;
+        container.Append(list);
+
+        UIScrollbar scrollbar = new();
+        scrollbar.Width.Set(ReplayBrowserLayout.ScrollbarWidth, 0f);
+        scrollbar.Height.Set(-ReplayBrowserLayout.ListTop, 1f);
+        scrollbar.Left.Set(-ReplayBrowserLayout.ScrollbarWidth, 1f);
+        scrollbar.Top.Set(ReplayBrowserLayout.ListTop, 0f);
+        container.Append(scrollbar);
+        list.SetScrollbar(scrollbar);
+
+        UITextPanel<string> header = new("Reese", 0.72f, true)
+        {
+            BackgroundColor = new Color(73, 94, 171),
+            BorderColor = Color.Black
+        };
+        header.Width.Set(0f, 1f);
+        header.Height.Set(headerHeight, 0f);
+        header.SetPadding(6f);
+        Append(header);
+
+        UIImage cameraIcon = new(Ass.Icon_Camera)
+        {
+            HAlign = 0.5f,
+            VAlign = 0f,
+            Top = { Pixels = -4f },
+            Left = { Pixels = -66f }
+        };
+        cameraIcon.Width.Set(24f, 0f);
+        cameraIcon.Height.Set(24f, 0f);
+        header.Append(cameraIcon);
+
+        UIElement buttonStrip = new()
+        {
+            Left = { Pixels = 0f },
+            VAlign = 0
+        };
+        buttonStrip.Width.Set(headerButtonSize * 3f + headerButtonGap * 2f, 0f);
+        buttonStrip.Height.Set(headerButtonSize, 0f);
+        header.Append(buttonStrip);
+
+        UIHoverImage openFolderButton = new(Ass.ButtonOpenFolder, "Open folder")
+        {
+            ImageScale = 0.9f,
+            RemoveFloatingPointsFromDrawPosition = true,
+            UseTooltipMouseText = true
+        };
+        openFolderButton.Width.Set(headerButtonSize, 0f);
+        openFolderButton.Height.Set(headerButtonSize, 0f);
+        openFolderButton.OnLeftClick += (_, _) =>
+        {
+            string dir = ReeseReplayPaths.GetFolder();
+            Utils.TryCreatingDirectory(dir);
+            try { Utils.OpenFolder(dir); } catch { }
+        };
+        buttonStrip.Append(openFolderButton);
+
+        UIHoverImage refreshButton = new(Ass.ButtonRefresh, "Refresh")
+        {
+            ImageScale = 0.9f,
+            RemoveFloatingPointsFromDrawPosition = true,
+            UseTooltipMouseText = true,
+            Left = { Pixels = headerButtonSize + headerButtonGap }
+        };
+        refreshButton.Width.Set(headerButtonSize, 0f);
+        refreshButton.Height.Set(headerButtonSize, 0f);
+        refreshButton.OnLeftClick += (_, _) => Refresh();
+        buttonStrip.Append(refreshButton);
+
+        UIHoverImage configButton = new(UICommon.ButtonModConfigTexture, "Open config")
+        {
+            ImageScale = 0.9f,
+            RemoveFloatingPointsFromDrawPosition = true,
+            UseTooltipMouseText = true,
+            Left = { Pixels = headerButtonSize * 2f + headerButtonGap * 2f }
+        };
+        configButton.Width.Set(headerButtonSize, 0f);
+        configButton.Height.Set(headerButtonSize, 0f);
+        configButton.OnLeftClick += (_, _) => OpenReeseClientConfig();
+        buttonStrip.Append(configButton);
+
+        searchBox = new("Type to search")
+        {
+            Width = { Pixels = 156f },
+            Height = { Pixels = 28f },
+            Left = { Pixels = -168f, Percent = 1f },
+            VAlign = 0.5f
+        };
+        searchBox.OnTextChanged += ApplyCurrentFilter;
+        header.Append(searchBox);
+
+        Refresh(showLoading: false);
+    }
+
+    public override void Update(GameTime gameTime)
+    {
+        base.Update(gameTime);
+
+        if (!ReplayBrowserLayout.Update())
+            return;
+
+        Build();
+        ApplyCurrentFilter();
+    }
+
+    private void OpenReeseClientConfig()
+    {
+        var clientConfig = ModContent.GetInstance<ClientConfig>();
+        clientConfig.Open();
+    }
+
+    public void Refresh(bool showLoading = true)
+    {
+        if (list == null)
+            return;
+
+        int generation = ++refreshGeneration;
+
+        list.Clear();
+        list.Recalculate();
+
+        if (showLoading)
+            OnRefreshStarted?.Invoke();
+
+        string dir = ReeseReplayPaths.GetFolder();
+        Utils.TryCreatingDirectory(dir);
+
+        System.Threading.Tasks.Task.Run(() => LoadReplayEntries(dir)).ContinueWith(task =>
+        {
+            Main.QueueMainThreadAction(() =>
+            {
+                if (generation != refreshGeneration || list == null)
+                    return;
+
+                if (task.IsFaulted)
+                {
+                    Log.Error("Failed to read replay folder: " + task.Exception);
+                    cachedEntries = [];
+                    AddMessage("Failed to read replay folder");
+                    list.Recalculate();
+                    return;
+                }
+
+                cachedEntries = task.Result;
+                ApplyCurrentFilter();
+            });
+        });
+    }
+
+    private void ApplyCurrentFilter()
+    {
+        if (list == null)
+            return;
+
+        list.Clear();
+
+        bool hasAnyReplays = cachedEntries.Length > 0;
+        string query = searchBox?.currentString ?? string.Empty;
+        ReplayEntry[] entries = cachedEntries;
+
+        if (!string.IsNullOrWhiteSpace(query))
+            entries = entries.Where(x => Path.GetFileName(x.Path).Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+
+        if (entries.Length == 0)
+        {
+            if (hasAnyReplays)
+                AddMessage("No replays found", "0 replays filtered by enabled search filter.");
+            else
+                AddMessage("No replays yet", "Host a multiplayer world to create one");
+
+            list.Recalculate();
+            return;
+        }
+
+        ReplayEntry[] sortedEntries = SortEntries(entries);
+        foreach (ReplayEntry entry in sortedEntries)
+            list.Add(new ReplayListItem(entry.Path, () => Refresh(showLoading: false)));
+
+        list.Recalculate();
+    }
+
+    private static ReplayEntry[] LoadReplayEntries(string dir)
+    {
+        string[] files = Directory.GetFiles(dir, "*.reese", SearchOption.TopDirectoryOnly)
+            .OrderByDescending(File.GetLastWriteTime)
+            .ToArray();
+
+        ReplayEntry[] entries = files.Select(ReplayEntry.FromFile).ToArray();
+        Log.Debug($"Found {entries.Length} replay entries");
+        return entries;
+    }
+
+    private ReplayEntry[] SortEntries(ReplayEntry[] entries)
+    {
+        IOrderedEnumerable<ReplayEntry> sorted = sortColumn switch
+        {
+            SortColumn.Name => sortAscending
+                ? entries.OrderBy(x => Path.GetFileNameWithoutExtension(x.Path))
+                : entries.OrderByDescending(x => Path.GetFileNameWithoutExtension(x.Path)),
+            SortColumn.Duration => sortAscending
+                ? entries.OrderBy(x => x.DurationTicks)
+                : entries.OrderByDescending(x => x.DurationTicks),
+            _ => sortAscending
+                ? entries.OrderBy(x => x.Date)
+                : entries.OrderByDescending(x => x.Date)
+        };
+
+        return sorted.ToArray();
+    }
+
+    private void AddMessage(string line1, string line2 = null)
+    {
+        UIElement container = new();
+        container.Width.Set(0f, 1f);
+        container.Height.Set(string.IsNullOrWhiteSpace(line2) ? 42f : 72f, 0f);
+
+        UIText firstLine = new(line1, 1f, false)
+        {
+            HAlign = 0.5f,
+            Top = { Pixels = 8f },
+            TextColor = new Color(200, 200, 200, 200)
+        };
+        container.Append(firstLine);
+
+        if (!string.IsNullOrWhiteSpace(line2))
+        {
+            UIText secondLine = new(line2, 0.85f, false)
+            {
+                HAlign = 0.5f,
+                Top = { Pixels = 38f },
+                TextColor = new Color(170, 170, 170, 200)
+            };
+            container.Append(secondLine);
+        }
+
+        list.Add(container);
+    }
+
+    private readonly struct ReplayEntry
+    {
+        public readonly string Path;
+        public readonly DateTime Date;
+        public readonly uint DurationTicks;
+
+        private ReplayEntry(string path, DateTime date, uint durationTicks)
+        {
+            Path = path;
+            Date = date;
+            DurationTicks = durationTicks;
+        }
+
+        public static ReplayEntry FromFile(string path)
+        {
+            uint durationTicks = 0;
+            DateTime date = File.GetLastWriteTime(path);
+            try
+            {
+                ReplayInspectionReport report = ReplayInspector.Inspect(path);
+                durationTicks = report.Metadata?.DurationTicks > 0 ? report.Metadata.DurationTicks : report.DurationTicks;
+                if (DateTime.TryParse(report.Metadata?.CreatedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime createdUtc))
+                    date = createdUtc.ToLocalTime();
+            }
+            catch
+            {
+            }
+
+            return new ReplayEntry(path, date, durationTicks);
+        }
+    }
+}

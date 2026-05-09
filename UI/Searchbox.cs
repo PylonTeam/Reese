@@ -39,6 +39,8 @@ public class Searchbox : UIPanel
 
     internal bool unfocusOnTab = true;
 
+    private UIImageButton clearSearchButton;
+
     internal Searchbox(string hintText, string text = "")
     {
         this.hintText = hintText;
@@ -46,13 +48,25 @@ public class Searchbox : UIPanel
         SetPadding(0);
         BackgroundColor = new Color(63, 82, 151) * 0.7f;
         BorderColor = Color.Black;
+
+        clearSearchButton = new UIImageButton(Main.Assets.Request<Texture2D>("Images/UI/SearchCancel"))
+        {
+            HAlign = 1f,
+            VAlign = 0f,
+            Left = { Pixels = -7f },
+            Top = { Pixels = 1f },
+            Width = { Pixels = 20f },
+            Height = { Pixels = 20f }
+        };
+        clearSearchButton.OnLeftClick += ClearSearchField;
+        Append(clearSearchButton);
     }
 
     public override bool ContainsPoint(Vector2 point)
     {
         bool isInPoint = base.ContainsPoint(point);
 
-        if (isInPoint && Main.mouseLeft)
+        if (isInPoint && Main.mouseLeft && clearSearchButton?.ContainsPoint(point) != true)
         {
             Main.mouseLeftRelease = false;
             Focus();
@@ -76,6 +90,15 @@ public class Searchbox : UIPanel
 
             OnUnfocus?.Invoke();
         }
+    }
+
+    private void ClearSearchField(UIMouseEvent evt, UIElement listeningElement)
+    {
+        if (!string.IsNullOrEmpty(currentString))
+            SetText(string.Empty);
+
+        Main.clrInput();
+        Focus();
     }
 
     internal void Focus()

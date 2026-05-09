@@ -1,5 +1,8 @@
+using Reese.Common.Replayer;
 using Reese.Core.Debug;
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 
 namespace Reese.Common.MainMenu;
@@ -8,27 +11,40 @@ internal sealed class ReplayDisplayInfo
 {
     public string FileName { get; init; }
     public string WorldName { get; init; }
+    public string WorldNameRaw { get; init; }
     public string PlayerName { get; init; }
     public string PlayerNameRaw { get; init; }
     public string DurationText { get; init; }
+    public DateTime Date { get; init; }
+    public string MetadataTooltip { get; init; }
+    public ReplayPlayerSnapshot PlayerSnapshot { get; init; }
 
     public static ReplayDisplayInfo FromFile(string path)
     {
         string fileName = Path.GetFileName(path);
         string worldName = InferWorldName(fileName);
         string playerName = "-";
-        string durationText = "--:--";
+        string durationText = "--:--:--";
+        DateTime date = File.GetLastWriteTime(path);
+        string metadataTooltip = string.Empty;
+        ReplayPlayerSnapshot playerSnapshot = null;
 
         try
         {
             ReplayInspectionReport report = ReplayInspector.Inspect(path);
             ReplayMetadata metadata = report.Metadata;
+            metadataTooltip = BuildMetadataTooltip(report);
 
             if (!string.IsNullOrWhiteSpace(metadata?.WorldName))
                 worldName = metadata.WorldName;
 
             if (!string.IsNullOrWhiteSpace(metadata?.PlayerName))
                 playerName = metadata.PlayerName;
+
+            if (DateTime.TryParse(metadata?.CreatedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime createdUtc))
+                date = createdUtc.ToLocalTime();
+
+            playerSnapshot = metadata?.PlayerSnapshot;
 
             uint durationTicks = metadata?.DurationTicks > 0 ? metadata.DurationTicks : report.DurationTicks;
             int tickRate = metadata?.TickRate > 0 ? metadata.TickRate : 60;
@@ -43,22 +59,63 @@ internal sealed class ReplayDisplayInfo
         {
             FileName = fileName,
             WorldName = Compact(worldName),
+            WorldNameRaw = worldName,
             PlayerName = Compact(playerName),
             PlayerNameRaw = playerName,
-            DurationText = durationText
+            DurationText = durationText,
+            Date = date,
+            MetadataTooltip = metadataTooltip,
+            PlayerSnapshot = playerSnapshot
         };
+    }
+
+    private static string BuildMetadataTooltip(ReplayInspectionReport report)
+    {
+        ReplayMetadata metadata = report.Metadata;
+        int tickRate = metadata?.TickRate > 0 ? metadata.TickRate : 60;
+        string finalized = metadata?.Finalized == true ? "Yes" : "No";
+        string cleanEof = report.HasCleanEndMarker ? "Yes" : "No";
+        string endReason = string.IsNullOrWhiteSpace(metadata?.EndReason) ? "Unknown" : metadata.EndReason;
+        string modVersion = string.IsNullOrWhiteSpace(metadata?.ModVersion) ? "Unknown" : metadata.ModVersion;
+        string tmlVersion = string.IsNullOrWhiteSpace(metadata?.TmlVersion) ? "Unknown" : metadata.TmlVersion;
+        string[] modNames = metadata?.ModNames ?? [];
+        string modNamesText = modNames.Length == 0 ? "None" : string.Join(", ", modNames);
+
+        List<string> lines =
+        [
+            $"Filename: {Path.GetFileName(report.Path)}",
+            $"Format: v{report.FormatVersion}",
+            $"World ID: {metadata?.WorldId ?? 0}",
+            $"Tick rate: {tickRate}",
+            $"Blocks: {report.BlockCount:N0}",
+            $"Packets: {report.PacketCount:N0}",
+            $"Packet bytes: {report.PacketDataBytes:N0}",
+            $"Baseline bytes: {report.BaselineBytes:N0}",
+            $"Max block bytes: {report.MaxBlockBytes:N0}",
+            $"Malformed packets: {report.MalformedPacketDataCount:N0}",
+            $"Trailing packet bytes: {report.TrailingPacketBytes:N0}",
+            $"Clean EOF: {cleanEof}",
+            $"Finalized: {finalized}",
+            $"End reason: {endReason}",
+            $"Mod version: {modVersion}",
+            $"tML version: {tmlVersion}",
+            $"Mod Count: {modNames.Length:N0}",
+            $"Mod Names: {modNamesText}"
+        ];
+
+        if (!string.IsNullOrWhiteSpace(report.Error))
+            lines.Add($"Error: {report.Error}");
+
+        return string.Join("\n", lines);
     }
 
     private static string FormatDuration(uint ticks, int tickRate)
     {
         if (ticks == 0 || tickRate <= 0)
-            return "00:00";
+            return "00:00:00";
 
         var elapsed = TimeSpan.FromSeconds(ticks / (double)tickRate);
-        if (elapsed.TotalHours >= 1d)
-            return $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
-
-        return $"{elapsed.Minutes:00}:{elapsed.Seconds:00}";
+        return $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
     }
 
     private static string InferWorldName(string fileName)

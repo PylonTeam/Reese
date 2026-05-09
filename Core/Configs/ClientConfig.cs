@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Reese.Common.GhostSpectate.UI;
+using Reese.Common.ReplaySpectate.UI;
 using Reese.Core.Debug;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
@@ -11,13 +11,13 @@ public class ClientConfig : ModConfig
 {
     public override ConfigScope Mode => ConfigScope.ClientSide;
 
-    public enum SpectateUIPosition
+    public enum ReplayHUDPosition
     {
         Top,
         Bottom,
     }
 
-    public enum SpectateUISize
+    public enum ReplayHUDSize
     {
         Small,
         Medium,
@@ -34,21 +34,24 @@ public class ClientConfig : ModConfig
     [DefaultValue(true)]
     public bool ShowInMainMenu = true;
 
-    [BackgroundColor(30, 150, 30)]
+    [Header("Replaying")]
+
+    [BackgroundColor(200, 60, 60, 230)]
     [DefaultValue(true)]
     public bool ShowCameraFade = true;
 
     [Header("UI")]
     [BackgroundColor(30, 150, 150)]
-    [DefaultValue(SpectateUIPosition.Top)]
+    [DefaultValue(ReplayHUDPosition.Top)]
     [JsonConverter(typeof(StringEnumConverter))]
-    public SpectateUIPosition spectateUIPosition;
+    public ReplayHUDPosition replayHUDPosition;
 
     [BackgroundColor(30, 150, 150)]
-    [DefaultValue(SpectateUISize.Small)]
+    [DefaultValue(ReplayHUDSize.Small)]
     [JsonConverter(typeof(StringEnumConverter))]
-    public SpectateUISize spectateUISize;
+    public ReplayHUDSize replayHUDSize;
 
+    [BackgroundColor(150, 150, 150, 150)]
     [Header("Chat")]
     [DefaultValue(false)] public bool ShowDebugMessages;
 

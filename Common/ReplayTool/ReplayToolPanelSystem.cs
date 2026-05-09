@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework;
+using Reese.Common.Replayer;
 using System.Collections.Generic;
 using Terraria;
 using Terraria.ModLoader;

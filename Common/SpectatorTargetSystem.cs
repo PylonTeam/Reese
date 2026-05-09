@@ -1,6 +1,6 @@
 ﻿using Reese.Common;
-using Reese.Common.GhostSpectate;
-using Reese.Common.GhostSpectate.SpectatorMode;
+using Reese.Common.ReplaySpectate;
+using Reese.Common.ReplaySpectate.SpectatorMode;
 using System.Collections.Generic;
 using Terraria.ID;
 
