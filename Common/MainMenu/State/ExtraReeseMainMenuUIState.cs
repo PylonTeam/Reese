@@ -88,6 +88,7 @@ internal sealed class ExtraReeseMainMenuUIState : UIState
         footer.Height.Set(FooterHeight, 0f);
         footer.Top.Set(ReplayBrowser.BrowserPanelHeight * 0.5f + FooterGap + FooterHeight * 0.5f, 0f);
         Append(footer);
+        Append(loaderImage);
 
         SetCurrentAsyncState(AsyncProviderState.Completed);
         UpdateScreenMetrics(force: true);
@@ -138,16 +139,7 @@ internal sealed class ExtraReeseMainMenuUIState : UIState
         refreshButton?.SetText(loading ? "Loading" : "Refresh");
         statusBadge?.SetCurrentState(state);
         statusText = text ?? state.ToString();
-
-        if (loading)
-        {
-            if (loaderImage != null && loaderImage.Parent == null)
-                Append(loaderImage);
-        }
-        else if (loaderImage?.Parent != null)
-        {
-            loaderImage.Parent.RemoveChild(loaderImage);
-        }
+        loaderImage.Loading = loading;
     }
 
     private static UIAutoScaleTextTextPanel<string> CreateActionButton(string text, Action onClick)
@@ -197,6 +189,7 @@ internal sealed class ExtraReeseMainMenuUIState : UIState
     private sealed class MainMenuLoaderImage : UIElement
     {
         public bool WithBackground;
+        public bool Loading;
         public int FrameTick;
         public int Frame;
 
@@ -214,10 +207,14 @@ internal sealed class ExtraReeseMainMenuUIState : UIState
             Height.Set(200f * scale, 0f);
             HAlign = hAlign;
             VAlign = vAlign;
+            IgnoresMouseInteraction = true;
         }
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
+            if (!Loading)
+                return;
+
             if (loaderTexture?.Value == null)
                 return;
 

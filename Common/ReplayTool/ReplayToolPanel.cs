@@ -7,6 +7,7 @@ using Reese.UI;
 using System;
 using Terraria;
 using Terraria.GameContent;
+using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader;
 using Terraria.UI;
 
@@ -19,6 +20,8 @@ public sealed class ReplayToolPanel : DraggablePanel
     private readonly Slider positionSlider;
     private readonly UIText positionLabel;
     private readonly UIText speedLabel;
+    private readonly HorizontalRule horizontalRule;
+    private readonly VerticalRule verticalRule;
     private readonly CompactTextPanel<string>[] speedButtons;
     private readonly IconActionButton speedDownButton;
     private readonly IconActionButton playButton;
@@ -36,27 +39,23 @@ public sealed class ReplayToolPanel : DraggablePanel
 
     protected override void OnRefreshPanelLeftClick()
     {
-        Width.Set(760f, 0f);
-        Height.Set(152f, 0f);
+        ReplayToolPanelLayout.Update();
+        ApplyLayout();
         Recalculate();
         RefreshVisualState();
     }
 
     public ReplayToolPanel() : base("Replay")
     {
-        Width.Set(760f, 0f);
-        Height.Set(152f, 0f);
-        HAlign = 0.5f;
-        VAlign = 0.08f;
+        ReplayToolPanelLayout.Update();
 
-        TitlePanel.Height.Set(32f, 0f);
-        ContentPanel.Top.Set(32f, 0f);
-        ContentPanel.Height.Set(120f, 0f);
+        Width.Set(ReplayToolPanelLayout.PanelWidth, 0f);
+        Height.Set(ReplayToolPanelLayout.PanelHeight, 0f);
+        HAlign = ReplayToolPanelLayout.InitialHAlign;
+        VAlign = ReplayToolPanelLayout.InitialVAlign;
 
         positionLabel = new UIText("", 0.86f)
         {
-            Left = { Pixels = 12f },
-            Top = { Pixels = 10f },
             TextOriginX = 0f,
             TextOriginY = 0f,
             TextColor = Color.White
@@ -65,10 +64,6 @@ public sealed class ReplayToolPanel : DraggablePanel
 
         positionSlider = new Slider
         {
-            Left = { Pixels = 168f },
-            Top = { Pixels = 11f },
-            Width = { Percent = 1f, Pixels = -180f },
-            Height = { Pixels = 20f }
         };
         positionSlider.OnDrag += ratio =>
         {
@@ -77,18 +72,11 @@ public sealed class ReplayToolPanel : DraggablePanel
         };
         ContentPanel.Append(positionSlider);
 
-        ContentPanel.Append(new HorizontalRule
-        {
-            Left = { Pixels = 12f },
-            Top = { Pixels = 38f },
-            Width = { Percent = 1f, Pixels = -24f },
-            Height = { Pixels = 2f }
-        });
+        horizontalRule = new HorizontalRule();
+        ContentPanel.Append(horizontalRule);
 
         speedLabel = new UIText("", 0.86f)
         {
-            Left = { Pixels = 12f },
-            Top = { Pixels = 50f },
             TextOriginX = 0f,
             TextOriginY = 0f,
             TextColor = Color.White
@@ -107,69 +95,146 @@ public sealed class ReplayToolPanel : DraggablePanel
                 backgroundColor: new Color(44, 57, 105),
                 padding: 3f)
             {
-                Left = { Pixels = 14f + i * 58f },
-                Top = { Pixels = 78f }
             };
-            button.Width.Set(46f, 0f);
-            button.Height.Set(24f, 0f);
             speedButtons[i] = button;
             ContentPanel.Append(button);
         }
 
-        ContentPanel.Append(new VerticalRule
-        {
-            Left = { Pixels = 312f },
-            Top = { Pixels = 42f },
-            Width = { Pixels = 2f },
-            Height = { Pixels = 70f }
-        });
+        verticalRule = new VerticalRule();
+        ContentPanel.Append(verticalRule);
 
-        speedDownButton = CreateTransportButton(Ass.Icon_SpeedDown, "Speed Down", () => StepSpeed(-1), 0);
+        speedDownButton = CreateTransportButton(Ass.Icon_SpeedDown, "Go to start", GoToStart, 0);
         nextFrameButton = CreateTransportButton(Ass.Icon_NextFrame, "Next Frame", StepOneFrame, 1);
         playButton = CreateTransportButton(Ass.Icon_Play, "Play", Resume, 2, large: true);
         pauseButton = CreateTransportButton(Ass.Icon_Pause, "Pause", Pause, 3);
         stopButton = CreateTransportButton(Ass.Icon_Stop, "Stop Replay", () => Replayer.Replayer.StopPlayback(), 4);
-        speedUpButton = CreateTransportButton(Ass.Icon_SpeedUp, "Speed Up", () => StepSpeed(1), 5);
+        speedUpButton = CreateTransportButton(Ass.Icon_SpeedUp, "Go to end", GoToEnd, 5);
 
+        ApplyLayout();
         RefreshVisualState();
     }
 
     public override void Recalculate()
     {
+        ApplyLayout();
         base.Recalculate();
+        ApplyLayout();
+    }
+
+    private void ApplyLayout()
+    {
+        ReplayToolPanelLayout.Update();
+
+        Width.Set(ReplayToolPanelLayout.PanelWidth, 0f);
+        Height.Set(ReplayToolPanelLayout.PanelHeight, 0f);
 
         if (TitlePanel != null)
-            TitlePanel.Height.Set(32f, 0f);
+            TitlePanel.Height.Set(ReplayToolPanelLayout.HeaderHeight, 0f);
 
         if (ContentPanel != null)
         {
-            ContentPanel.Top.Set(32f, 0f);
-            ContentPanel.Height.Set(120f, 0f);
+            ContentPanel.Top.Set(ReplayToolPanelLayout.HeaderHeight, 0f);
+            ContentPanel.Height.Set(ReplayToolPanelLayout.ContentHeight, 0f);
         }
+
+        if (positionLabel != null)
+        {
+            positionLabel.Left.Set(ReplayToolPanelLayout.PositionLabelLeft, 0f);
+            positionLabel.Top.Set(ReplayToolPanelLayout.PositionLabelTop, 0f);
+        }
+
+        if (positionSlider != null)
+        {
+            positionSlider.Left.Set(ReplayToolPanelLayout.PositionSliderLeft, 0f);
+            positionSlider.Top.Set(ReplayToolPanelLayout.PositionSliderTop, 0f);
+            positionSlider.Width.Set(-(ReplayToolPanelLayout.PositionSliderLeft + ReplayToolPanelLayout.PositionSliderRightPadding), 1f);
+            positionSlider.Height.Set(ReplayToolPanelLayout.PositionSliderHeight, 0f);
+        }
+
+        if (horizontalRule != null)
+        {
+            horizontalRule.Left.Set(ReplayToolPanelLayout.HorizontalRuleLeft, 0f);
+            horizontalRule.Top.Set(ReplayToolPanelLayout.HorizontalRuleTop, 0f);
+            horizontalRule.Width.Set(-(ReplayToolPanelLayout.HorizontalRuleLeft + ReplayToolPanelLayout.HorizontalRuleRightPadding), 1f);
+            horizontalRule.Height.Set(ReplayToolPanelLayout.HorizontalRuleHeight, 0f);
+        }
+
+        if (speedLabel != null)
+        {
+            speedLabel.Left.Set(ReplayToolPanelLayout.SpeedLabelLeft, 0f);
+            speedLabel.Top.Set(ReplayToolPanelLayout.SpeedLabelTop, 0f);
+        }
+
+        if (speedButtons != null)
+        {
+            for (int i = 0; i < speedButtons.Length; i++)
+            {
+                CompactTextPanel<string> button = speedButtons[i];
+                if (button == null)
+                    continue;
+
+                button.Left.Set(ReplayToolPanelLayout.SpeedButtonLeft + i * ReplayToolPanelLayout.SpeedButtonStride, 0f);
+                button.Top.Set(ReplayToolPanelLayout.SpeedButtonTop, 0f);
+                button.Width.Set(ReplayToolPanelLayout.SpeedButtonWidth, 0f);
+                button.Height.Set(ReplayToolPanelLayout.SpeedButtonHeight, 0f);
+            }
+        }
+
+        if (verticalRule != null)
+        {
+            verticalRule.Left.Set(ReplayToolPanelLayout.DividerLeft, 0f);
+            verticalRule.Top.Set(ReplayToolPanelLayout.DividerTop, 0f);
+            verticalRule.Width.Set(ReplayToolPanelLayout.DividerWidth, 0f);
+            verticalRule.Height.Set(ReplayToolPanelLayout.DividerHeight, 0f);
+        }
+
+        ApplyTransportButtonLayout(speedDownButton, 0);
+        ApplyTransportButtonLayout(nextFrameButton, 1);
+        ApplyTransportButtonLayout(playButton, 2, large: true);
+        ApplyTransportButtonLayout(pauseButton, 3);
+        ApplyTransportButtonLayout(stopButton, 4);
+        ApplyTransportButtonLayout(speedUpButton, 5);
     }
 
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
+
+        if (ReplayToolPanelLayout.Update())
+        {
+            ApplyLayout();
+            Recalculate();
+        }
+
         RefreshVisualState();
     }
 
     private IconActionButton CreateTransportButton(ReLogic.Content.Asset<Texture2D> texture, string hoverText, Action onClick, int index, bool large = false)
     {
-        const float gap = 14f;
-        const float normalWidth = 42f;
-        const float largeWidth = 48f;
-        float left = 334f;
-
-        for (int i = 0; i < index; i++)
-            left += (i == 2 ? largeWidth : normalWidth) + gap;
-
         IconActionButton button = new(texture, hoverText, (_, _) => onClick());
-        button.SetOuterWidth(large ? largeWidth : normalWidth);
-        button.Left.Set(left, 0f);
-        button.Top.Set(55f, 0f);
+        ApplyTransportButtonLayout(button, index, large);
         ContentPanel.Append(button);
         return button;
+    }
+
+    private static void ApplyTransportButtonLayout(IconActionButton button, int index, bool large = false)
+    {
+        if (button == null)
+            return;
+
+        float left = ReplayToolPanelLayout.TransportLeft;
+
+        for (int i = 0; i < index; i++)
+            left += GetTransportButtonWidth(i == 2) + ReplayToolPanelLayout.TransportGap;
+
+        button.SetOuterWidth(GetTransportButtonWidth(large));
+        button.Left.Set(left, 0f);
+        button.Top.Set(ReplayToolPanelLayout.TransportTop, 0f);
+    }
+
+    private static float GetTransportButtonWidth(bool large)
+    {
+        return large ? ReplayToolPanelLayout.TransportPlayButtonWidth : ReplayToolPanelLayout.TransportButtonWidth;
     }
 
     private static void SetSpeed(float value)
@@ -196,16 +261,15 @@ public sealed class ReplayToolPanel : DraggablePanel
         RefreshVisualState();
     }
 
-    private void StepSpeed(int direction)
+    private void GoToStart()
     {
-        float current = ModContent.GetInstance<TimeScaleSystem>().TimeScale;
-        int currentIndex = Array.IndexOf(SpeedPresets, TimeScaleSystem.SnapTimeScale(current));
+        Replayer.Replayer.SeekToStart();
+        RefreshVisualState();
+    }
 
-        if (currentIndex < 0)
-            currentIndex = Array.IndexOf(SpeedPresets, 1f);
-
-        int nextIndex = Utils.Clamp(currentIndex + direction, 0, SpeedPresets.Length - 1);
-        SetSpeed(SpeedPresets[nextIndex]);
+    private void GoToEnd()
+    {
+        Replayer.Replayer.SeekToEnd();
         RefreshVisualState();
     }
 

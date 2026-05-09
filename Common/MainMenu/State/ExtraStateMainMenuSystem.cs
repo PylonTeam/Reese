@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework.Input;
 using MonoMod.Cil;
 using Reese.Core.Configs;
+using Reese.Core.Debug;
 using Reese.Core.Utilities;
 using System;
 using Terraria;
@@ -199,6 +200,8 @@ public class ExtraStateMainMenuSystem : ModSystem
 
     internal void OpenConfirmDelete(string targetName, Action onConfirm)
     {
+        Log.Chat(12);
+
         UIState previousState = ui?.CurrentState;
         bool handled = false;
 
@@ -212,6 +215,7 @@ public class ExtraStateMainMenuSystem : ModSystem
             {
                 action?.Invoke();
                 ui?.SetState(previousState);
+                Log.Chat(previousState);
             });
         }
 

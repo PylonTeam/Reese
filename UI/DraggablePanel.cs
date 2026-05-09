@@ -254,7 +254,7 @@ public abstract class DraggablePanel : UIElement
         if (Parent == null)
             return;
 
-        if (ClosePanel.IsMouseHovering || RefreshPanel.IsMouseHovering || ResizeButton.IsMouseHovering)
+        if (ClosePanel.IsMouseHovering || RefreshPanel.IsMouseHovering || ResizeButton?.IsMouseHovering == true)
             //Log.Chat("hovering something");
             return;
 
@@ -286,7 +286,7 @@ public abstract class DraggablePanel : UIElement
     {
         base.LeftMouseDown(evt);
 
-        if (ClosePanel.IsMouseHovering || RefreshPanel.IsMouseHovering || ResizeButton.IsMouseHovering)
+        if (ClosePanel.IsMouseHovering || RefreshPanel.IsMouseHovering || ResizeButton?.IsMouseHovering == true)
             return;
 
         if (TitlePanel == null || !TitlePanel.ContainsPoint(evt.MousePosition) || Parent == null)

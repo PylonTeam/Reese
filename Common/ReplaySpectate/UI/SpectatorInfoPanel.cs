@@ -1,9 +1,9 @@
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using Reese.Common.GhostSpectate.UI.Tabs.World;
 using Reese.Common.ReplaySpectate.TeammateOverlay;
 using Reese.Common.ReplaySpectate.UI.Tabs;
 using Reese.Common.ReplaySpectate.UI.Tabs.NPCs;
+using Reese.Common.ReplaySpectate.UI.Tabs.World;
 using Reese.Core.Utilities;
 using ReLogic.Content;
 using System;

@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.GhostSpectate.UI.Tabs.World.WorldSections;
-using Reese.Common.ReplaySpectate.UI.Tabs;
+using Reese.Common.ReplaySpectate.UI.Tabs.World.WorldSections;
 using ReLogic.Content;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;

@@ -76,37 +76,36 @@ internal sealed class ReplayDisplayInfo
         string finalized = metadata?.Finalized == true ? "Yes" : "No";
         string cleanEof = report.HasCleanEndMarker ? "Yes" : "No";
         string endReason = string.IsNullOrWhiteSpace(metadata?.EndReason) ? "Unknown" : metadata.EndReason;
-        string modVersion = string.IsNullOrWhiteSpace(metadata?.ModVersion) ? "Unknown" : metadata.ModVersion;
-        string tmlVersion = string.IsNullOrWhiteSpace(metadata?.TmlVersion) ? "Unknown" : metadata.TmlVersion;
         string[] modNames = metadata?.ModNames ?? [];
-        string modNamesText = modNames.Length == 0 ? "None" : string.Join(", ", modNames);
 
         List<string> lines =
         [
-            $"Filename: {Path.GetFileName(report.Path)}",
             $"Format: v{report.FormatVersion}",
             $"World ID: {metadata?.WorldId ?? 0}",
             $"Tick rate: {tickRate}",
             $"Blocks: {report.BlockCount:N0}",
             $"Packets: {report.PacketCount:N0}",
-            $"Packet bytes: {report.PacketDataBytes:N0}",
-            $"Baseline bytes: {report.BaselineBytes:N0}",
-            $"Max block bytes: {report.MaxBlockBytes:N0}",
             $"Malformed packets: {report.MalformedPacketDataCount:N0}",
-            $"Trailing packet bytes: {report.TrailingPacketBytes:N0}",
             $"Clean EOF: {cleanEof}",
             $"Finalized: {finalized}",
             $"End reason: {endReason}",
-            $"Mod version: {modVersion}",
-            $"tML version: {tmlVersion}",
-            $"Mod Count: {modNames.Length:N0}",
-            $"Mod Names: {modNamesText}"
+            $"Mod Count: {modNames.Length:N0}"
         ];
+
+        if (modNames.Length > 0)
+            lines.Add($"Mod Names: {FormatModNames(modNames)}");
 
         if (!string.IsNullOrWhiteSpace(report.Error))
             lines.Add($"Error: {report.Error}");
 
         return string.Join("\n", lines);
+    }
+
+    private static string FormatModNames(string[] modNames)
+    {
+        const int maxShown = 8;
+        string text = string.Join(", ", modNames.Length > maxShown ? modNames[..maxShown] : modNames);
+        return modNames.Length > maxShown ? $"{text}, +{modNames.Length - maxShown:N0} more" : text;
     }
 
     private static string FormatDuration(uint ticks, int tickRate)

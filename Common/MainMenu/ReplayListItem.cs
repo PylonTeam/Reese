@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.GhostSpectate.Drawers;
+using Reese.Common.ReplaySpectate.Drawers;
 using Reese.Core.Debug;
 using Reese.UI;
 using ReLogic.Content;
@@ -20,18 +20,18 @@ namespace Reese.Common.MainMenu;
 internal sealed class ReplayListItem : UIPanel
 {
     private readonly UICharacter preview;
+    private readonly ActionHoverLabel actionHoverLabel;
 
     public ReplayListItem(string fullPath, Action onDeleted)
     {
         ReplayBrowserLayout.Update();
 
         Width.Set(0f, 1f);
-        Height.Set(ReplayBrowserLayout.ReplayItemHeight, 0f);
+        Height.Set(ReplayBrowserLayout.ReplayItemTotalHeight, 0f);
         SetPadding(0f);
 
         BackgroundColor = new Color(63, 82, 151) * 0.95f;
         BorderColor = new Color(89, 116, 213) * 0.95f;
-        OnLeftDoubleClick += (_, _) => ReplayMenuActions.Play(fullPath);
 
         ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(fullPath);
 
@@ -41,11 +41,10 @@ internal sealed class ReplayListItem : UIPanel
 
         string dateLine = info.Date.ToString("yyyy-MM-dd");
         string timeLine = info.Date.ToString("HH:mm");
-        string dateTooltip = $"Date: {dateLine} {timeLine}";
 
-        Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(info.FileName), info.MetadataTooltip, () => ReplayMenuActions.Play(fullPath))
+        Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(info.FileName), info.MetadataTooltip)
         {
-            Left = { Pixels = 68f },
+            Left = { Pixels = 66f },
             Top = { Pixels = 4f },
             Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - 76f },
             Height = { Pixels = 22f }
@@ -66,17 +65,44 @@ internal sealed class ReplayListItem : UIPanel
             Height = { Pixels = 20f }
         });
 
-        Append(UISortableTableColumn.CreateCenteredTwoLineCell(dateLine, timeLine, ReplayBrowserLayout.DateLeft, ReplayBrowserLayout.DateColumnWidth, dateTooltip));
-        Append(UISortableTableColumn.CreateLeftTextCell(info.DurationText, ReplayBrowserLayout.DurationLeft, ReplayBrowserLayout.DurationColumnWidth - ReplayBrowserLayout.ActionColumnWidth, $"Duration: {info.DurationText}"));
-        Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DateLeft, 68f));
-        Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DurationLeft, 68f));
+        Append(UISortableTableColumn.CreateCenteredTwoLineCell(dateLine, timeLine, ReplayBrowserLayout.DateLeft, ReplayBrowserLayout.DateColumnWidth));
+        Append(UISortableTableColumn.CreateCenteredTextCell(info.DurationText, ReplayBrowserLayout.DurationLeft, ReplayBrowserLayout.DurationColumnWidth, $"Duration: {info.DurationText}"));
+        Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DateLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
+        Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DurationLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
 
-        const float buttonSize = 22f;
-        const float buttonGap = 2f;
-        float buttonTop = (ReplayBrowserLayout.ReplayItemHeight - buttonSize) * 0.5f;
-        float actionLeft = -ReplayBrowserLayout.ActionColumnWidth - 1f;
-        Append(CreateVanillaImageButton(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", actionLeft, buttonTop, buttonSize, () => ReplayMenuActions.Play(fullPath)));
-        Append(CreateVanillaImageButton(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", actionLeft + buttonSize + buttonGap, buttonTop, buttonSize, () => ReplayMenuActions.Delete(fullPath, onDeleted)));
+        actionHoverLabel = new ActionHoverLabel();
+        actionHoverLabel.Left.Set(ReplayBrowserLayout.ReplayItemHeight - ReplayBrowserLayout.ActionButtonRightPadding + ReplayBrowserLayout.ActionLabelGap, 0f);
+        actionHoverLabel.Top.Set(ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f, 0f);
+        actionHoverLabel.Width.Set(ReplayBrowserLayout.ActionLabelWidth, 0f);
+        actionHoverLabel.Height.Set(ReplayBrowserLayout.ActionButtonSize, 0f);
+        Append(actionHoverLabel);
+
+        ReplayActionDefinition[] actions =
+        [
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayMenuActions.Play(fullPath)),
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayMenuActions.Rename(fullPath, onDeleted))
+        ];
+        UIImageButton[] previewActionButtons = AppendActionButtons(actions, actionHoverLabel);
+
+        float buttonTop = ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f;
+        float deleteLeft = ReplayBrowserLayout.DurationLeft + ReplayBrowserLayout.DurationColumnWidth - ReplayBrowserLayout.ActionButtonRightPadding - ReplayBrowserLayout.ActionButtonSize;
+        UIImageButton deleteButton = CreateVanillaImageButton(
+            new ReplayActionDefinition(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", () => ReplayMenuActions.Delete(fullPath, onDeleted)),
+            actionHoverLabel,
+            deleteLeft,
+            buttonTop,
+            ReplayBrowserLayout.ActionButtonSize);
+        Append(deleteButton);
+
+        UIImageButton[] actionButtons = previewActionButtons.Concat([deleteButton]).ToArray();
+
+        OnLeftDoubleClick += (evt, _) =>
+        {
+            if (actionButtons.Any(button => button.ContainsPoint(evt.MousePosition)))
+                return;
+
+            ReplayMenuActions.Play(fullPath);
+        };
     }
 
     private sealed class ReplayNameElement : UIElement
@@ -85,14 +111,11 @@ internal sealed class ReplayListItem : UIPanel
 
         private readonly string text;
         private readonly string tooltip;
-        private readonly Action onDoubleClick;
 
-        public ReplayNameElement(string text, string tooltip, Action onDoubleClick)
+        public ReplayNameElement(string text, string tooltip)
         {
             this.text = string.IsNullOrWhiteSpace(text) ? "-" : text;
             this.tooltip = tooltip;
-            this.onDoubleClick = onDoubleClick;
-            OnLeftDoubleClick += (_, _) => this.onDoubleClick?.Invoke();
         }
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
@@ -126,10 +149,27 @@ internal sealed class ReplayListItem : UIPanel
         }
     }
 
-    private static UIImageButton CreateVanillaImageButton(Asset<Texture2D> texture, string tooltip, float left, float top, float size, Action onClick)
+    private UIImageButton[] AppendActionButtons(ReplayActionDefinition[] actions, ActionHoverLabel hoverLabel)
     {
-        UIImageButton button = new(texture);
-        button.Left.Set(left, 1f);
+        UIImageButton[] buttons = new UIImageButton[actions.Length];
+        float buttonSize = ReplayBrowserLayout.ActionButtonSize;
+        float buttonGap = ReplayBrowserLayout.ActionButtonGap;
+        float top = ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - buttonSize) * 0.5f;
+        float left = ReplayBrowserLayout.ReplayItemHeight - ReplayBrowserLayout.ActionButtonRightPadding - buttonSize * actions.Length - buttonGap * Math.Max(0, actions.Length - 1);
+
+        for (int i = 0; i < actions.Length; i++)
+        {
+            buttons[i] = CreateVanillaImageButton(actions[i], hoverLabel, left + i * (buttonSize + buttonGap), top, buttonSize);
+            Append(buttons[i]);
+        }
+
+        return buttons;
+    }
+
+    private static UIImageButton CreateVanillaImageButton(ReplayActionDefinition action, ActionHoverLabel hoverLabel, float left, float top, float size)
+    {
+        UIImageButton button = new(action.Texture);
+        button.Left.Set(left, 0f);
         button.Top.Set(top, 0f);
         button.Width.Set(size, 0f);
         button.Height.Set(size, 0f);
@@ -138,6 +178,8 @@ internal sealed class ReplayListItem : UIPanel
         bool playedTick = false;
         button.OnMouseOver += (_, _) =>
         {
+            hoverLabel.SetAction(action.Label);
+
             if (!playedTick)
             {
                 SoundEngine.PlaySound(SoundID.MenuTick);
@@ -148,10 +190,47 @@ internal sealed class ReplayListItem : UIPanel
         button.OnUpdate += _ =>
         {
             if (button.IsMouseHovering)
-                UICommon.TooltipMouseText(tooltip);
+                UICommon.TooltipMouseText(action.Label);
         };
-        button.OnLeftClick += (_, _) => onClick?.Invoke();
+        button.OnLeftClick += (_, _) => action.Click?.Invoke();
         return button;
+    }
+
+    private readonly struct ReplayActionDefinition(Asset<Texture2D> texture, string label, Action click)
+    {
+        public Asset<Texture2D> Texture { get; } = texture;
+        public string Label { get; } = label;
+        public Action Click { get; } = click;
+    }
+
+    private sealed class ActionHoverLabel : UIElement
+    {
+        private const float TextScale = 0.88f;
+
+        private string label = "";
+
+        public void SetAction(string label)
+        {
+            this.label = label;
+        }
+
+        public void ClearAction()
+        {
+            label = "";
+        }
+
+        protected override void DrawSelf(SpriteBatch spriteBatch)
+        {
+            Rectangle area = GetDimensions().ToRectangle();
+            var font = FontAssets.MouseText.Value;
+            Vector2 size = font.MeasureString(label) * TextScale;
+            Vector2 position = new(area.X, area.Y + (area.Height - size.Y) * 0.5f + 3f);
+
+            Utils.DrawBorderString(spriteBatch, label, position, new Color(215, 225, 255), TextScale);
+
+            if (IsMouseHovering && !string.IsNullOrWhiteSpace(label))
+                UICommon.TooltipMouseText(label);
+        }
     }
 
     private sealed class MainMenuStatElement : UIElement
@@ -278,6 +357,7 @@ internal sealed class ReplayListItem : UIPanel
         base.MouseOut(evt);
         BackgroundColor = new Color(63, 82, 151) * 0.95f;
         BorderColor = new Color(89, 116, 213) * 0.95f;
+        actionHoverLabel.ClearAction();
         preview.SetAnimated(false);
     }
 }

@@ -174,14 +174,36 @@ public sealed class ReplayFile : IDisposable
             _binaryReader = new BinaryReader(stream, Encoding.UTF8, true)
         };
 
-        var identifier = replayFile._binaryReader.ReadBytes(Identifier.Length);
+        replayFile.ReadFromStart();
+        return replayFile;
+    }
+
+    public void ResetRead()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        if (_binaryReader == null)
+            throw new InvalidOperationException("Replay file is not open for reading");
+
+        if (!_binaryReader.BaseStream.CanSeek)
+            throw new InvalidOperationException("Replay stream cannot seek");
+
+        _binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);
+        Tick = 0;
+        EndOfFile = false;
+        NumberOfPacketDataBytesRemaining = 0;
+        Metadata = null;
+        ReadFromStart();
+    }
+
+    private void ReadFromStart()
+    {
+        var identifier = _binaryReader.ReadBytes(Identifier.Length);
         if (!identifier.SequenceEqual(IdentifierASCII))
             throw new InvalidDataException("Not a Reese file");
 
-        replayFile.ReadHeader();
-        replayFile.ReadPacketDataHeader();
-
-        return replayFile;
+        ReadHeader();
+        ReadPacketDataHeader();
     }
 
     private void WriteHeader()
@@ -286,7 +308,6 @@ public sealed class ReplayFile : IDisposable
 public sealed class ReplayMetadata
 {
     public int FormatVersion { get; set; } = 2;
-    public ReplayRecordingKind RecordingKind { get; set; } = ReplayRecordingKind.Unknown;
     public string CreatedUtc { get; set; } = DateTime.UtcNow.ToString("O");
     public string PlayerName { get; set; } = string.Empty;
     public string WorldName { get; set; } = string.Empty;

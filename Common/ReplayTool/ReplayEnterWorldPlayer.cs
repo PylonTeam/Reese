@@ -1,6 +1,6 @@
 using Reese.Core.Debug;
-using Reese.Common.GhostSpectate.SpectatorMode;
 using Reese.Common.Replayer;
+using Reese.Common.ReplaySpectate.SpectatorMode;
 
 namespace Reese.Common.ReplayTool;
 

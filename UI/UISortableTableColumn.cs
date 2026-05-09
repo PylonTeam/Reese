@@ -88,6 +88,16 @@ internal sealed class UISortableTableColumn : UIElement
         };
     }
 
+    public static UIElement CreateCenteredTextCell(string value, float left, float width, string tooltip = null)
+    {
+        return new CenteredTextCell(value, tooltip)
+        {
+            Left = { Pixels = left },
+            Width = { Pixels = width },
+            Height = { Percent = 1f }
+        };
+    }
+
     public static UIElement CreateSeparator(float left, float height)
     {
         return new UIVerticalSeparator(left, height)
@@ -171,6 +181,32 @@ internal sealed class UISortableTableColumn : UIElement
             Vector2 size = font.MeasureString(text) * scale;
             Vector2 position = new(area.X + (area.Width - size.X) * 0.5f, y);
             Utils.DrawBorderString(spriteBatch, text, position, Color.White, scale);
+        }
+    }
+
+    private sealed class CenteredTextCell : UIElement
+    {
+        private readonly string text;
+        private readonly string tooltip;
+
+        public CenteredTextCell(string text, string tooltip)
+        {
+            this.text = text;
+            this.tooltip = tooltip;
+        }
+
+        protected override void DrawSelf(SpriteBatch spriteBatch)
+        {
+            Rectangle area = GetDimensions().ToRectangle();
+            const float scale = 0.98f;
+            var font = FontAssets.MouseText.Value;
+            Vector2 size = font.MeasureString(text) * scale;
+            Vector2 position = new(area.X + (area.Width - size.X) * 0.5f, area.Y + (area.Height - size.Y) * 0.5f);
+
+            Utils.DrawBorderString(spriteBatch, text, position, new Color(230, 235, 255), scale);
+
+            if (IsMouseHovering && !string.IsNullOrWhiteSpace(tooltip))
+                UICommon.TooltipMouseText(tooltip);
         }
     }
 }

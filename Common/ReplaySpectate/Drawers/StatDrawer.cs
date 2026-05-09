@@ -5,7 +5,7 @@ using System;
 using Terraria.GameContent;
 using Terraria.ModLoader.UI;
 
-namespace Reese.Common.GhostSpectate.Drawers;
+namespace Reese.Common.ReplaySpectate.Drawers;
 
 public static class StatDrawer
 {

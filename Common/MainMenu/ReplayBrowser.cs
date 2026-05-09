@@ -1,14 +1,11 @@
-using Microsoft.Xna.Framework;
 using Reese.Common.Replayer;
 using Reese.Core.Configs;
 using Reese.Core.Debug;
-using Reese.Core.Utilities;
 using Reese.UI;
 using System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using Terraria;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
@@ -171,7 +168,7 @@ internal sealed class ReplayBrowserPanel : UIElement
 
         UIScrollbar scrollbar = new();
         scrollbar.Width.Set(ReplayBrowserLayout.ScrollbarWidth, 0f);
-        scrollbar.Height.Set(-ReplayBrowserLayout.ListTop, 1f);
+        scrollbar.Height.Set(-ReplayBrowserLayout.ListTop-6, 1f);
         scrollbar.Left.Set(-ReplayBrowserLayout.ScrollbarWidth, 1f);
         scrollbar.Top.Set(ReplayBrowserLayout.ListTop, 0f);
         container.Append(scrollbar);
@@ -223,29 +220,29 @@ internal sealed class ReplayBrowserPanel : UIElement
         };
         buttonStrip.Append(openFolderButton);
 
-        UIHoverImage refreshButton = new(Ass.ButtonRefresh, "Refresh")
+        UIHoverImage configButton = new(UICommon.ButtonModConfigTexture, "Open config")
         {
             ImageScale = 0.9f,
             RemoveFloatingPointsFromDrawPosition = true,
             UseTooltipMouseText = true,
             Left = { Pixels = headerButtonSize + headerButtonGap }
         };
-        refreshButton.Width.Set(headerButtonSize, 0f);
-        refreshButton.Height.Set(headerButtonSize, 0f);
-        refreshButton.OnLeftClick += (_, _) => Refresh();
-        buttonStrip.Append(refreshButton);
+        configButton.Width.Set(headerButtonSize, 0f);
+        configButton.Height.Set(headerButtonSize, 0f);
+        configButton.OnLeftClick += (_, _) => OpenReeseClientConfig();
+        buttonStrip.Append(configButton);
 
-        UIHoverImage configButton = new(UICommon.ButtonModConfigTexture, "Open config")
+        UIHoverImage refreshButton = new(Ass.ButtonRefresh, "Refresh")
         {
             ImageScale = 0.9f,
             RemoveFloatingPointsFromDrawPosition = true,
             UseTooltipMouseText = true,
             Left = { Pixels = headerButtonSize * 2f + headerButtonGap * 2f }
         };
-        configButton.Width.Set(headerButtonSize, 0f);
-        configButton.Height.Set(headerButtonSize, 0f);
-        configButton.OnLeftClick += (_, _) => OpenReeseClientConfig();
-        buttonStrip.Append(configButton);
+        refreshButton.Width.Set(headerButtonSize, 0f);
+        refreshButton.Height.Set(headerButtonSize, 0f);
+        refreshButton.OnLeftClick += (_, _) => Refresh();
+        buttonStrip.Append(refreshButton);
 
         searchBox = new("Type to search")
         {

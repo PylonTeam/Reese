@@ -5,6 +5,13 @@ namespace Reese.Common.MainMenu;
 internal static class ReplayBrowserLayout
 {
     internal static float ReplayItemHeight;
+    internal static float ReplayItemActionHeight;
+    internal static float ReplayItemTotalHeight;
+    internal static float ActionButtonSize;
+    internal static float ActionButtonGap;
+    internal static float ActionButtonRightPadding;
+    internal static float ActionLabelGap;
+    internal static float ActionLabelWidth;
     internal static float ScrollbarWidth;
     internal static float ContentPadding;
     internal static float TableColumnHeight;
@@ -21,7 +28,14 @@ internal static class ReplayBrowserLayout
     {
         bool changed = false;
 
-        Set(ref ReplayItemHeight, 68f, ref changed);
+        Set(ref ReplayItemHeight, 62f, ref changed);
+        Set(ref ReplayItemActionHeight, 30f, ref changed);
+        Set(ref ReplayItemTotalHeight, ReplayItemHeight + ReplayItemActionHeight, ref changed);
+        Set(ref ActionButtonSize, 22f, ref changed);
+        Set(ref ActionButtonGap, 4f, ref changed);
+        Set(ref ActionButtonRightPadding, 4f, ref changed);
+        Set(ref ActionLabelGap, 8f, ref changed);
+        Set(ref ActionLabelWidth, 180f, ref changed);
         Set(ref ScrollbarWidth, 20f, ref changed);
         Set(ref ContentPadding, 6f, ref changed);
         Set(ref TableColumnHeight, 28f, ref changed);

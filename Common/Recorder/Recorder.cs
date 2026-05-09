@@ -27,7 +27,7 @@ namespace Reese.Common.Recorder;
 //
 // Packet packets[while($ < std::mem::size())] @ 0x0;
 
-[Autoload(Side = ModSide.Both)]
+[Autoload(Side = ModSide.Server)]
 public class Recorder : ModSystem, ITicker
 {
     public uint Ticks { get; private set; }
@@ -66,17 +66,7 @@ public class Recorder : ModSystem, ITicker
         On_Netplay.UpdateConnectedClients -= OnNetplayUpdateConnectedClients;
     }
 
-    public void StartMultiplayerRecording(string playerName)
-    {
-        StartRecording(ReplayRecordingKind.Multiplayer, playerName);
-    }
-
-    public void StartSinglePlayerRecording(string playerName)
-    {
-        StartRecording(ReplayRecordingKind.SinglePlayer, playerName);
-    }
-
-    private void StartRecording(ReplayRecordingKind recordingKind, string playerName)
+    public void StartRecording(string playerName)
     {
         if (ReplaySession.IsReplayPlayback)
             return;
@@ -90,14 +80,12 @@ public class Recorder : ModSystem, ITicker
 
         var dir = ReeseReplayPaths.GetFolder();
         Directory.CreateDirectory(dir);
-        string replayPrefix = recordingKind == ReplayRecordingKind.SinglePlayer ? "SP" : "MP";
-        var filePath = Path.Combine(dir, $"{replayPrefix}_{GetNextReplayNumber(dir, replayPrefix):0000}.reese");
+        var filePath = Path.Combine(dir, $"{GetNextReplayNumber(dir, "Replay"):0000}.reese");
         _lastReplayPath = filePath;
         ReplaySession.BeginRecording(filePath);
 
         var metadata = new ReplayMetadata
         {
-            RecordingKind = recordingKind,
             PlayerName = playerName ?? string.Empty,
             WorldName = Main.worldName ?? string.Empty,
             WorldId = Main.worldID,
@@ -120,7 +108,7 @@ public class Recorder : ModSystem, ITicker
         recordClient.IsActive = true;
 
         using (NetModeScope.ForPacketSynthesis())
-            WriteBaseline(recordClient, RecordClientName, recordingKind);
+            WriteBaseline(recordClient, RecordClientName);
 
         // Flush now, so that it comes at update delta 0
         replayFile.FlushTick();
@@ -152,7 +140,7 @@ public class Recorder : ModSystem, ITicker
         {
             var firstPlayer = GetFirstRealActivePlayer();
             if (firstPlayer != null)
-                StartMultiplayerRecording(firstPlayer.name);
+                StartRecording(firstPlayer.name);
 
             return;
         }
@@ -216,18 +204,15 @@ public class Recorder : ModSystem, ITicker
         ReplaySession.End("recording stopped");
     }
 
-    private static void WriteBaseline(RemoteClient recordClient, string recordClientName, ReplayRecordingKind recordingKind)
+    private static void WriteBaseline(RemoteClient recordClient, string recordClientName)
     {
         // Client says hello
         // Server sets State to 1 and syncs mods
         recordClient.State = 1;
-        if (recordingKind == ReplayRecordingKind.Multiplayer)
-        {
-            _modNetSyncMods?.Invoke(null, [recordClient.Id]);
-            // Client syncs mods to indicate it's done and ready
-            // Server sends net IDs and PlayerInfo
-            _modNetSendNetIds?.Invoke(null, [recordClient.Id]);
-        }
+        _modNetSyncMods?.Invoke(null, [recordClient.Id]);
+        // Client syncs mods to indicate it's done and ready
+        // Server sends net IDs and PlayerInfo
+        _modNetSendNetIds?.Invoke(null, [recordClient.Id]);
 
         NetMessage.SendData(MessageID.PlayerInfo, recordClient.Id, number: recordClient.Id);
         // Client eventually sends RequestWorldData

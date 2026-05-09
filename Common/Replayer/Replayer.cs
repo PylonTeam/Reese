@@ -146,6 +146,39 @@ public class Replayer : ModSystem, ITicker
         SetReplayLoadingStatus($"Seeking forward to {FormatTick(targetTick)}");
     }
 
+    public static void SeekToStart()
+    {
+        if (!ReplaySession.IsReplayPlayback)
+            return;
+
+        var replayer = ModContent.GetInstance<Replayer>();
+        if (CurrentReplaySocket?.ResetToStart() != true)
+        {
+            SetReplayLoadingStatus("Unable to return to the replay start", warn: true);
+            return;
+        }
+
+        replayer.Ticks = 0;
+        if (Netplay.Connection != null)
+            Netplay.Connection.StatusText = string.Empty;
+
+        SetReplayLoadingStatus("Returned to replay start");
+    }
+
+    public static void SeekToEnd()
+    {
+        if (!ReplaySession.IsReplayPlayback)
+            return;
+
+        uint duration = ActiveDurationTicks;
+        if (duration == 0)
+            return;
+
+        SeekToTick(duration);
+        ModContent.GetInstance<TimeScaleSystem>().SetTimeScale(0f);
+        SetReplayLoadingStatus("Seeking to replay end");
+    }
+
     public static void StopPlayback(string reason = "manual replay stop")
     {
         if (CurrentReplaySocket is { IsClosed: false } socket)
@@ -185,6 +218,15 @@ public class Replayer : ModSystem, ITicker
         }
     }
 
+    private static void PauseAtReplayEnd()
+    {
+        ModContent.GetInstance<TimeScaleSystem>().SetTimeScale(0f);
+        Main.statusText = ReplayEndedStatusText;
+
+        if (Netplay.Connection != null)
+            Netplay.Connection.StatusText = ReplayEndedStatusText;
+    }
+
     private static string FormatTick(uint tick)
     {
         var span = TimeSpan.FromSeconds(tick / 60d);
@@ -206,6 +248,7 @@ public class Replayer : ModSystem, ITicker
     {
         private readonly ReplayRemoteAddress _remoteAddress = new();
         private bool _closed;
+        private bool _finished;
         private bool _reportedWaitingForTick;
         private bool _reportedFirstPacket;
 
@@ -228,7 +271,7 @@ public class Replayer : ModSystem, ITicker
         public bool IsConnected()
         {
             if (replayFile.EndOfFile)
-                FinishPlayback();
+                PauseAtEnd();
 
             return !_closed;
         }
@@ -263,7 +306,7 @@ public class Replayer : ModSystem, ITicker
 
             var numberOfBytesRead = replayFile.ReadPacketData(data.AsSpan()[offset..(offset + size)]);
             if (numberOfBytesRead == 0 && replayFile.EndOfFile)
-                FinishPlayback();
+                PauseAtEnd();
 
             callback(state, numberOfBytesRead);
         }
@@ -273,9 +316,12 @@ public class Replayer : ModSystem, ITicker
             if (_closed)
                 return false;
 
+            if (_finished)
+                return false;
+
             if (replayFile.EndOfFile)
             {
-                FinishPlayback();
+                PauseAtEnd();
                 return false;
             }
 
@@ -309,6 +355,26 @@ public class Replayer : ModSystem, ITicker
             _reportedWaitingForTick = false;
         }
 
+        public bool ResetToStart()
+        {
+            if (_closed)
+                return false;
+
+            try
+            {
+                replayFile.ResetRead();
+                _finished = false;
+                _reportedWaitingForTick = false;
+                _reportedFirstPacket = false;
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Warn("Failed to return replay stream to start: " + e);
+                return false;
+            }
+        }
+
         public bool StartListening(SocketConnectionAccepted callback) =>
             throw new InvalidOperationException("The replaying socket cannot listen");
 
@@ -330,6 +396,18 @@ public class Replayer : ModSystem, ITicker
             MarkReplayEnded();
             Netplay.Disconnect = true;
             ReplaySession.End(reason);
+        }
+
+        private void PauseAtEnd(string reason = "playback reached EOF")
+        {
+            if (_closed || _finished)
+                return;
+
+            _finished = true;
+            var replayer = ModContent.GetInstance<Replayer>();
+            replayer.Ticks = Math.Max(replayer.Ticks, ActiveDurationTicks);
+            Log.Info($"Replay reached EOF; pausing at final frame ({reason})");
+            PauseAtReplayEnd();
         }
     }
 }
