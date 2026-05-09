@@ -1,3 +1,4 @@
+using Reese.Core.Debug;
 using System;
 using System.IO;
 using System.Linq;
@@ -25,7 +26,7 @@ namespace Reese;
 //
 // Packet packets[while($ < std::mem::size())] @ 0x0;
 
-[Autoload(Side = ModSide.Both)]
+[Autoload(Side = ModSide.Server)]
 public class Recorder : ModSystem, ITicker
 {
     public uint Ticks { get; private set; }
@@ -64,17 +65,12 @@ public class Recorder : ModSystem, ITicker
         On_Netplay.UpdateConnectedClients -= OnNetplayUpdateConnectedClients;
     }
 
-    public void StartSinglePlayerRecording(string playerName)
-    {
-        StartRecording(ReplayRecordingKind.SinglePlayer, playerName);
-    }
-
     public void StartMultiplayerRecording(string playerName)
     {
-        StartRecording(ReplayRecordingKind.Multiplayer, playerName);
+        StartRecording(playerName);
     }
 
-    private void StartRecording(ReplayRecordingKind recordingKind, string playerName)
+    private void StartRecording(string playerName)
     {
         if (ReplaySession.IsReplayPlayback)
             return;
@@ -84,27 +80,23 @@ public class Recorder : ModSystem, ITicker
 
         Ticks = 0;
         const string RecordClientName = "Recording";
-        string modePrefix = recordingKind == ReplayRecordingKind.SinglePlayer ? "SP" : "MP";
         string safeWorldName = SanitizeFilePart(Main.worldName);
         string safePlayerName = SanitizeFilePart(playerName);
-        Player snapshotPlayer = FindSnapshotPlayer(recordingKind, playerName);
 
-        var dir = ReplayFilePaths.GetFolder();
+        var dir = ReeseReplayPaths.GetFolder();
         Directory.CreateDirectory(dir);
-        var filePath = Path.Combine(dir, $"{modePrefix}_{safeWorldName}_{safePlayerName}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.reese");
+        var filePath = Path.Combine(dir, $"{safeWorldName}_{safePlayerName}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.reese");
         _lastReplayPath = filePath;
         ReplaySession.BeginRecording(filePath);
 
         var metadata = new ReplayMetadata
         {
-            Mode = modePrefix,
             PlayerName = playerName ?? string.Empty,
             WorldName = Main.worldName ?? string.Empty,
             WorldId = Main.worldID,
             ModVersion = Mod?.Version?.ToString() ?? string.Empty,
             TmlVersion = typeof(ModLoader).Assembly.GetName().Version?.ToString() ?? string.Empty,
             TickRate = 60,
-            PlayerSnapshot = ReplayPlayerSnapshot.FromPlayer(snapshotPlayer)
         };
         var replayFile = ReplayFile.Write(ReplayFile.OpenWriteShared(filePath), metadata);
 
@@ -192,7 +184,7 @@ public class Recorder : ModSystem, ITicker
 
         try
         {
-            var recordBinPath = ReplayFilePaths.GetFile();
+            var recordBinPath = ReeseReplayPaths.GetFile();
 
             if (!string.IsNullOrWhiteSpace(_lastReplayPath) && File.Exists(_lastReplayPath))
             {
@@ -346,29 +338,6 @@ public class Recorder : ModSystem, ITicker
         return null;
     }
 
-    private static Player FindSnapshotPlayer(ReplayRecordingKind recordingKind, string playerName)
-    {
-        Player firstActive = null;
-
-        for (int i = 0; i < Main.maxPlayers; i++)
-        {
-            if (i == ReplaySession.RecordClientIndex || Main.player[i]?.active != true)
-                continue;
-
-            firstActive ??= Main.player[i];
-            if (!string.IsNullOrWhiteSpace(playerName) &&
-                string.Equals(Main.player[i].name, playerName, StringComparison.OrdinalIgnoreCase))
-            {
-                return Main.player[i];
-            }
-        }
-
-        if (recordingKind == ReplayRecordingKind.SinglePlayer && Main.LocalPlayer != null)
-            return Main.LocalPlayer;
-
-        return firstActive;
-    }
-
     private static void SyncPlayerToReplayClient(int playerIndex, int toWho, int fromWho = -1)
     {
         var player = Main.player[playerIndex];
@@ -489,20 +458,6 @@ public class Recorder : ModSystem, ITicker
         return value.Length <= 48 ? value : value[..48];
     }
 
-    // Erky comment:
-    // If we always start recording when the server is started, why is this command needed?
-    // Is it just for future use? If so, that's fine. We'll supply an API for start/stop recording anyways.
-    public class RecordCommand : ModCommand
-    {
-        public override void Action(CommandCaller caller, string input, string[] args)
-        {
-            ModContent.GetInstance<Recorder>().StartMultiplayerRecording("Console");
-        }
-
-        public override string Command => "record";
-        public override CommandType Type => CommandType.Console;
-    }
-
     private class RecordRemoteAddress : RemoteAddress
     {
         public override string GetIdentifier() => "Recording";
@@ -558,12 +513,6 @@ public class Recorder : ModSystem, ITicker
         public void StopListening() => throw new InvalidOperationException("The recording socket cannot listen");
 
         public RemoteAddress GetRemoteAddress() => _remoteAddress;
-    }
-
-    private enum ReplayRecordingKind
-    {
-        SinglePlayer,
-        Multiplayer
     }
 
     private readonly struct NetModeScope : IDisposable

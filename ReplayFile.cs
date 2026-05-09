@@ -287,14 +287,12 @@ public sealed class ReplayMetadata
 {
     public int FormatVersion { get; set; } = 2;
     public string CreatedUtc { get; set; } = DateTime.UtcNow.ToString("O");
-    public string Mode { get; set; } = string.Empty;
     public string PlayerName { get; set; } = string.Empty;
     public string WorldName { get; set; } = string.Empty;
     public int WorldId { get; set; }
     public string ModVersion { get; set; } = string.Empty;
     public string TmlVersion { get; set; } = string.Empty;
     public int TickRate { get; set; } = 60;
-    public ReplayPlayerSnapshot PlayerSnapshot { get; set; }
     public uint DurationTicks { get; set; }
     public int BlockCount { get; set; }
     public int PacketCount { get; set; }

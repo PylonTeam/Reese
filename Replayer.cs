@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Reese.Common.TimeScaleTool;
+using Reese.Core.Debug;
 using Terraria;
 using Terraria.ModLoader;
 using Terraria.Net;

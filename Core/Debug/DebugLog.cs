@@ -1,15 +1,15 @@
 ﻿using log4net;
-using Microsoft.Xna.Framework;
+using Reese.Core.Configs;
 using System.IO;
 using System.Runtime.CompilerServices;
 using Terraria.Chat;
+using Terraria.ID;
 using Terraria.Localization;
-using Terraria.ModLoader;
 
 namespace Reese.Core.Debug;
 
 /// <summary>
-/// A static logging helper for PvPAdventure (Reese).
+/// A static logging helper for Reese..
 /// Used to minimize boilerplate 
 /// and improve debugging by providing class names to log messages.
 /// Example usage: Log.Debug("Your debug message.");
@@ -27,17 +27,17 @@ public static class Log
     }
 
     /// <summary>
-    /// Sends a debug Terraria chat message to everyone, e.g [DEBUG/FileName: Your Message]
+    /// Sends a debug Terraria chat message, e.g [CLIENT/FileName: Your Message]
     /// </summary>
     public static void Chat(object message, [CallerFilePath] string file = "")
     {
         // Always send the message to the log (client.log/server.log)
-        Debug(message);
+        Debug(message, file);
 
         // Check if debug messages are enabled in config
-        //var config = ModContent.GetInstance<ClientConfig>();
-        //if (!config.ShowDebugMessages)
-        //    return;
+        var config = ModContent.GetInstance<ClientConfig>();
+        if (config == null || !config.ShowDebugMessages)
+            return;
 
         // Sanitize file name
         string fileName = Path.GetFileNameWithoutExtension(file);
@@ -46,11 +46,18 @@ public static class Log
         if (fileName.Length > 17)
             fileName = fileName[..17] + "..";
 
-        // Broadcast to Terraria chat to all clients
-        ChatHelper.BroadcastChatMessage(
-            text: NetworkText.FromLiteral($"[DEBUG/{fileName}]: {message}"),
-            color: Color.White
-            );
+        string text = "";
+
+        if (Main.netMode == NetmodeID.Server)
+        {
+            text += $"[SERVER/{fileName}]: {message}";
+            ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral(text), color: Color.White, playerId: Main.LocalPlayer.whoAmI);
+        }
+        else
+        {
+            text += $"[CLIENT/{fileName}]: {message}";
+            Main.NewText(text, Color.White);
+        }
     }
 
     public static void Info(object message, [CallerFilePath] string file = "")

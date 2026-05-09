@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.UI;
+using Reese.Common.MainMenu.State;
+using Reese.Core.Debug;
+using Reese.UI;
 using ReLogic.Content;
 using System;
 using System.IO;
@@ -16,7 +18,7 @@ public class ReplayListItem : UIPanel
 {
     private readonly string fullPath;
     private readonly UICharacter preview;
-    private readonly ReeseUIImageButton playButton;
+    private readonly CustomUIImageButton playButton;
     private readonly HoverInfoPill datePill;
     private readonly HoverInfoPill durationPill;
     private readonly HoverInfoPill worldSizePill;
@@ -55,7 +57,7 @@ public class ReplayListItem : UIPanel
         {
             Left = { Pixels = 68f },
             Top = { Pixels = 30f },
-            Width = { Pixels = 150f},
+            Width = { Pixels = 150f },
         };
         Append(datePill);
 
@@ -82,7 +84,7 @@ public class ReplayListItem : UIPanel
             Width = { Pixels = 80f }
         };
         Append(worldSizePill);
-        
+
 
         Asset<Texture2D> playAsset = Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay");
         const float playScale = 2.0f;

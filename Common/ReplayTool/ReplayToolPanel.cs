@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using Reese.Common.TimeScaleTool;
-using Reese.Common.UI;
-using Reese.Core;
+using Reese.Core.Utilities;
+using Reese.UI;
 using System;
 using Terraria;
 using Terraria.ModLoader;

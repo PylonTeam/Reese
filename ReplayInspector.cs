@@ -1,3 +1,4 @@
+using Reese.Core.Debug;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -119,7 +120,7 @@ public static class ReplayInspector
 
     public static ReplayInspectionReport InspectLatestReplay()
     {
-        string dir = ReplayFilePaths.GetFolder();
+        string dir = ReeseReplayPaths.GetFolder();
         Directory.CreateDirectory(dir);
 
         string path = Directory.GetFiles(dir, "*.reese", SearchOption.TopDirectoryOnly)
@@ -186,11 +187,10 @@ public sealed class ReplayInspectionReport
             ? "none"
             : string.Join(", ", MessageCounts.OrderByDescending(x => x.Value).Take(8).Select(x => $"{x.Key}:{x.Value}"));
 
-        string mode = string.IsNullOrWhiteSpace(Metadata?.Mode) ? "?" : Metadata.Mode;
         string player = string.IsNullOrWhiteSpace(Metadata?.PlayerName) ? "?" : Metadata.PlayerName;
         string world = string.IsNullOrWhiteSpace(Metadata?.WorldName) ? "?" : Metadata.WorldName;
 
-        return $"Replay report {fileName}: valid={IsValid}, format=v{FormatVersion}, mode={mode}, player={player}, world={world}, bytes={FileBytes}, " +
+        return $"Replay report {fileName}: valid={IsValid}, format=v{FormatVersion}, player={player}, world={world}, bytes={FileBytes}, " +
             $"blocks={BlockCount}, packets={PacketCount}, packetBytes={PacketDataBytes}, ticks={DurationTicks}, " +
             $"seconds={DurationTicks / 60d:0.##}, baselineBytes={BaselineBytes}, maxBlockBytes={MaxBlockBytes}, " +
             $"zeroDeltaBlocks={ZeroDeltaBlockCount}, malformedPackets={MalformedPacketDataCount}, " +
@@ -233,13 +233,13 @@ public sealed class InspectReplayCommand : ModCommand
         if (Path.IsPathRooted(raw))
             return raw;
 
-        string replayFolderPath = Path.Combine(ReplayFilePaths.GetFolder(), raw);
+        string replayFolderPath = Path.Combine(ReeseReplayPaths.GetFolder(), raw);
         if (File.Exists(replayFolderPath))
             return replayFolderPath;
 
         if (!raw.EndsWith(".reese", StringComparison.OrdinalIgnoreCase))
         {
-            string replayFilePath = Path.Combine(ReplayFilePaths.GetFolder(), raw + ".reese");
+            string replayFilePath = Path.Combine(ReeseReplayPaths.GetFolder(), raw + ".reese");
             if (File.Exists(replayFilePath))
                 return replayFilePath;
         }

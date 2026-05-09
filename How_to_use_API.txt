@@ -1,0 +1,90 @@
+This is for modders who want to use Reese's recording functionality in their own mods.
+Here's an example of a class for cross-mod integration for Reese if you want custom start and stop recording conditions.
+
+namespace Reese.Core;
+
+public static class ReeseIntegration
+{
+    private static bool initialized;
+    private static object recorder;
+    private static MethodInfo startRecording;
+    private static MethodInfo stopRecording;
+
+    public static void StartReeseRecording(string playerName = null)
+    {
+        if (!TryInitialize())
+            return;
+
+        try
+        {
+            playerName ??= Main.LocalPlayer?.name ?? "Player";
+            startRecording.Invoke(recorder, [playerName]);
+        }
+        catch (Exception e)
+        {
+            Log.Warn("Failed to start Reese recording: " + e);
+        }
+    }
+
+    public static void StopReeseRecording()
+    {
+        if (!TryInitialize())
+            return;
+
+        try
+        {
+            stopRecording.Invoke(recorder, null);
+        }
+        catch (Exception e)
+        {
+            Log.Warn("Failed to stop Reese recording: " + e);
+        }
+    }
+
+    private static bool TryInitialize()
+    {
+        if (initialized)
+            return recorder != null && startRecording != null && stopRecording != null;
+
+        initialized = true;
+
+        try
+        {
+            Type recorderType = typeof(ReeseIntegration).Assembly.GetType("Reese.Recorder");
+            if (recorderType == null)
+            {
+                Log.Warn("Failed to initialize Reese integration: Reese.Recorder was not found");
+                return false;
+            }
+
+            recorder = GetModSystemInstance(recorderType);
+            if (recorder == null)
+            {
+                Log.Warn("Failed to initialize Reese integration: Recorder instance was not found");
+                return false;
+            }
+
+            startRecording = recorderType.GetMethod("StartMultiplayerRecording", BindingFlags.Instance | BindingFlags.Public);
+            stopRecording = recorderType.GetMethod("StopRecording", BindingFlags.Instance | BindingFlags.Public);
+
+            if (startRecording == null || stopRecording == null)
+            {
+                Log.Warn("Failed to initialize Reese integration: Recorder methods were not found");
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            Log.Warn("Failed to initialize Reese integration: " + e);
+            return false;
+        }
+    }
+
+    private static object GetModSystemInstance(Type systemType)
+    {
+        MethodInfo getInstance = typeof(ModContent).GetMethod(nameof(ModContent.GetInstance), BindingFlags.Static | BindingFlags.Public);
+        return getInstance?.MakeGenericMethod(systemType).Invoke(null, null);
+    }
+}

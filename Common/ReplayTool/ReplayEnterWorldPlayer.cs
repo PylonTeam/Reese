@@ -1,8 +1,6 @@
-using Reese.Common.ReplayTool;
-using Terraria;
-using Terraria.ModLoader;
+using Reese.Core.Debug;
 
-namespace Reese.Common;
+namespace Reese.Common.ReplayTool;
 
 [Autoload(Side = ModSide.Client)]
 internal sealed class ReplayEnterWorldPlayer : ModPlayer
