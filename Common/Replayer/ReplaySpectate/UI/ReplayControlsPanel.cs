@@ -1,6 +1,4 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer;
-using Reese.Common.Replayer.ReplaySpectate.UI;
 using Reese.Core.Configs;
 using Reese.UI;
 using System;
@@ -8,7 +6,7 @@ using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
-namespace Reese.Common.Replayer.ReplaySpectate;
+namespace Reese.Common.Replayer.ReplaySpectate.UI;
 
 public sealed class ReplayControlsPanel : DraggablePanel
 {
@@ -43,7 +41,7 @@ public sealed class ReplayControlsPanel : DraggablePanel
         Width.Set(430f, 0f);
         Height.Set(200f, 0f);
         HAlign = 0.5f;
-        VAlign = 0.15f;
+        VAlign = 0.92f;
 
         speedLabel = CreateLabel(0.82f);
         ContentPanel.Append(speedLabel);
@@ -82,11 +80,11 @@ public sealed class ReplayControlsPanel : DraggablePanel
         transportButtons =
         [
             CreateTransportButton(Ass.Icon_SpeedDown, "Go to start", GoToStart),
-        CreateTransportButton(Ass.Icon_NextFrame, "Next Frame", StepOneFrame),
-        CreateTransportButton(Ass.Icon_Play, "Play", Resume),
-        CreateTransportButton(Ass.Icon_Pause, "Pause", Pause),
-        CreateTransportButton(Ass.Icon_Stop, "Stop Replay", () => Replayer.StopPlayback()),
-        CreateTransportButton(Ass.Icon_SpeedUp, "Go to end", GoToEnd)
+            CreateTransportButton(Ass.Icon_NextFrame, "Next Frame", StepOneFrame),
+            CreateTransportButton(Ass.Icon_Play, "Play", Resume),
+            CreateTransportButton(Ass.Icon_Pause, "Pause", Pause),
+            CreateTransportButton(Ass.Icon_Stop, "Stop Replay", () => Replayer.StopPlayback()),
+            CreateTransportButton(Ass.Icon_SpeedUp, "Go to end", GoToEnd)
         ];
 
         ApplyLayout();
@@ -155,18 +153,36 @@ public sealed class ReplayControlsPanel : DraggablePanel
         transportStatusLabel.Left.Set(136f, 0f);
         transportStatusLabel.Top.Set(82f, 0f);
 
-        float left = 136f;
+        float rightColumnLeft = 136f;
+        float rightColumnRight = 412f;
+        float gap = 6f;
+        float buttonTop = 118f;
+        float totalWidth = 0f;
+
+        for (int i = 0; i < transportButtons.Length; i++)
+            totalWidth += GetTransportButtonWidth(i) + (i == 0 ? 0f : gap);
+
+        float left = rightColumnLeft + (rightColumnRight - rightColumnLeft - totalWidth) * 0.5f;
+
         for (int i = 0; i < transportButtons.Length; i++)
         {
-            bool large = i == 2;
-            float width = large ? 44f : 30f;
-
+            float width = GetTransportButtonWidth(i);
             transportButtons[i].SetOuterWidth(width);
             transportButtons[i].Left.Set(left, 0f);
-            transportButtons[i].Top.Set(118f, 0f);
-
-            left += width + 6f;
+            transportButtons[i].Top.Set(buttonTop, 0f);
+            left += width + gap;
         }
+    }
+
+    private static float GetTransportButtonWidth(int index)
+    {
+        return index switch
+        {
+            0 => 44f, // Go to start
+            2 => 60f, // Play
+            5 => 44f, // Go to end
+            _ => 36f
+        };
     }
 
     private static UIText CreateLabel(float scale)
@@ -234,7 +250,7 @@ public sealed class ReplayControlsPanel : DraggablePanel
         positionSlider.SetRatio(currentTick / (float)durationTicks);
         positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
         speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
-        transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Frame: {currentTick} / {durationTicks}");
+        transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Frame: {currentTick}");
 
         for (int i = 0; i < speedButtons.Length; i++)
         {

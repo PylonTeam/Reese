@@ -27,8 +27,8 @@ internal sealed class ReplayTab : TabPage
     protected override void Populate(UIList list)
     {
         AddSection(list, new ReplaySettings());
-        AddSection(list, new ReplayInfo());
         AddSection(list, new DrawSettings());
+        AddSection(list, new ReplayInfo());
     }
 
     private sealed class DrawSettings : SettingsSection
@@ -40,12 +40,29 @@ internal sealed class ReplayTab : TabPage
         {
             return
             [
-                new("Draw Players:", () => $"Draw Players: {OnOff(SpectatorDrawSettings.IsDrawPlayersOn)}", () => Ass.Icon_Player.Value, onLeftClick: SpectatorDrawSettings.TogglePlayers),
-                new("Draw Ghosts:", () => $"Draw Ghosts: {OnOff(SpectatorDrawSettings.IsDrawGhostsOn)}", () => Ass.GhostRight.Value, onLeftClick: SpectatorDrawSettings.ToggleGhosts),
+                new("Draw Players:", () => $"Draw Players: {OnOff(SpectatorDrawSettings.IsDrawPlayersOn)}", () => Ass.Icon_Player.Value, onLeftClick: SpectatorDrawSettings.TogglePlayers, iconScale: 1.5f),
+                new("Draw Ghosts:", () => $"Draw Ghosts: {OnOff(SpectatorDrawSettings.IsDrawGhostsOn)}", GetGhostIcon, onLeftClick: SpectatorDrawSettings.ToggleGhosts, iconScale: 1.0f),
                 new("Draw Projectiles:", () => $"Draw Projectiles: {OnOff(SpectatorDrawSettings.IsDrawProjectilesOn)}", GetProjectileIcon, onLeftClick: SpectatorDrawSettings.ToggleProjectiles),
                 new("Draw NPCs:", () => $"Draw NPCs: {OnOff(SpectatorDrawSettings.IsDrawNPCsOn)}", () => Ass.Icon_NPC.Value, onLeftClick: SpectatorDrawSettings.ToggleNPCs),
-                new("Draw Items:", () => $"Draw Items: {OnOff(SpectatorDrawSettings.IsDrawItemsOn)}", GetItemIcon, onLeftClick: SpectatorDrawSettings.ToggleItems)
+                new("Draw Items:", () => $"Draw Items: {OnOff(SpectatorDrawSettings.IsDrawItemsOn)}", GetItemIcon, onLeftClick: SpectatorDrawSettings.ToggleItems, iconScale: 0.8f)
             ];
+        }
+
+        private static Texture2D ghostIcon;
+
+        private static Texture2D GetGhostIcon()
+        {
+            if (ghostIcon != null)
+                return ghostIcon;
+
+            Texture2D source = TextureAssets.Ghost.Value;
+            Rectangle frame = new(0, 0, source.Width, source.Height / 4);
+            Color[] data = new Color[frame.Width * frame.Height];
+
+            source.GetData(0, frame, data, 0, data.Length);
+            ghostIcon = new Texture2D(Main.graphics.GraphicsDevice, frame.Width, frame.Height);
+            ghostIcon.SetData(data);
+            return ghostIcon;
         }
 
         private static Texture2D GetProjectileIcon()

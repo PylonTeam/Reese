@@ -112,8 +112,8 @@ public class Replayer : ModSystem, ITicker
             return;
 
         Ticks++;
-        if ((Ticks % 60) == 0)
-            Log.Info("Client replay tick: " + Ticks);
+        //if ((Ticks % 60) == 0)
+            //Log.Info("Client replay tick: " + Ticks);
     }
 
     public static uint CurrentTick => ModContent.GetInstance<Replayer>().Ticks;
@@ -303,7 +303,7 @@ public class Replayer : ModSystem, ITicker
                     .OrderByDescending(x => x.Value)
                     .Take(5)
                     .Select(x => $"{x.Key}:{x.Value}"));
-                Log.Debug($"Ignored replay client packets: count={stats.PacketCount}, malformed={stats.MalformedPacketDataCount}, ids={topMessages}");
+                //Log.Debug($"Ignored replay client packets: count={stats.PacketCount}, malformed={stats.MalformedPacketDataCount}, ids={topMessages}");
             }
 
             callback?.Invoke(state);

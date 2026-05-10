@@ -414,24 +414,24 @@ internal sealed class WorldTab : TabPage
             return
             [
                 new(NPCID.KingSlime, "King Slime", NPC.downedSlimeKing),
-            new(NPCID.EyeofCthulhu, "Eye of Cthulhu", NPC.downedBoss1),
-            new(evilBossId, evilBossName, NPC.downedBoss2),
-            new(NPCID.QueenBee, "Queen Bee", NPC.downedQueenBee),
-            new(NPCID.Deerclops, "Deerclops", NPC.downedDeerclops),
-            new(NPCID.SkeletronHead, "Skeletron", NPC.downedBoss3),
-            new(NPCID.WallofFlesh, "Wall of Flesh", Main.hardMode),
-            new(NPCID.QueenSlimeBoss, "Queen Slime", NPC.downedQueenSlime),
-            new(NPCID.TheDestroyer, "The Destroyer", NPC.downedMechBoss1),
-            new(NPCID.Retinazer, "The Twins", NPC.downedMechBoss2),
-            new(NPCID.SkeletronPrime, "Skeletron Prime", NPC.downedMechBoss3),
-            new(NPCID.Plantera, "Plantera", NPC.downedPlantBoss),
-            new(NPCID.Golem, "Golem", NPC.downedGolemBoss),
-            new(NPCID.DukeFishron, "Duke Fishron", NPC.downedFishron),
-            new(NPCID.HallowBoss, "Empress of Light", NPC.downedEmpressOfLight),
-            new(NPCID.CultistBoss, "Lunatic Cultist", NPC.downedAncientCultist),
-            new(NPCID.LunarTowerSolar, "Lunar Pillars", NPC.downedTowerSolar && NPC.downedTowerVortex && NPC.downedTowerNebula && NPC.downedTowerStardust),
-            new(NPCID.MoonLordCore, "Moon Lord", NPC.downedMoonlord)
-            ];
+                new(NPCID.EyeofCthulhu, "Eye of Cthulhu", NPC.downedBoss1),
+                new(evilBossId, evilBossName, NPC.downedBoss2),
+                new(NPCID.QueenBee, "Queen Bee", NPC.downedQueenBee),
+                new(NPCID.Deerclops, "Deerclops", NPC.downedDeerclops),
+                new(NPCID.SkeletronHead, "Skeletron", NPC.downedBoss3),
+                new(NPCID.WallofFlesh, "Wall of Flesh", Main.hardMode),
+                new(NPCID.QueenSlimeBoss, "Queen Slime", NPC.downedQueenSlime),
+                new(NPCID.TheDestroyer, "The Destroyer", NPC.downedMechBoss1),
+                new(NPCID.Retinazer, "The Twins", NPC.downedMechBoss2),
+                new(NPCID.SkeletronPrime, "Skeletron Prime", NPC.downedMechBoss3),
+                new(NPCID.Plantera, "Plantera", NPC.downedPlantBoss),
+                new(NPCID.Golem, "Golem", NPC.downedGolemBoss),
+                new(NPCID.DukeFishron, "Duke Fishron", NPC.downedFishron),
+                new(NPCID.HallowBoss, "Empress of Light", NPC.downedEmpressOfLight),
+                new(NPCID.CultistBoss, "Lunatic Cultist", NPC.downedAncientCultist),
+                new(NPCID.LunarTowerSolar, "Lunar Pillars", NPC.downedTowerSolar && NPC.downedTowerVortex && NPC.downedTowerNebula && NPC.downedTowerStardust),
+                new(NPCID.MoonLordCore, "Moon Lord", NPC.downedMoonlord)
+                ];
         }
 
         private static string GetBossesDefeatedText()
@@ -458,7 +458,12 @@ internal sealed class WorldTab : TabPage
                 Downed = downed;
             }
 
-            public int HeadNpcId => NpcId == NPCID.Golem ? NPCID.GolemHead : NpcId;
+            public int HeadNpcId => NpcId switch
+            {
+                NPCID.Golem => NPCID.GolemHead,
+                NPCID.MoonLordCore => NPCID.MoonLordHead,
+                _ => NpcId
+            };
         }
     }
 }

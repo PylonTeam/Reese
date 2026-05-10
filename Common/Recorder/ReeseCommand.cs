@@ -7,8 +7,8 @@ namespace Reese.Common.Recorder;
 public sealed class ReeseCommand : ModCommand
 {
     public override string Command => "reese";
-    public override string Usage => "reese start [player name] | reese stop";
-    public override string Description => "Start or stop Reese replay recording from the server console.";
+    public override string Usage => "reese start | reese stop";
+    public override string Description => "Start or stop a Reese recording from the server console.";
     public override CommandType Type => CommandType.Console;
 
     public override void Action(CommandCaller caller, string input, string[] args)

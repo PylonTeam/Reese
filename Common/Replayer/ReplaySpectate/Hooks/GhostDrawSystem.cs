@@ -51,40 +51,9 @@ internal sealed class GhostDrawSystem : ModSystem
         if (drawPlayer == null || !drawPlayer.active || !drawPlayer.ghost)
             return true;
 
-        if (drawPlayer.whoAmI == Main.myPlayer)
-            return true;
-
-        Player local = Main.LocalPlayer;
-
-        if (local?.active == true && local.ghost)
-            return true;
+        if (drawPlayer.whoAmI == Main.myPlayer && SpectatorTargetSystem.HasLockedTarget())
+            return false;
 
         return true;
-        //return ModContent.GetInstance<ClientConfig>().DrawSpectators;
     }
 }
-
-//internal sealed class SpectatorGhostDrawPlayer : ModPlayer
-//{
-//    internal static bool ShouldDrawGhost(Player drawPlayer)
-//    {
-//        if (drawPlayer == null || !drawPlayer.active || !drawPlayer.ghost)
-//            return true;
-
-//        if (drawPlayer.whoAmI == Main.myPlayer)
-//            return true;
-
-//        ClientConfig config = ModContent.GetInstance<ClientConfig>();
-//        return config.DrawGhostsForOthers;
-//    }
-
-//    public override void HideDrawLayers(PlayerDrawSet drawInfo)
-//    {
-//        Player drawPlayer = drawInfo.drawPlayer;
-//        if (ShouldDrawGhost(drawPlayer))
-//            return;
-
-//        foreach (PlayerDrawLayer layer in PlayerDrawLayerLoader.GetDrawLayers(drawInfo))
-//            layer.Hide();
-//    }
-//}

@@ -1,5 +1,5 @@
 ﻿using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
-using Reese.Common.Replayer.ReplaySpectate.UI.Settings;
+using System;
 using System.Collections.Generic;
 using Terraria.ID;
 
@@ -9,24 +9,20 @@ namespace Reese.Common.Replayer.ReplaySpectate;
 public class SpectatorTargetSystem : ModSystem
 {
     private const int FullSyncIntervalTicks = 15;
-    private const float GhostFollowSpeed = 5f;
-    private const float FollowTargetDistance = 16f;
-    private const float FollowVerticalOffset = 0f;
-    private const float FollowTargetLerp = 0.45f;
-    private const float CameraFollowLerp = 0.28f;
-    private const float CameraSnapDistance = 2200f;
 
     private static int target = -1;
     private static int npcTarget = -1;
     private static int previewTarget = -1;
     private static int cameraTarget = -1;
-    private static bool hasCameraCenter;
-    private static Vector2 smoothedCameraCenter;
-    private static int followTargetKey = -1;
     private static int netSyncTicks;
-    private static bool hasSmoothedFollowCenter;
-    private static Vector2 smoothedFollowCenter;
-    #region Targeting
+
+    private static bool autoSpectatedFirstPlayer;
+
+    public static bool HasLockedTarget()
+    {
+        return SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer) && (CanTarget(target) || CanTargetNPC(npcTarget));
+    }
+
     private static bool CanTarget(int playerId)
     {
         return playerId >= 0 &&
@@ -38,56 +34,44 @@ public class SpectatorTargetSystem : ModSystem
 
     private static bool CanTargetNPC(int npcId)
     {
-        return npcId >= 0 &&
-            npcId < Main.maxNPCs &&
-            Main.npc[npcId]?.active == true;
+        return npcId >= 0 && npcId < Main.maxNPCs && Main.npc[npcId]?.active == true;
     }
 
     public static void SetPlayerTarget(int slot)
     {
-        int next = CanTarget(slot) ? slot : -1;
-
-        target = next;
+        target = CanTarget(slot) ? slot : -1;
         npcTarget = -1;
-        ResetFollowState();
+        netSyncTicks = 0;
 
         if (CanTarget(target))
-            SnapLocalPlayerNear(Main.player[target]);
+            SnapLocalPlayerTo(Main.player[target].Center, Main.player[target].direction, forceFullSync: true);
     }
 
     public static void SetNPCTarget(int slot)
     {
-        int next = CanTargetNPC(slot) ? slot : -1;
-
-        npcTarget = next;
+        npcTarget = CanTargetNPC(slot) ? slot : -1;
         target = -1;
         previewTarget = -1;
-        ResetFollowState();
+        netSyncTicks = 0;
 
         if (CanTargetNPC(npcTarget))
-            SnapLocalPlayerNear(Main.npc[npcTarget]);
+            SnapLocalPlayerTo(Main.npc[npcTarget].Center, GetNPCDirection(Main.npc[npcTarget]), forceFullSync: true);
     }
 
     public static void TogglePlayerTarget(int slot)
     {
         if (target == slot)
-        {
             ClearTarget();
-            return;
-        }
-
-        SetPlayerTarget(slot);
+        else
+            SetPlayerTarget(slot);
     }
 
     public static void ToggleNPCTarget(int slot)
     {
         if (npcTarget == slot)
-        {
             ClearTarget();
-            return;
-        }
-
-        SetNPCTarget(slot);
+        else
+            SetNPCTarget(slot);
     }
 
     public static void SetPreviewTarget(int slot)
@@ -105,8 +89,10 @@ public class SpectatorTargetSystem : ModSystem
         List<int> targets = [];
 
         for (int i = 0; i < Main.maxPlayers; i++)
+        {
             if (CanTarget(i) && i != exclude)
                 targets.Add(i);
+        }
 
         return targets;
     }
@@ -116,29 +102,34 @@ public class SpectatorTargetSystem : ModSystem
         if (target == -1 && npcTarget == -1)
             return;
 
-        bool previewStillOwnsCamera = CanTarget(previewTarget);
-
-        if (!previewStillOwnsCamera && moveCameraToLocal)
-        {
-            Player local = Main.LocalPlayer;
-            if (local?.active == true)
-            {
-                Vector2 screenPosition = local.Center - new Vector2(Main.screenWidth, Main.screenHeight) * 0.5f;
-                SpectateCameraFade.SetScreenPosition(screenPosition, allowFade: true);
-            }
-        }
-
-        if (!previewStillOwnsCamera)
-            cameraTarget = -1;
-
         target = -1;
         npcTarget = -1;
-        ResetFollowState();
+        netSyncTicks = 0;
+
+        if (CanTarget(previewTarget))
+            return;
+
+        cameraTarget = -1;
+
+        Player local = Main.LocalPlayer;
+        if (moveCameraToLocal && local?.active == true)
+            SpectateCameraFade.SetScreenPosition(ClampScreenPosition(local.Center - new Vector2(Main.screenWidth, Main.screenHeight) * 0.5f), allowFade: true);
     }
 
-    public static bool IsTargeting(Player player) => player?.active == true && GetPlayerTarget()?.whoAmI == player.whoAmI;
-    public static bool IsLockedTargeting(Player player) => player?.active == true && CanTarget(target) && target == player.whoAmI;
-    public static bool IsLockedTargeting(NPC npc) => npc?.active == true && CanTargetNPC(npcTarget) && npcTarget == npc.whoAmI;
+    public static bool IsTargeting(Player player)
+    {
+        return player?.active == true && GetPlayerTarget()?.whoAmI == player.whoAmI;
+    }
+
+    public static bool IsLockedTargeting(Player player)
+    {
+        return player?.active == true && CanTarget(target) && target == player.whoAmI;
+    }
+
+    public static bool IsLockedTargeting(NPC npc)
+    {
+        return npc?.active == true && CanTargetNPC(npcTarget) && npcTarget == npc.whoAmI;
+    }
 
     public static Player GetPlayerTarget()
     {
@@ -156,18 +147,12 @@ public class SpectatorTargetSystem : ModSystem
 
     public static Player GetLockedPlayerTarget()
     {
-        if (!SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer) || !CanTarget(target))
-            return null;
-
-        return Main.player[target];
+        return SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer) && CanTarget(target) ? Main.player[target] : null;
     }
 
     public static NPC GetLockedNPCTarget()
     {
-        if (!SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer) || !CanTargetNPC(npcTarget))
-            return null;
-
-        return Main.npc[npcTarget];
+        return SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer) && CanTargetNPC(npcTarget) ? Main.npc[npcTarget] : null;
     }
 
     public static string GetLockedTargetStatusText()
@@ -180,49 +165,45 @@ public class SpectatorTargetSystem : ModSystem
 
         return null;
     }
-    #endregion
 
-    #region Hooks
     public override void ModifyScreenPosition()
     {
-        if (TryGetCameraTarget(out Vector2 targetCenter, out int cameraId))
+        if (!TryGetCameraTarget(out Vector2 center, out int nextCameraTarget))
         {
-            bool targetChanged = cameraTarget != cameraId;
-            Vector2 cameraCenter = GetSmoothedCameraCenter(targetCenter, targetChanged);
-            Vector2 screenPosition = ClampScreenPosition(cameraCenter - new Vector2(Main.screenWidth, Main.screenHeight) * 0.5f);
-
-            SpectateCameraFade.SetScreenPosition(screenPosition, targetChanged);
-            cameraTarget = cameraId;
+            cameraTarget = -1;
             return;
         }
 
-        cameraTarget = -1;
-        hasCameraCenter = false;
+        bool targetChanged = cameraTarget != nextCameraTarget;
+        cameraTarget = nextCameraTarget;
+
+        Vector2 screenPosition = ClampScreenPosition(center - new Vector2(Main.screenWidth, Main.screenHeight) * 0.5f);
+        SpectateCameraFade.SetScreenPosition(screenPosition, targetChanged);
     }
 
     public override void PostUpdatePlayers()
     {
+        TryAutoSpectateFirstPlayer();
+
         if (ShouldCancelFollowFromMovementInput())
         {
             ClearTarget();
             return;
         }
 
-        Player targetPlayer = GetLockedPlayerTarget();
-        if (targetPlayer?.active == true)
+        if (GetLockedPlayerTarget() is Player player)
         {
-            FollowLockedTarget(targetPlayer);
+            SnapLocalPlayerTo(player.Center, player.direction, forceFullSync: false);
             return;
         }
 
-        NPC targetNPC = GetLockedNPCTarget();
-        if (targetNPC?.active == true)
+        if (GetLockedNPCTarget() is NPC npc)
         {
-            FollowLockedTarget(targetNPC);
+            SnapLocalPlayerTo(npc.Center, GetNPCDirection(npc), forceFullSync: false);
             return;
         }
 
-        ResetFollowState();
+        netSyncTicks = 0;
     }
 
     private static bool ShouldCancelFollowFromMovementInput()
@@ -231,95 +212,24 @@ public class SpectatorTargetSystem : ModSystem
             return false;
 
         Player local = Main.LocalPlayer;
-
         return local?.active == true && (local.controlLeft || local.controlRight || local.controlUp || local.controlDown);
     }
 
-    private static void FollowLockedTarget(Player targetPlayer)
-    {
-        Player local = Main.LocalPlayer;
-        if (local?.active != true || targetPlayer?.active != true || targetPlayer.whoAmI == local.whoAmI)
-            return;
-
-        FollowCenter(local, targetPlayer.Center, targetPlayer.velocity, targetPlayer.direction, targetPlayer.whoAmI);
-    }
-
-    private static void SnapLocalPlayerNear(Player targetPlayer)
-    {
-        Player local = Main.LocalPlayer;
-        if (local?.active != true || targetPlayer?.active != true || targetPlayer.whoAmI == local.whoAmI)
-            return;
-
-        SnapLocalPlayerNear(targetPlayer.Center, targetPlayer.velocity, targetPlayer.direction, targetPlayer.whoAmI);
-    }
-
-    private static void FollowLockedTarget(NPC targetNPC)
-    {
-        Player local = Main.LocalPlayer;
-        if (local?.active != true || targetNPC?.active != true)
-            return;
-
-        FollowCenter(local, targetNPC.Center, targetNPC.velocity, GetNPCDirection(targetNPC), 1000 + targetNPC.whoAmI);
-    }
-
-    private static void SnapLocalPlayerNear(NPC targetNPC)
-    {
-        if (targetNPC?.active != true)
-            return;
-
-        SnapLocalPlayerNear(targetNPC.Center, targetNPC.velocity, GetNPCDirection(targetNPC), 1000 + targetNPC.whoAmI);
-    }
-
-    private static void FollowCenter(Player local, Vector2 targetCenter, Vector2 targetVelocity, int direction, int targetKey)
-    {
-        Vector2 desiredCenter = GetFollowCenter(targetCenter, targetVelocity, direction);
-        bool targetChanged = followTargetKey != targetKey;
-        bool shouldSnap = targetChanged || !hasSmoothedFollowCenter;
-
-        followTargetKey = targetKey;
-        ApplyFollowDirection(local, direction);
-
-        if (shouldSnap)
-        {
-            smoothedFollowCenter = desiredCenter;
-            hasSmoothedFollowCenter = true;
-            local.Center = desiredCenter;
-        }
-        else
-        {
-            smoothedFollowCenter = Vector2.Lerp(smoothedFollowCenter, desiredCenter, FollowTargetLerp);
-            MoveLocalPlayerToward(local, smoothedFollowCenter);
-        }
-
-        local.fallStart = (int)(local.position.Y / 16f);
-
-        SyncLocalPlayerPosition(forceFullSync: false);
-    }
-
-    private static void SnapLocalPlayerNear(Vector2 targetCenter, Vector2 targetVelocity, int direction, int targetKey)
+    private static void SnapLocalPlayerTo(Vector2 center, int direction, bool forceFullSync)
     {
         Player local = Main.LocalPlayer;
         if (local?.active != true)
             return;
 
-        Vector2 desiredCenter = GetFollowCenter(targetCenter, targetVelocity, direction);
+        int normalizedDirection = direction == 0 ? 1 : direction;
 
-        followTargetKey = targetKey;
-        smoothedFollowCenter = desiredCenter;
-        hasSmoothedFollowCenter = true;
-        ApplyFollowDirection(local, direction);
-        local.Center = desiredCenter;
+        local.Center = center;
         local.velocity = Vector2.Zero;
+        local.direction = normalizedDirection;
+        local.ghostDir = normalizedDirection;
         local.fallStart = (int)(local.position.Y / 16f);
 
-        SyncLocalPlayerPosition(forceFullSync: true);
-    }
-
-    private static void ResetFollowState()
-    {
-        followTargetKey = -1;
-        hasSmoothedFollowCenter = false;
-        netSyncTicks = 0;
+        SyncLocalPlayerPosition(forceFullSync);
     }
 
     private static void SyncLocalPlayerPosition(bool forceFullSync)
@@ -328,44 +238,13 @@ public class SpectatorTargetSystem : ModSystem
             return;
 
         Player local = Main.LocalPlayer;
-
         NetMessage.SendData(MessageID.PlayerControls, -1, -1, null, local.whoAmI);
 
-        if (forceFullSync || ++netSyncTicks >= FullSyncIntervalTicks)
-        {
-            netSyncTicks = 0;
-            NetMessage.SendData(MessageID.SyncPlayer, -1, -1, null, local.whoAmI);
-        }
-    }
+        if (!forceFullSync && ++netSyncTicks < FullSyncIntervalTicks)
+            return;
 
-    private static void MoveLocalPlayerToward(Player local, Vector2 destination)
-    {
-        Vector2 oldCenter = local.Center;
-        Vector2 delta = destination - oldCenter;
-
-        if (delta.LengthSquared() <= GhostFollowSpeed * GhostFollowSpeed)
-            local.Center = destination;
-        else
-            local.Center = oldCenter + Vector2.Normalize(delta) * GhostFollowSpeed;
-
-        local.velocity = Vector2.Zero;
-    }
-
-    private static void ApplyFollowDirection(Player local, int direction)
-    {
-        int normalizedDirection;
-
-        if (SpectatorClientSettings.RightClickTeleport && Main.mouseRight)
-            normalizedDirection = Main.MouseWorld.X < local.Center.X ? -1 : 1;
-        else if (local.controlLeft && !local.controlRight)
-            normalizedDirection = -1;
-        else if (local.controlRight && !local.controlLeft)
-            normalizedDirection = 1;
-        else
-            normalizedDirection = Main.MouseWorld.X < local.Center.X ? -1 : 1;
-
-        local.direction = normalizedDirection;
-        local.ghostDir = normalizedDirection;
+        netSyncTicks = 0;
+        NetMessage.SendData(MessageID.SyncPlayer, -1, -1, null, local.whoAmI);
     }
 
     private static int GetNPCDirection(NPC npc)
@@ -373,71 +252,41 @@ public class SpectatorTargetSystem : ModSystem
         if (npc.spriteDirection != 0)
             return npc.spriteDirection;
 
-        return npc.direction;
+        return npc.direction == 0 ? 1 : npc.direction;
     }
 
-    private static Vector2 GetFollowCenter(Vector2 center, Vector2 velocity, int direction)
+    private static bool TryGetCameraTarget(out Vector2 center, out int id)
     {
-        float horizontalDirection = MathHelper.Distance(velocity.X, 0f) > 0.1f
-            ? velocity.X < 0f ? -1f : 1f
-            : direction == 0 ? 1f : direction;
-        Vector2 offset = new(-horizontalDirection * FollowTargetDistance, FollowVerticalOffset);
-
-        return center + offset;
-    }
-
-    private static bool TryGetCameraTarget(out Vector2 targetCenter, out int cameraId)
-    {
-        Player lockedPlayer = GetLockedPlayerTarget();
-        if (lockedPlayer?.active == true)
+        if (GetLockedPlayerTarget() is Player player)
         {
-            targetCenter = lockedPlayer.Center;
-            cameraId = lockedPlayer.whoAmI;
+            center = player.Center;
+            id = player.whoAmI;
             return true;
         }
 
-        NPC lockedNPC = GetLockedNPCTarget();
-        if (lockedNPC?.active == true)
+        if (GetLockedNPCTarget() is NPC npc)
         {
-            targetCenter = lockedNPC.Center;
-            cameraId = 1000 + lockedNPC.whoAmI;
+            center = npc.Center;
+            id = Main.maxPlayers + npc.whoAmI;
             return true;
         }
 
         if (CanTarget(previewTarget))
         {
-            Player previewPlayer = Main.player[previewTarget];
-            targetCenter = previewPlayer.Center;
-            cameraId = 2000 + previewPlayer.whoAmI;
+            center = Main.player[previewTarget].Center;
+            id = Main.maxPlayers + Main.maxNPCs + previewTarget;
             return true;
         }
 
-        targetCenter = Vector2.Zero;
-        cameraId = -1;
+        center = Vector2.Zero;
+        id = -1;
         return false;
-    }
-
-    private static Vector2 GetSmoothedCameraCenter(Vector2 targetCenter, bool targetChanged)
-    {
-        bool shouldSnap = targetChanged ||
-            !hasCameraCenter ||
-            Vector2.DistanceSquared(smoothedCameraCenter, targetCenter) > CameraSnapDistance * CameraSnapDistance;
-
-        if (shouldSnap)
-        {
-            smoothedCameraCenter = targetCenter;
-            hasCameraCenter = true;
-            return smoothedCameraCenter;
-        }
-
-        smoothedCameraCenter = Vector2.Lerp(smoothedCameraCenter, targetCenter, CameraFollowLerp);
-        return smoothedCameraCenter;
     }
 
     private static Vector2 ClampScreenPosition(Vector2 screenPosition)
     {
-        float maxX = System.Math.Max(0f, Main.maxTilesX * 16f - Main.screenWidth);
-        float maxY = System.Math.Max(0f, Main.maxTilesY * 16f - Main.screenHeight);
+        float maxX = Math.Max(0f, Main.maxTilesX * 16f - Main.screenWidth);
+        float maxY = Math.Max(0f, Main.maxTilesY * 16f - Main.screenHeight);
 
         screenPosition.X = MathHelper.Clamp(screenPosition.X, 0f, maxX);
         screenPosition.Y = MathHelper.Clamp(screenPosition.Y, 0f, maxY);
@@ -445,5 +294,22 @@ public class SpectatorTargetSystem : ModSystem
         return screenPosition;
     }
 
-    #endregion
+    private static void TryAutoSpectateFirstPlayer()
+    {
+        if (autoSpectatedFirstPlayer || target != -1 || npcTarget != -1)
+            return;
+
+        if (!SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer))
+            return;
+
+        for (int i = 0; i < Main.maxPlayers; i++)
+        {
+            if (!CanTarget(i))
+                continue;
+
+            autoSpectatedFirstPlayer = true;
+            SetPlayerTarget(i);
+            return;
+        }
+    }
 }
