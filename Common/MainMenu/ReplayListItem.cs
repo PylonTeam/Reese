@@ -21,14 +21,12 @@ namespace Reese.Common.MainMenu;
 
 internal sealed class ReplayListItem : UIPanel
 {
-    private readonly UICharacter preview;
     private readonly ActionHoverLabel actionHoverLabel;
-    private UIImage _worldIcon;
 
     public ReplayListItem(ReplayListEntry entry, Action onDeleted)
     {
         var constructorWatch = System.Diagnostics.Stopwatch.StartNew();
-        ReplayDisplayInfo info = entry.Info;
+        ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(entry.FullPath);
 
         // Layout
         ReplayBrowserLayout.Update();
@@ -39,18 +37,13 @@ internal sealed class ReplayListItem : UIPanel
         BackgroundColor = new Color(63, 82, 151) * 0.95f;
         BorderColor = new Color(89, 116, 213) * 0.95f;
 
-        // Preview Character
-        //preview = BuildPreviewCharacter(info);
-        //preview.SetAnimated(false);
-        //Append(new ReplayPreviewElement(preview, ReplayBrowserLayout.ReplayItemHeight));
-
         // Preview world
-        Append(new ReplayWorldIconElement(info, ReplayBrowserLayout.ReplayItemHeight));
+        Append(new ReplayPreviewImageElement(info, ReplayBrowserLayout.ReplayItemHeight));
 
         // Replay filename
         Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(entry.FullPath), entry.Name)
         {
-            Left = { Pixels = ReplayBrowserLayout.PreviewColumnWidth + ReplayBrowserLayout.StatColumnPadding },
+            Left = { Pixels = ReplayBrowserLayout.PreviewColumnWidth + ReplayBrowserLayout.StatColumnPadding + 4 },
             Top = { Pixels = 10f },
             Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - ReplayBrowserLayout.PreviewColumnWidth - ReplayBrowserLayout.StatColumnPadding * 2f },
             Height = { Pixels = 22f }
@@ -84,7 +77,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // Size
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuSizeStat(info.FileSizeText), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 0.8f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuSizeStat(info.FileSizeText), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
         {
             Left = { Pixels = ReplayBrowserLayout.SizeLeft + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
@@ -103,11 +96,21 @@ internal sealed class ReplayListItem : UIPanel
         actionHoverLabel.Height.Set(ReplayBrowserLayout.ActionButtonSize, 0f);
         Append(actionHoverLabel);
 
+        // Actions
         ReplayActionDefinition[] actions =
         [
             new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayItemActions.Play(entry.FullPath)),
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayItemActions.Rename(entry.FullPath, onDeleted))
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayItemActions.Rename(entry.FullPath, onDeleted)),
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonSeed"), "Upload image", () => ReplayItemActions.ChoosePreviewImage(entry.FullPath, onDeleted)),
         ];
+
+        actionHoverLabel = new ActionHoverLabel();
+        actionHoverLabel.Left.Set(10f + actions.Length * ReplayBrowserLayout.ActionButtonSize + Math.Max(0, actions.Length - 1) * ReplayBrowserLayout.ActionButtonGap + ReplayBrowserLayout.ActionLabelGap, 0f);
+        actionHoverLabel.Top.Set(ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f + 1f, 0f);
+        actionHoverLabel.Width.Set(ReplayBrowserLayout.ActionLabelWidth, 0f);
+        actionHoverLabel.Height.Set(ReplayBrowserLayout.ActionButtonSize, 0f);
+        Append(actionHoverLabel);
+
         UIImageButton[] previewActionButtons = AppendActionButtons(actions, actionHoverLabel);
 
         float buttonTop = ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f - 1;
@@ -146,28 +149,43 @@ internal sealed class ReplayListItem : UIPanel
             Log.Debug($"Replay row slow: {info.FileName} took {constructorWatch.ElapsedMilliseconds} ms");
     }
 
-    private sealed class ReplayWorldIconElement : UIElement
+    private sealed class ReplayPreviewImageElement : UIElement
     {
-        private readonly Asset<Texture2D> icon;
+        private readonly ReplayDisplayInfo info;
+        private readonly Asset<Texture2D> fallbackIcon;
 
-        public ReplayWorldIconElement(ReplayDisplayInfo info, float size)
+        public ReplayPreviewImageElement(ReplayDisplayInfo info, float size)
         {
+            this.info = info;
+            fallbackIcon = GetFallbackWorldIcon(info);
+
             Width.Set(size, 0f);
             Height.Set(size, 0f);
             Left.Set(6f, 0f);
             Top.Set(6f, 0f);
-
-            icon = GetIcon(info);
         }
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
             Rectangle area = GetDimensions().ToRectangle();
-            Texture2D texture = icon.Value;
-            spriteBatch.Draw(texture, area, Color.White);
+            Texture2D texture = ReplayPreviewImages.GetTexture(info.PreviewImagePath) ?? fallbackIcon.Value;
+            DrawTextureFit(spriteBatch, texture, new Rectangle(area.X, area.Y, area.Width, area.Height));
         }
 
-        private static Asset<Texture2D> GetIcon(ReplayDisplayInfo info)
+        private static void DrawTextureFit(SpriteBatch spriteBatch, Texture2D texture, Rectangle area)
+        {
+            if (texture == null)
+                return;
+
+            float scale = Math.Min(area.Width / (float)texture.Width, area.Height / (float)texture.Height);
+            int width = Math.Max(1, (int)Math.Round(texture.Width * scale));
+            int height = Math.Max(1, (int)Math.Round(texture.Height * scale));
+            Rectangle destination = new(area.X + (area.Width - width) / 2, area.Y + (area.Height - height) / 2, width, height);
+
+            spriteBatch.Draw(texture, destination, Color.White);
+        }
+
+        private static Asset<Texture2D> GetFallbackWorldIcon(ReplayDisplayInfo info)
         {
             var world = Main.WorldList?.FirstOrDefault(x =>
                 x != null &&
@@ -198,7 +216,6 @@ internal sealed class ReplayListItem : UIPanel
         }
     }
 
-
     private sealed class ReplayNameElement : UIElement
     {
         private readonly string text;
@@ -226,14 +243,16 @@ internal sealed class ReplayListItem : UIPanel
     private UIImageButton[] AppendActionButtons(ReplayActionDefinition[] actions, ActionHoverLabel hoverLabel)
     {
         UIImageButton[] buttons = new UIImageButton[actions.Length];
-        float buttonSize = ReplayBrowserLayout.ActionButtonSize;
-        float buttonGap = ReplayBrowserLayout.ActionButtonGap;
-        float top = ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - buttonSize) * 0.5f + 1;
-        float left = ReplayBrowserLayout.ReplayItemHeight - ReplayBrowserLayout.ActionButtonRightPadding - buttonSize * actions.Length - buttonGap * Math.Max(0, actions.Length - 1) + 4;
 
         for (int i = 0; i < actions.Length; i++)
         {
-            buttons[i] = CreateVanillaImageButton(actions[i], hoverLabel, left + i * (buttonSize + buttonGap), top, buttonSize);
+            buttons[i] = CreateVanillaImageButton(
+                actions[i],
+                hoverLabel,
+                10f + i * (ReplayBrowserLayout.ActionButtonSize + ReplayBrowserLayout.ActionButtonGap),
+                ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f + 1f,
+                ReplayBrowserLayout.ActionButtonSize);
+
             Append(buttons[i]);
         }
 
@@ -267,7 +286,6 @@ internal sealed class ReplayListItem : UIPanel
             if (button.IsMouseHovering)
             {
                 hoverLabel.SetAction(action.Label);
-                UICommon.TooltipMouseText(action.Label);
             }
         };
         button.OnLeftClick += (_, _) => action.Click?.Invoke();

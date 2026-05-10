@@ -447,43 +447,6 @@ internal sealed class ReplayBrowserPanel : UIElement
         list.Add(container);
     }
 
-    public readonly struct ReplayListEntry
-    {
-        public readonly string FullPath;
-        public readonly ReplayDisplayInfo Info;
-        public readonly string Name;
-        public readonly DateTime Date;
-        public readonly TimeSpan Duration;
-        public readonly uint DurationTicks;
-        public readonly long SizeBytes;
-
-        private ReplayListEntry(string fullPath, ReplayDisplayInfo info, uint durationTicks, long sizeBytes)
-        {
-            FullPath = fullPath;
-            Info = info;
-            Name = Path.GetFileNameWithoutExtension(fullPath);
-            Date = info.Date;
-            Duration = info.Duration;
-            DurationTicks = durationTicks;
-            SizeBytes = sizeBytes;
-        }
-
-        public static ReplayListEntry FromFile(string fullPath)
-        {
-            var watch = System.Diagnostics.Stopwatch.StartNew();
-
-            ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(fullPath);
-            long sizeBytes = info.FileSizeBytes;
-            uint durationTicks = info.DurationTicks;
-
-            watch.Stop();
-
-            if (watch.ElapsedMilliseconds >= 50)
-                Log.Debug($"Replay metadata read slow: {Path.GetFileName(fullPath)} took {watch.ElapsedMilliseconds} ms, size={ProfileProbe.FormatBytes(sizeBytes)}, thread={ProfileProbe.ThreadInfo()}");
-
-            return new ReplayListEntry(fullPath, info, durationTicks, sizeBytes);
-        }
-    }
 }
 
     

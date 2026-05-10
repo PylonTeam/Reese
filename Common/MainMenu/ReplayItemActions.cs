@@ -26,6 +26,7 @@ internal static class ReplayItemActions
                     File.Delete(path);
 
                 onDeleted?.Invoke();
+                ReplayPreviewImages.DeletePreview(path);
             }
             catch (Exception e)
             {
@@ -86,5 +87,20 @@ internal static class ReplayItemActions
             name = name.Replace(invalidChar, '_');
 
         return name.Trim();
+    }
+
+    public static void ChoosePreviewImage(string path, Action onChanged = null)
+    {
+        SoundEngine.PlaySound(SoundID.MenuOpen);
+
+        try
+        {
+            if (ReplayPreviewImages.ChooseAndSavePreview(path))
+                onChanged?.Invoke();
+        }
+        catch (Exception e)
+        {
+            Log.Error($"Failed to set replay preview image '{path}': {e}");
+        }
     }
 }

@@ -49,9 +49,9 @@ internal static class ReplayBrowserLayout
         Set(ref ActionColumnWidth, 48f, ref changed);
         Set(ref TableWidth, ReplayBrowser.PanelWidth - ContentPadding * 2f - ScrollbarWidth - 4f, ref changed);
 
-        const float baseNameColumnWidth = 234f;
-        const float baseDateColumnWidth = 110f;
-        const float baseDurationColumnWidth = 92f;
+        const float baseNameColumnWidth = 190f;
+        const float baseDateColumnWidth = 97f;
+        const float baseDurationColumnWidth = 77f;
         const float baseSizeColumnWidth = 91f;
 
         float baseTotalWidth = baseNameColumnWidth + baseDateColumnWidth + baseDurationColumnWidth + baseSizeColumnWidth;
