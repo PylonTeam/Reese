@@ -14,7 +14,8 @@ internal sealed class ReplayDisplayInfo
     public string WorldNameRaw { get; init; }
     public string PlayerName { get; init; }
     public string PlayerNameRaw { get; init; }
-    public string DurationText { get; init; }
+    public TimeSpan Duration { get; init; }
+    public string DurationText => FormatDurationText(Duration);
     public DateTime Date { get; init; }
     public string MetadataTooltip { get; init; }
     public ReplayPlayerSnapshot PlayerSnapshot { get; init; }
@@ -24,7 +25,7 @@ internal sealed class ReplayDisplayInfo
         string fileName = Path.GetFileName(path);
         string worldName = InferWorldName(fileName);
         string playerName = "-";
-        string durationText = "--:--:--";
+        TimeSpan duration = TimeSpan.Zero;
         DateTime date = File.GetLastWriteTime(path);
         string metadataTooltip = string.Empty;
         ReplayPlayerSnapshot playerSnapshot = null;
@@ -48,7 +49,7 @@ internal sealed class ReplayDisplayInfo
 
             uint durationTicks = metadata?.DurationTicks > 0 ? metadata.DurationTicks : report.DurationTicks;
             int tickRate = metadata?.TickRate > 0 ? metadata.TickRate : 60;
-            durationText = FormatDuration(durationTicks, tickRate);
+            duration = BuildDuration(durationTicks, tickRate);
         }
         catch (Exception e)
         {
@@ -62,7 +63,7 @@ internal sealed class ReplayDisplayInfo
             WorldNameRaw = worldName,
             PlayerName = Compact(playerName),
             PlayerNameRaw = playerName,
-            DurationText = durationText,
+            Duration = duration,
             Date = date,
             MetadataTooltip = metadataTooltip,
             PlayerSnapshot = playerSnapshot
@@ -80,6 +81,7 @@ internal sealed class ReplayDisplayInfo
 
         List<string> lines =
         [
+            $"Filename: {Path.GetFileName(report.Path)}",
             $"Format: v{report.FormatVersion}",
             $"World ID: {metadata?.WorldId ?? 0}",
             $"Tick rate: {tickRate}",
@@ -103,18 +105,19 @@ internal sealed class ReplayDisplayInfo
 
     private static string FormatModNames(string[] modNames)
     {
-        const int maxShown = 8;
+        const int maxShown = 4;
         string text = string.Join(", ", modNames.Length > maxShown ? modNames[..maxShown] : modNames);
         return modNames.Length > maxShown ? $"{text}, +{modNames.Length - maxShown:N0} more" : text;
     }
 
-    private static string FormatDuration(uint ticks, int tickRate)
+    private static TimeSpan BuildDuration(uint ticks, int tickRate)
     {
-        if (ticks == 0 || tickRate <= 0)
-            return "00:00:00";
+        return ticks == 0 || tickRate <= 0 ? TimeSpan.Zero : TimeSpan.FromSeconds(ticks / (double)tickRate);
+    }
 
-        var elapsed = TimeSpan.FromSeconds(ticks / (double)tickRate);
-        return $"{(int)elapsed.TotalHours:00}:{elapsed.Minutes:00}:{elapsed.Seconds:00}";
+    private static string FormatDurationText(TimeSpan duration)
+    {
+        return $"{(int)duration.TotalHours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
     }
 
     private static string InferWorldName(string fileName)

@@ -20,6 +20,7 @@ internal sealed class ReplayBrowser : UIElement
     private ReplayBrowserPanel browserPanel;
 
     public event Action OnRefreshStarted;
+    public event Action OnRefreshFinished;
 
     public override void OnActivate()
     {
@@ -32,6 +33,7 @@ internal sealed class ReplayBrowser : UIElement
         browserPanel.Width.Set(0f, 1f);
         browserPanel.Height.Set(BrowserPanelHeight, 0f);
         browserPanel.OnRefreshStarted += () => OnRefreshStarted?.Invoke();
+        browserPanel.OnRefreshFinished += () => OnRefreshFinished?.Invoke();
         Append(browserPanel);
         browserPanel.Build();
     }
@@ -95,6 +97,7 @@ internal sealed class ReplayBrowserPanel : UIElement
     private bool sortAscending;
 
     public event Action OnRefreshStarted;
+    public event Action OnRefreshFinished;
 
     // Cache entries
     private ReplayEntry[] cachedEntries = [];
@@ -129,9 +132,9 @@ internal sealed class ReplayBrowserPanel : UIElement
         tableHeader.Height.Set(ReplayBrowserLayout.TableColumnHeight, 0f);
         container.Append(tableHeader);
 
-        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Replay", 0f, ReplayBrowserLayout.NameColumnWidth);
+        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Replay Name", 0f, ReplayBrowserLayout.NameColumnWidth);
         UISortableTableColumn dateColumn = UISortableTableColumn.AppendHeader(tableHeader, "Date", ReplayBrowserLayout.NameColumnWidth, ReplayBrowserLayout.DateColumnWidth);
-        UISortableTableColumn durationColumn = UISortableTableColumn.AppendHeader(tableHeader, "Session", ReplayBrowserLayout.NameColumnWidth + ReplayBrowserLayout.DateColumnWidth, ReplayBrowserLayout.DurationColumnWidth);
+        UISortableTableColumn durationColumn = UISortableTableColumn.AppendHeader(tableHeader, "Length", ReplayBrowserLayout.NameColumnWidth + ReplayBrowserLayout.DateColumnWidth, ReplayBrowserLayout.DurationColumnWidth);
 
         void RefreshColumnStates()
         {
@@ -254,7 +257,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         searchBox.OnTextChanged += ApplyCurrentFilter;
         header.Append(searchBox);
 
-        Refresh(showLoading: false);
+        Refresh();
     }
 
     public override void Update(GameTime gameTime)
@@ -303,11 +306,13 @@ internal sealed class ReplayBrowserPanel : UIElement
                     cachedEntries = [];
                     AddMessage("Failed to read replay folder");
                     list.Recalculate();
+                    OnRefreshFinished?.Invoke();
                     return;
                 }
 
                 cachedEntries = task.Result;
                 ApplyCurrentFilter();
+                OnRefreshFinished?.Invoke();
             });
         });
     }
@@ -331,7 +336,7 @@ internal sealed class ReplayBrowserPanel : UIElement
             if (hasAnyReplays)
                 AddMessage("No replays found", "0 replays filtered by enabled search filter.");
             else
-                AddMessage("No replays yet", "Host a multiplayer world to create one");
+                AddMessage("No replays yet", "Host a multiplayer world to create one, or place a .reese file in the folder");
 
             list.Recalculate();
             return;

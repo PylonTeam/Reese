@@ -1,12 +1,12 @@
 using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.ReplaySpectate.SpectatorMode;
-using Reese.Common.ReplaySpectate.UI.Tabs.World;
+using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab;
 using System;
 using System.Collections.Generic;
 using Terraria.GameContent;
 using Terraria.Localization;
 
-namespace Reese.Common.ReplaySpectate.UI.Tabs.World.WorldSections;
+namespace Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 
 internal sealed class WorldInfoSection : WorldSectionBase
 {

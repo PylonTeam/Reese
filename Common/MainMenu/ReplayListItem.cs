@@ -24,8 +24,8 @@ internal sealed class ReplayListItem : UIPanel
 
     public ReplayListItem(string fullPath, Action onDeleted)
     {
+        // Layout
         ReplayBrowserLayout.Update();
-
         Width.Set(0f, 1f);
         Height.Set(ReplayBrowserLayout.ReplayItemTotalHeight, 0f);
         SetPadding(0f);
@@ -33,42 +33,59 @@ internal sealed class ReplayListItem : UIPanel
         BackgroundColor = new Color(63, 82, 151) * 0.95f;
         BorderColor = new Color(89, 116, 213) * 0.95f;
 
+        // Preview Character
         ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(fullPath);
-
         preview = BuildPreviewCharacter(info);
         preview.SetAnimated(false);
         Append(new ReplayPreviewElement(preview, ReplayBrowserLayout.ReplayItemHeight));
 
-        string dateLine = info.Date.ToString("yyyy-MM-dd");
-        string timeLine = info.Date.ToString("HH:mm");
-
+        // Replay Filename
         Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(info.FileName), info.MetadataTooltip)
         {
             Left = { Pixels = 66f },
-            Top = { Pixels = 4f },
+            Top = { Pixels = 6f },
             Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - 76f },
             Height = { Pixels = 22f }
         });
 
-        Append(new MainMenuStatElement(info.PlayerNameRaw, world: false)
+        // Player Name
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuPlayerNameStat(info.PlayerNameRaw), 0.9f, iconScale: 1.45f)
         {
-            Left = { Pixels = 72f },
-            Top = { Pixels = 22f },
-            Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - 106f },
-            Height = { Pixels = 20f }
-        });
-        Append(new MainMenuStatElement(info.WorldNameRaw, world: true)
-        {
-            Left = { Pixels = 72f },
-            Top = { Pixels = 44f },
-            Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - 106f },
-            Height = { Pixels = 20f }
+            Left = { Pixels = 66f },
+            Top = { Pixels = 34f },
+            Width = { Pixels = (ReplayBrowserLayout.NameColumnWidth - 66f - 6f) * 0.5f },
+            Height = { Pixels = 24f }
         });
 
-        Append(UISortableTableColumn.CreateCenteredTwoLineCell(dateLine, timeLine, ReplayBrowserLayout.DateLeft, ReplayBrowserLayout.DateColumnWidth));
-        Append(UISortableTableColumn.CreateCenteredTextCell(info.DurationText, ReplayBrowserLayout.DurationLeft, ReplayBrowserLayout.DurationColumnWidth, $"Duration: {info.DurationText}"));
-        Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DateLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
-        Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DurationLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
+        // World Name
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuWorldNameStat(info.WorldNameRaw), 0.9f, iconScale: 1.3f)
+        {
+            Left = { Pixels = 66f + (ReplayBrowserLayout.NameColumnWidth - 66f - 6f) * 0.5f + 6f },
+            Top = { Pixels = 34f },
+            Width = { Pixels = (ReplayBrowserLayout.NameColumnWidth - 66f - 6f) * 0.5f },
+            Height = { Pixels = 24f }
+        });
+
+        // Date
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuDateStat(info.Date), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
+        {
+            Left = { Pixels = ReplayBrowserLayout.DateLeft + 6f },
+            Top = { Pixels = 34f },
+            Width = { Pixels = ReplayBrowserLayout.DateColumnWidth - 12f },
+            Height = { Pixels = 24f }
+        });
+
+        // Length
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(info.Duration), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.16f)
+        {
+            Left = { Pixels = ReplayBrowserLayout.DurationLeft + 6f },
+            Top = { Pixels = 34f },
+            Width = { Pixels = ReplayBrowserLayout.DurationColumnWidth - 12f },
+            Height = { Pixels = 24f }
+        });
+
+        //Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DateLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
+        //Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DurationLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
 
         actionHoverLabel = new ActionHoverLabel();
         actionHoverLabel.Left.Set(ReplayBrowserLayout.ReplayItemHeight - ReplayBrowserLayout.ActionButtonRightPadding + ReplayBrowserLayout.ActionLabelGap, 0f);
@@ -79,16 +96,26 @@ internal sealed class ReplayListItem : UIPanel
 
         ReplayActionDefinition[] actions =
         [
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayMenuActions.Play(fullPath)),
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayMenuActions.Rename(fullPath, onDeleted))
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayItemActions.Play(fullPath)),
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayItemActions.Rename(fullPath, onDeleted))
         ];
         UIImageButton[] previewActionButtons = AppendActionButtons(actions, actionHoverLabel);
 
         float buttonTop = ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f;
         float deleteLeft = ReplayBrowserLayout.DurationLeft + ReplayBrowserLayout.DurationColumnWidth - ReplayBrowserLayout.ActionButtonRightPadding - ReplayBrowserLayout.ActionButtonSize;
+        ActionHoverLabel deleteHoverLabel = new()
+        {
+            TextAlign = 1f
+        };
+        deleteHoverLabel.Left.Set(deleteLeft - ReplayBrowserLayout.ActionLabelGap - ReplayBrowserLayout.ActionLabelWidth, 0f);
+        deleteHoverLabel.Top.Set(buttonTop, 0f);
+        deleteHoverLabel.Width.Set(ReplayBrowserLayout.ActionLabelWidth, 0f);
+        deleteHoverLabel.Height.Set(ReplayBrowserLayout.ActionButtonSize, 0f);
+        Append(deleteHoverLabel);
+
         UIImageButton deleteButton = CreateVanillaImageButton(
-            new ReplayActionDefinition(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", () => ReplayMenuActions.Delete(fullPath, onDeleted)),
-            actionHoverLabel,
+            new ReplayActionDefinition(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", () => ReplayItemActions.Delete(fullPath, onDeleted)),
+            deleteHoverLabel,
             deleteLeft,
             buttonTop,
             ReplayBrowserLayout.ActionButtonSize);
@@ -101,14 +128,12 @@ internal sealed class ReplayListItem : UIPanel
             if (actionButtons.Any(button => button.ContainsPoint(evt.MousePosition)))
                 return;
 
-            ReplayMenuActions.Play(fullPath);
+            ReplayItemActions.Play(fullPath);
         };
     }
 
     private sealed class ReplayNameElement : UIElement
     {
-        private const float TextScale = 0.86f;
-
         private readonly string text;
         private readonly string tooltip;
 
@@ -120,6 +145,8 @@ internal sealed class ReplayListItem : UIPanel
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
+            const float TextScale = 1f;
+
             Rectangle area = GetDimensions().ToRectangle();
             var font = FontAssets.MouseText.Value;
             string drawText = FitText(font, text, area.Width);
@@ -134,6 +161,8 @@ internal sealed class ReplayListItem : UIPanel
 
         private static string FitText(ReLogic.Graphics.DynamicSpriteFont font, string value, float maxWidth)
         {
+            const float TextScale = 1f;
+
             if (font.MeasureString(value).X * TextScale <= maxWidth)
                 return value;
 
@@ -187,10 +216,14 @@ internal sealed class ReplayListItem : UIPanel
             }
         };
         button.OnMouseOut += (_, _) => playedTick = false;
+        button.OnMouseOut += (_, _) => hoverLabel.ClearAction();
         button.OnUpdate += _ =>
         {
             if (button.IsMouseHovering)
+            {
+                hoverLabel.SetAction(action.Label);
                 UICommon.TooltipMouseText(action.Label);
+            }
         };
         button.OnLeftClick += (_, _) => action.Click?.Invoke();
         return button;
@@ -208,6 +241,7 @@ internal sealed class ReplayListItem : UIPanel
         private const float TextScale = 0.88f;
 
         private string label = "";
+        public float TextAlign;
 
         public void SetAction(string label)
         {
@@ -224,7 +258,7 @@ internal sealed class ReplayListItem : UIPanel
             Rectangle area = GetDimensions().ToRectangle();
             var font = FontAssets.MouseText.Value;
             Vector2 size = font.MeasureString(label) * TextScale;
-            Vector2 position = new(area.X, area.Y + (area.Height - size.Y) * 0.5f + 3f);
+            Vector2 position = new(area.X + (area.Width - size.X) * TextAlign, area.Y + (area.Height - size.Y) * 0.5f + 3f);
 
             Utils.DrawBorderString(spriteBatch, label, position, new Color(215, 225, 255), TextScale);
 
@@ -235,23 +269,26 @@ internal sealed class ReplayListItem : UIPanel
 
     private sealed class MainMenuStatElement : UIElement
     {
-        private readonly string text;
-        private readonly bool world;
+        private readonly PlayerStatSnapshot stat;
+        private readonly float scale;
+        private readonly bool drawIcon;
+        private readonly float iconScale;
+        private readonly bool centerText;
+        private readonly float textScaleMultiplier;
 
-        public MainMenuStatElement(string text, bool world)
+        public MainMenuStatElement(PlayerStatSnapshot stat, float scale, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f)
         {
-            this.text = text;
-            this.world = world;
+            this.stat = stat;
+            this.scale = scale;
+            this.drawIcon = drawIcon;
+            this.iconScale = iconScale;
+            this.centerText = centerText;
+            this.textScaleMultiplier = textScaleMultiplier;
         }
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
-            Rectangle area = GetDimensions().ToRectangle();
-
-            if (world)
-                StatDrawer.DrawWorldNameStatInMainMenu(spriteBatch, area, text, 0.78f);
-            else
-                StatDrawer.DrawPlayerNameStatInMainMenu(spriteBatch, area, text, 0.78f);
+            StatDrawer.DrawReplayStatInMainMenu(spriteBatch, GetDimensions().ToRectangle(), stat, scale, drawIcon, iconScale, centerText, textScaleMultiplier);
         }
     }
 

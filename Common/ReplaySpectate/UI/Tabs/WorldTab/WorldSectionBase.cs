@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using Terraria.ID;
 
-namespace Reese.Common.ReplaySpectate.UI.Tabs.World;
+namespace Reese.Common.ReplaySpectate.UI.Tabs.WorldTab;
 
 internal abstract class WorldSectionBase
 {

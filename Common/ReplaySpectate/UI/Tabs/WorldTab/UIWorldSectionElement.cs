@@ -1,6 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.ReplaySpectate.Drawers;
-using Reese.Common.ReplaySpectate.UI;
 using System;
 using System.Collections.Generic;
 using Terraria.GameContent;
@@ -8,7 +7,7 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.UI;
 
-namespace Reese.Common.ReplaySpectate.UI.Tabs.World;
+namespace Reese.Common.ReplaySpectate.UI.Tabs.WorldTab;
 
 internal sealed class UIWorldSectionElement : UIPanel
 {

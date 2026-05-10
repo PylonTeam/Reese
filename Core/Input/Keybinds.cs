@@ -1,8 +1,6 @@
 using Microsoft.Xna.Framework.Input;
-using Reese.Common.ReplayTool;
-using Reese.Common.TimeScaleTool;
+using Reese.Common.ReplayControls;
 using Terraria.GameInput;
-using Terraria.ModLoader;
 
 namespace Reese.Core.Input;
 
@@ -29,6 +27,6 @@ internal class KeybindsPlayer : ModPlayer
         Keybinds keybinds = ModContent.GetInstance<Keybinds>();
 
         if (keybinds.ReplayUI?.JustPressed == true)
-            ModContent.GetInstance<ReplayToolPanelSystem>().ToggleActive();
+            ModContent.GetInstance<ReplayControlsPanelUISystem>().ToggleActive();
     }
 }

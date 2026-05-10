@@ -80,7 +80,8 @@ public class Recorder : ModSystem, ITicker
 
         var dir = ReeseReplayPaths.GetFolder();
         Directory.CreateDirectory(dir);
-        var filePath = Path.Combine(dir, $"{GetNextReplayNumber(dir, "Replay"):0000}.reese");
+        const string ReplayFilePrefix = "Reese";
+        var filePath = Path.Combine(dir, $"{ReplayFilePrefix}_{GetNextReplayNumber(dir, ReplayFilePrefix):0000}.reese");
         _lastReplayPath = filePath;
         ReplaySession.BeginRecording(filePath);
 

@@ -12,7 +12,7 @@ using Terraria.ModLoader.UI;
 using Terraria.ModLoader.UI.ModBrowser;
 using Terraria.UI;
 
-namespace Reese.Common.MainMenu.State;
+namespace Reese.Common.MainMenu;
 
 internal sealed class ExtraReeseMainMenuUIState : UIState
 {
@@ -72,7 +72,7 @@ internal sealed class ExtraReeseMainMenuUIState : UIState
         replayBrowser.OnRefreshStarted += () =>
         {
             SetCurrentAsyncState(AsyncProviderState.Loading);
-            refreshLoadingUntil = DateTime.UtcNow.AddSeconds(0.5);
+            refreshLoadingUntil = DateTime.UtcNow.AddSeconds(0.2);
         };
         Append(replayBrowser);
 

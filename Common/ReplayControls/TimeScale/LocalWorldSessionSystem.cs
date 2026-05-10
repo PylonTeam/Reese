@@ -1,7 +1,7 @@
 ﻿using System;
 using Terraria.ModLoader;
 
-namespace Reese.Common.TimeScaleTool;
+namespace Reese.Common.ReplayControls.TimeScale;
 
 [Autoload(Side = ModSide.Client)]
 internal sealed class LocalWorldSessionSystem : ModSystem

@@ -1,4 +1,7 @@
-﻿using Terraria.Graphics;
+﻿using Microsoft.Xna.Framework.Graphics;
+using System;
+using Terraria.GameContent;
+using Terraria.Graphics;
 using Terraria.Graphics.Renderers;
 
 namespace Reese.Common.ReplaySpectate.Hooks;
@@ -24,7 +27,20 @@ internal sealed class DisableGhostDrawSystem : ModSystem
         if (!ShouldDrawGhost(drawPlayer))
             return;
 
-        orig(self, camera, drawPlayer, position, shadow);
+        //orig(self, camera, drawPlayer, position, shadow);
+        DrawGhost(camera, drawPlayer, position, shadow);
+    }
+
+    // Copied from LegacyPlayerRenderer.DrawGhost.
+    private void DrawGhost(Camera camera, Player drawPlayer, Vector2 position, float shadow = 0f)
+    {
+        byte mouseTextColor = Main.mouseTextColor;
+        SpriteEffects effects = ((drawPlayer.direction != 1) ? SpriteEffects.FlipHorizontally : SpriteEffects.None);
+        Color immuneAlpha = drawPlayer.GetImmuneAlpha(Lighting.GetColor((int)((double)drawPlayer.position.X + (double)drawPlayer.width * 0.5) / 16, (int)((double)drawPlayer.position.Y + (double)drawPlayer.height * 0.5) / 16, new Color(mouseTextColor / 2 + 100, mouseTextColor / 2 + 100, mouseTextColor / 2 + 100, mouseTextColor / 2 + 100)), shadow);
+        immuneAlpha.A = (byte)((float)(int)immuneAlpha.A * (1f - Math.Max(0.5f, shadow - 0.5f)));
+        Rectangle value = new Rectangle(0, TextureAssets.Ghost.Height() / 4 * drawPlayer.ghostFrame, TextureAssets.Ghost.Width(), TextureAssets.Ghost.Height() / 4);
+        Vector2 origin = new Vector2((float)value.Width * 0.5f, (float)value.Height * 0.5f);
+        camera.SpriteBatch.Draw(TextureAssets.Ghost.Value, new Vector2((int)(position.X - camera.UnscaledPosition.X + (float)(value.Width / 2)), (int)(position.Y - camera.UnscaledPosition.Y + (float)(value.Height / 2))), value, immuneAlpha, 0f, origin, 1f, effects, 0f);
     }
 
     public static bool ShouldDrawGhost(Player drawPlayer)

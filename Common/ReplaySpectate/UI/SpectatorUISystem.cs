@@ -22,16 +22,6 @@ public class SpectatorUISystem : ModSystem
         spectatorState?.Rebuild();
     }
 
-    public void OpenSpectatorJoinPanel()
-    {
-        spectatorState?.OpenJoinPanel();
-    }
-
-    public void CloseSpectatorJoinPanel()
-    {
-        spectatorState?.CloseJoinPanel();
-    }
-
     public void ToggleSpectatorInfoPanel()
     {
         spectatorState?.ToggleInfoPanel();
@@ -42,9 +32,9 @@ public class SpectatorUISystem : ModSystem
         spectatorState?.OnLocalModeAccepted(mode);
     }
 
-    public void EnsureSpectatorHUDStaysOpen()
+    public bool IsMouseOverSpectatorUI()
     {
-        spectatorState?.EnsureSpectatorHUDStaysOpen();
+        return spectatorState?.IsMouseOverVisiblePanel() == true;
     }
 
     public override void UpdateUI(GameTime gameTime)

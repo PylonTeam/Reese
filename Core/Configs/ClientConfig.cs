@@ -31,8 +31,8 @@ public class ClientConfig : ModConfig
     public bool AddExtraMenuState = true;
 
     [BackgroundColor(30, 150, 30)]
-    [DefaultValue(true)]
-    public bool ShowInMainMenu = true;
+    [DefaultValue(false)]
+    public bool ShowInMainMenu = false;
 
     [Header("Replaying")]
 
@@ -47,7 +47,7 @@ public class ClientConfig : ModConfig
     public ReplayHUDPosition replayHUDPosition;
 
     [BackgroundColor(30, 150, 150)]
-    [DefaultValue(ReplayHUDSize.Small)]
+    [DefaultValue(ReplayHUDSize.Medium)]
     [JsonConverter(typeof(StringEnumConverter))]
     public ReplayHUDSize replayHUDSize;
 

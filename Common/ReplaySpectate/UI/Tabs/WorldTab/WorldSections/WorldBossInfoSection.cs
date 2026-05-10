@@ -1,8 +1,8 @@
-using Reese.Common.ReplaySpectate.UI.Tabs.World;
+using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab;
 using System.Collections.Generic;
 using Terraria.ID;
 
-namespace Reese.Common.ReplaySpectate.UI.Tabs.World.WorldSections;
+namespace Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 
 internal sealed class WorldBossInfoSection : WorldSectionBase
 {

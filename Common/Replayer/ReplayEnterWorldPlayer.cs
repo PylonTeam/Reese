@@ -1,8 +1,8 @@
 using Reese.Core.Debug;
-using Reese.Common.Replayer;
 using Reese.Common.ReplaySpectate.SpectatorMode;
+using Reese.Common.ReplayControls;
 
-namespace Reese.Common.ReplayTool;
+namespace Reese.Common.Replayer;
 
 [Autoload(Side = ModSide.Client)]
 internal sealed class ReplayEnterWorldPlayer : ModPlayer
@@ -14,6 +14,6 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
 
         Log.Chat("Replay started");
         SpectatorModeSystem.RequestSetLocalMode(SpectateMode.Spectator);
-        ModContent.GetInstance<ReplayToolPanelSystem>().Open();
+        ModContent.GetInstance<ReplayControlsPanelUISystem>().Open();
     }
 }

@@ -29,23 +29,6 @@ public class SpectatorUIState : UIState
         infoPanel?.Rebuild();
     }
 
-    public void OpenJoinPanel()
-    {
-        joinPanelOpen = true;
-        UpdateVisiblePanels();
-        SoundEngine.PlaySound(SoundID.MenuOpen);
-    }
-
-    public void CloseJoinPanel()
-    {
-        if (!joinPanelOpen)
-            return;
-
-        joinPanelOpen = false;
-        UpdateVisiblePanels();
-        SoundEngine.PlaySound(SoundID.MenuClose);
-    }
-
     public void ToggleInfoPanel()
     {
         infoExpanded = !infoExpanded;
@@ -72,6 +55,14 @@ public class SpectatorUIState : UIState
 
         if (controlsPanel.Parent is null)
             Append(controlsPanel);
+    }
+
+    public bool IsMouseOverVisiblePanel()
+    {
+        Vector2 mouse = Main.MouseScreen;
+        return controlsPanel?.Parent != null && controlsPanel.ContainsPoint(mouse) ||
+               infoPanel?.Parent != null && infoPanel.ContainsPoint(mouse) ||
+               infoEyeButton?.Parent != null && infoEyeButton.ContainsPoint(mouse);
     }
 
     public override void Update(GameTime gameTime)

@@ -1,16 +1,16 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.ReplaySpectate.UI.Tabs.World.WorldSections;
+using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 using ReLogic.Content;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
-namespace Reese.Common.ReplaySpectate.UI.Tabs.World;
+namespace Reese.Common.ReplaySpectate.UI.Tabs.WorldTab;
 
 internal sealed class SpectatorWorldTab : UIElement, ISpectatorTab
 {
     private readonly WorldSectionBase[] sections =
     [
-        new WorldSettingsSection(),
+        new WorldSpectatorSettingsSection(),
         new WorldInfoSection(),
         new WorldBossInfoSection()
     ];

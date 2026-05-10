@@ -1,11 +1,10 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.ReplaySpectate.UI.Tabs;
 using ReLogic.Content;
 using System.Collections.Generic;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
-namespace Reese.Common.ReplaySpectate.UI.Tabs.NPCs;
+namespace Reese.Common.ReplaySpectate.UI.Tabs.NPCsTab;
 
 internal sealed class SpectatorNPCTab : UIElement, ISpectatorTab
 {

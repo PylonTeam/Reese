@@ -1,4 +1,4 @@
-namespace GhostSpectating.Common;
+namespace Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 
 internal enum SpectatorPlayerDrawMode
 {

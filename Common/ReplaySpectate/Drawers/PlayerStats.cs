@@ -88,6 +88,46 @@ internal static class PlayerStats
         worldName = string.IsNullOrWhiteSpace(worldName) ? "-" : worldName.Trim();
         return new PlayerStatSnapshot("World", worldName, $"World: {worldName}", Ass.Icon_Biome, null);
     }
+
+    public static PlayerStatSnapshot BuildMainMenuDateStat(DateTime date)
+    {
+        string display = date.ToString("d MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
+        string hover = $"Date created: {date.ToString("d MMM yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)}";
+        return new PlayerStatSnapshot("Created", display, hover, Ass.Icon_Watch, null);
+    }
+
+    public static PlayerStatSnapshot BuildMainMenuLengthStat(TimeSpan length)
+    {
+        string display = $"{(int)length.TotalHours:00}:{length.Minutes:00}:{length.Seconds:00}";
+        return new PlayerStatSnapshot("Length", display, $"Length: {FormatLengthText(length)}", Ass.Icon_Watch, null);
+    }
+
+    private static string FormatLengthText(TimeSpan length)
+    {
+        int hours = (int)length.TotalHours;
+        int minutes = length.Minutes;
+        int seconds = length.Seconds;
+        string text = "";
+
+        AddLengthPart(ref text, hours, "hour");
+        AddLengthPart(ref text, minutes, "minute");
+
+        if (seconds > 0 || text.Length == 0)
+            AddLengthPart(ref text, seconds, "second");
+
+        return text;
+    }
+
+    private static void AddLengthPart(ref string text, int value, string unit)
+    {
+        if (value <= 0)
+            return;
+
+        if (text.Length > 0)
+            text += ", ";
+
+        text += $"{value} {unit}{(value == 1 ? "" : "s")}";
+    }
     #endregion
 
     //public static readonly PlayerStatDefinition InventoryItemCount = new(

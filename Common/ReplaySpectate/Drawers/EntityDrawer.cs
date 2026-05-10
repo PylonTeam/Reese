@@ -1,6 +1,6 @@
-﻿using GhostSpectating.Common;
-using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.ReplaySpectate.Hooks;
+using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 using Reese.Core.Configs;
 using System;
 using Terraria.GameContent;

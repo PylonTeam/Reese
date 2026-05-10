@@ -1,8 +1,8 @@
 using System;
 
-namespace Reese.Common.ReplayTool;
+namespace Reese.Common.ReplayControls;
 
-internal static class ReplayToolPanelLayout
+internal static class ReplayControlsPanelLayout
 {
     internal static float PanelWidth;
     internal static float PanelHeight;
@@ -44,7 +44,7 @@ internal static class ReplayToolPanelLayout
         Set(ref PanelWidth, 760f, ref changed);
         Set(ref PanelHeight, 152f, ref changed);
         Set(ref InitialHAlign, 0.5f, ref changed);
-        Set(ref InitialVAlign, 0.08f, ref changed);
+        Set(ref InitialVAlign, 0.92f, ref changed);
         Set(ref HeaderHeight, 32f, ref changed);
         Set(ref ContentHeight, PanelHeight - HeaderHeight, ref changed);
         Set(ref PositionLabelLeft, 12f, ref changed);

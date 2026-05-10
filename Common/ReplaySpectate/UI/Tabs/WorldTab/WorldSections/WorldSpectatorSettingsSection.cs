@@ -1,14 +1,12 @@
-using GhostSpectating.Common;
 using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.ReplaySpectate.Hooks;
-using Reese.Common.ReplaySpectate.UI;
-using Reese.Common.ReplaySpectate.UI.Tabs.World;
+using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab;
 using System.Collections.Generic;
 using Terraria.GameContent;
 
-namespace Reese.Common.ReplaySpectate.UI.Tabs.World.WorldSections;
+namespace Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 
-internal sealed class WorldSettingsSection : WorldSectionBase
+internal sealed class WorldSpectatorSettingsSection : WorldSectionBase
 {
     public override WorldSection Section => WorldSection.Settings;
     public override string HeaderText => "Spectator Settings";
@@ -20,7 +18,7 @@ internal sealed class WorldSettingsSection : WorldSectionBase
         [
             new("Fullbright:", () => $"Fullbright: {OnOff(FullbrightSpectatorSystem.Enabled)}", GetFullbrightIcon, onLeftClick: () => FullbrightSpectatorSystem.Enabled = !FullbrightSpectatorSystem.Enabled),
             new("Reveal Map:", () => $"Reveal Map: {OnOff(MapRevealHelper.Revealed)}", GetRevealMapIcon, onLeftClick: () => MapRevealHelper.SetRevealed(!MapRevealHelper.Revealed)),
-            new("Draw Players:", () => $"Draw Players: {SpectatorClientSettings.DrawPlayersLabel}", GetDrawPlayersIcon, onLeftClick: SpectatorClientSettings.CycleDrawPlayers),
+            new("Player Card Preview:", () => $"Player Card Preview: {SpectatorClientSettings.DrawPlayersLabel}", GetDrawPlayersIcon, onLeftClick: SpectatorClientSettings.CycleDrawPlayers),
             new(
                 "Player Cards:",
                 () => $"Player Cards: {SpectatorControlsPanel.ShownPlayerCardCount}",

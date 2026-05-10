@@ -2,8 +2,8 @@ using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Reese.Common.ReplaySpectate.TeammateOverlay;
 using Reese.Common.ReplaySpectate.UI.Tabs;
-using Reese.Common.ReplaySpectate.UI.Tabs.NPCs;
-using Reese.Common.ReplaySpectate.UI.Tabs.World;
+using Reese.Common.ReplaySpectate.UI.Tabs.NPCsTab;
+using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab;
 using Reese.Core.Utilities;
 using ReLogic.Content;
 using System;
@@ -117,7 +117,7 @@ internal sealed class SpectatorInfoPanel : UIElement
         TitlePanel.BackgroundColor = new Color(63, 82, 151);
         TitlePanel.BorderColor = Color.Black;
 
-        UIText titleText = new("Spectator Info", large: false, textScale: 1f)
+        UIText titleText = new("Replay Info", large: false, textScale: 1f)
         {
             HAlign = 0.5f,
             VAlign = 0.5f

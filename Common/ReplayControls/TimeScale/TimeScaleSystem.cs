@@ -7,7 +7,7 @@ using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace Reese.Common.TimeScaleTool;
+namespace Reese.Common.ReplayControls.TimeScale;
 
 /// <summary>
 /// How it works:

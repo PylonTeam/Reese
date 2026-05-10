@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.ReplayControls.TimeScale;
 using Reese.Common.Replayer;
-using Reese.Common.TimeScaleTool;
 using Reese.Core.Utilities;
 using Reese.UI;
 using System;
@@ -11,9 +11,9 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace Reese.Common.ReplayTool;
+namespace Reese.Common.ReplayControls;
 
-public sealed class ReplayToolPanel : DraggablePanel
+public sealed class ReplayControlsPanel : DraggablePanel
 {
     private static readonly float[] SpeedPresets = [0.25f, 0.5f, 1f, 2f, 4f];
 
@@ -39,20 +39,20 @@ public sealed class ReplayToolPanel : DraggablePanel
 
     protected override void OnRefreshPanelLeftClick()
     {
-        ReplayToolPanelLayout.Update();
+        ReplayControlsPanelLayout.Update();
         ApplyLayout();
         Recalculate();
         RefreshVisualState();
     }
 
-    public ReplayToolPanel() : base("Replay")
+    public ReplayControlsPanel() : base("Replay")
     {
-        ReplayToolPanelLayout.Update();
+        ReplayControlsPanelLayout.Update();
 
-        Width.Set(ReplayToolPanelLayout.PanelWidth, 0f);
-        Height.Set(ReplayToolPanelLayout.PanelHeight, 0f);
-        HAlign = ReplayToolPanelLayout.InitialHAlign;
-        VAlign = ReplayToolPanelLayout.InitialVAlign;
+        Width.Set(ReplayControlsPanelLayout.PanelWidth, 0f);
+        Height.Set(ReplayControlsPanelLayout.PanelHeight, 0f);
+        HAlign = ReplayControlsPanelLayout.InitialHAlign;
+        VAlign = ReplayControlsPanelLayout.InitialVAlign;
 
         positionLabel = new UIText("", 0.86f)
         {
@@ -123,46 +123,46 @@ public sealed class ReplayToolPanel : DraggablePanel
 
     private void ApplyLayout()
     {
-        ReplayToolPanelLayout.Update();
+        ReplayControlsPanelLayout.Update();
 
-        Width.Set(ReplayToolPanelLayout.PanelWidth, 0f);
-        Height.Set(ReplayToolPanelLayout.PanelHeight, 0f);
+        Width.Set(ReplayControlsPanelLayout.PanelWidth, 0f);
+        Height.Set(ReplayControlsPanelLayout.PanelHeight, 0f);
 
         if (TitlePanel != null)
-            TitlePanel.Height.Set(ReplayToolPanelLayout.HeaderHeight, 0f);
+            TitlePanel.Height.Set(ReplayControlsPanelLayout.HeaderHeight, 0f);
 
         if (ContentPanel != null)
         {
-            ContentPanel.Top.Set(ReplayToolPanelLayout.HeaderHeight, 0f);
-            ContentPanel.Height.Set(ReplayToolPanelLayout.ContentHeight, 0f);
+            ContentPanel.Top.Set(ReplayControlsPanelLayout.HeaderHeight, 0f);
+            ContentPanel.Height.Set(ReplayControlsPanelLayout.ContentHeight, 0f);
         }
 
         if (positionLabel != null)
         {
-            positionLabel.Left.Set(ReplayToolPanelLayout.PositionLabelLeft, 0f);
-            positionLabel.Top.Set(ReplayToolPanelLayout.PositionLabelTop, 0f);
+            positionLabel.Left.Set(ReplayControlsPanelLayout.PositionLabelLeft, 0f);
+            positionLabel.Top.Set(ReplayControlsPanelLayout.PositionLabelTop, 0f);
         }
 
         if (positionSlider != null)
         {
-            positionSlider.Left.Set(ReplayToolPanelLayout.PositionSliderLeft, 0f);
-            positionSlider.Top.Set(ReplayToolPanelLayout.PositionSliderTop, 0f);
-            positionSlider.Width.Set(-(ReplayToolPanelLayout.PositionSliderLeft + ReplayToolPanelLayout.PositionSliderRightPadding), 1f);
-            positionSlider.Height.Set(ReplayToolPanelLayout.PositionSliderHeight, 0f);
+            positionSlider.Left.Set(ReplayControlsPanelLayout.PositionSliderLeft, 0f);
+            positionSlider.Top.Set(ReplayControlsPanelLayout.PositionSliderTop, 0f);
+            positionSlider.Width.Set(-(ReplayControlsPanelLayout.PositionSliderLeft + ReplayControlsPanelLayout.PositionSliderRightPadding), 1f);
+            positionSlider.Height.Set(ReplayControlsPanelLayout.PositionSliderHeight, 0f);
         }
 
         if (horizontalRule != null)
         {
-            horizontalRule.Left.Set(ReplayToolPanelLayout.HorizontalRuleLeft, 0f);
-            horizontalRule.Top.Set(ReplayToolPanelLayout.HorizontalRuleTop, 0f);
-            horizontalRule.Width.Set(-(ReplayToolPanelLayout.HorizontalRuleLeft + ReplayToolPanelLayout.HorizontalRuleRightPadding), 1f);
-            horizontalRule.Height.Set(ReplayToolPanelLayout.HorizontalRuleHeight, 0f);
+            horizontalRule.Left.Set(ReplayControlsPanelLayout.HorizontalRuleLeft, 0f);
+            horizontalRule.Top.Set(ReplayControlsPanelLayout.HorizontalRuleTop, 0f);
+            horizontalRule.Width.Set(-(ReplayControlsPanelLayout.HorizontalRuleLeft + ReplayControlsPanelLayout.HorizontalRuleRightPadding), 1f);
+            horizontalRule.Height.Set(ReplayControlsPanelLayout.HorizontalRuleHeight, 0f);
         }
 
         if (speedLabel != null)
         {
-            speedLabel.Left.Set(ReplayToolPanelLayout.SpeedLabelLeft, 0f);
-            speedLabel.Top.Set(ReplayToolPanelLayout.SpeedLabelTop, 0f);
+            speedLabel.Left.Set(ReplayControlsPanelLayout.SpeedLabelLeft, 0f);
+            speedLabel.Top.Set(ReplayControlsPanelLayout.SpeedLabelTop, 0f);
         }
 
         if (speedButtons != null)
@@ -173,19 +173,19 @@ public sealed class ReplayToolPanel : DraggablePanel
                 if (button == null)
                     continue;
 
-                button.Left.Set(ReplayToolPanelLayout.SpeedButtonLeft + i * ReplayToolPanelLayout.SpeedButtonStride, 0f);
-                button.Top.Set(ReplayToolPanelLayout.SpeedButtonTop, 0f);
-                button.Width.Set(ReplayToolPanelLayout.SpeedButtonWidth, 0f);
-                button.Height.Set(ReplayToolPanelLayout.SpeedButtonHeight, 0f);
+                button.Left.Set(ReplayControlsPanelLayout.SpeedButtonLeft + i * ReplayControlsPanelLayout.SpeedButtonStride, 0f);
+                button.Top.Set(ReplayControlsPanelLayout.SpeedButtonTop, 0f);
+                button.Width.Set(ReplayControlsPanelLayout.SpeedButtonWidth, 0f);
+                button.Height.Set(ReplayControlsPanelLayout.SpeedButtonHeight, 0f);
             }
         }
 
         if (verticalRule != null)
         {
-            verticalRule.Left.Set(ReplayToolPanelLayout.DividerLeft, 0f);
-            verticalRule.Top.Set(ReplayToolPanelLayout.DividerTop, 0f);
-            verticalRule.Width.Set(ReplayToolPanelLayout.DividerWidth, 0f);
-            verticalRule.Height.Set(ReplayToolPanelLayout.DividerHeight, 0f);
+            verticalRule.Left.Set(ReplayControlsPanelLayout.DividerLeft, 0f);
+            verticalRule.Top.Set(ReplayControlsPanelLayout.DividerTop, 0f);
+            verticalRule.Width.Set(ReplayControlsPanelLayout.DividerWidth, 0f);
+            verticalRule.Height.Set(ReplayControlsPanelLayout.DividerHeight, 0f);
         }
 
         ApplyTransportButtonLayout(speedDownButton, 0);
@@ -200,7 +200,7 @@ public sealed class ReplayToolPanel : DraggablePanel
     {
         base.Update(gameTime);
 
-        if (ReplayToolPanelLayout.Update())
+        if (ReplayControlsPanelLayout.Update())
         {
             ApplyLayout();
             Recalculate();
@@ -222,19 +222,19 @@ public sealed class ReplayToolPanel : DraggablePanel
         if (button == null)
             return;
 
-        float left = ReplayToolPanelLayout.TransportLeft;
+        float left = ReplayControlsPanelLayout.TransportLeft;
 
         for (int i = 0; i < index; i++)
-            left += GetTransportButtonWidth(i == 2) + ReplayToolPanelLayout.TransportGap;
+            left += GetTransportButtonWidth(i == 2) + ReplayControlsPanelLayout.TransportGap;
 
         button.SetOuterWidth(GetTransportButtonWidth(large));
         button.Left.Set(left, 0f);
-        button.Top.Set(ReplayToolPanelLayout.TransportTop, 0f);
+        button.Top.Set(ReplayControlsPanelLayout.TransportTop, 0f);
     }
 
     private static float GetTransportButtonWidth(bool large)
     {
-        return large ? ReplayToolPanelLayout.TransportPlayButtonWidth : ReplayToolPanelLayout.TransportButtonWidth;
+        return large ? ReplayControlsPanelLayout.TransportPlayButtonWidth : ReplayControlsPanelLayout.TransportButtonWidth;
     }
 
     private static void SetSpeed(float value)

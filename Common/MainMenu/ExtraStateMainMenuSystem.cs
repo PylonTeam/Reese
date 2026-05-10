@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework.Input;
 using MonoMod.Cil;
 using Reese.Core.Configs;
-using Reese.Core.Debug;
 using Reese.Core.Utilities;
 using System;
 using Terraria;
@@ -11,7 +10,7 @@ using Terraria.ID;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace Reese.Common.MainMenu.State;
+namespace Reese.Common.MainMenu;
 
 /// <summary>
 /// Adds a Reese Replays button to the Main Menu.
@@ -20,6 +19,8 @@ namespace Reese.Common.MainMenu.State;
 public class ExtraStateMainMenuSystem : ModSystem
 {
     public UserInterface ui;
+    private UserInterface reeseMainMenuUI;
+    private UIState reeseMainMenuState;
     private bool wasHovered;
 
 #if DEBUG
@@ -40,6 +41,15 @@ public class ExtraStateMainMenuSystem : ModSystem
         On_Main.UpdateUIStates += PostUpdateUIStates;
     }
 
+    public override void PostSetupContent()
+    {
+        if (!IsEnabled || Main.dedServ)
+            return;
+
+        reeseMainMenuUI = new();
+        reeseMainMenuState = new MainMenuReplayBrowserUIState();
+    }
+
     public override void Unload()
     {
         if (!IsEnabled) return;
@@ -48,6 +58,8 @@ public class ExtraStateMainMenuSystem : ModSystem
         On_Main.DrawVersionNumber -= DrawMenuUI;
         On_Main.UpdateUIStates -= PostUpdateUIStates;
         ui = null;
+        reeseMainMenuUI = null;
+        reeseMainMenuState = null;
     }
 
     private void InjectMatchmakingButton(ILContext il)
@@ -126,23 +138,28 @@ public class ExtraStateMainMenuSystem : ModSystem
 
         if (ui?.CurrentState != null)
         {
-            var old = UserInterface.ActiveInstance;
-            try
-            {
-                UserInterface.ActiveInstance = ui;
-                ui.Draw(Main.spriteBatch, new GameTime());
-            }
-            finally
-            {
-                UserInterface.ActiveInstance = old;
-            }
+            DrawInterface(ui);
             return;
         }
 
         if (Main.menuMode != 0)
             return;
 
+        DrawReplayOverlay();
         DrawHeaderTextAndHandleClicks();
+    }
+
+    private static bool ShouldShowOverlay()
+    {
+        return Main.gameMenu && Main.menuMode == 0 && ModContent.GetInstance<ClientConfig>().ShowInMainMenu;
+    }
+
+    private void DrawReplayOverlay()
+    {
+        if (!ShouldShowOverlay() || reeseMainMenuUI?.CurrentState == null)
+            return;
+
+        DrawInterface(reeseMainMenuUI);
     }
 
     private void DrawHeaderTextAndHandleClicks()
@@ -200,9 +217,7 @@ public class ExtraStateMainMenuSystem : ModSystem
 
     internal void OpenConfirmDelete(string targetName, Action onConfirm)
     {
-        Log.Chat(12);
-
-        UIState previousState = ui?.CurrentState;
+        bool returnToBrowserState = ui?.CurrentState != null;
         bool handled = false;
 
         void Close(Action action)
@@ -214,17 +229,47 @@ public class ExtraStateMainMenuSystem : ModSystem
             Main.QueueMainThreadAction(() =>
             {
                 action?.Invoke();
-                ui?.SetState(previousState);
-                Log.Chat(previousState);
+                if (returnToBrowserState)
+                    OpenReplayBrowser();
+                else
+                    CloseReplayBrowser();
             });
         }
 
-        ui?.SetState(new ConfirmDeleteState
+        ConfirmDeleteState state = new()
         {
             TargetName = targetName,
             OnYes = () => Close(onConfirm),
             OnNo = () => Close(null)
-        });
+        };
+
+        ui.SetState(state);
+    }
+
+    internal void OpenRename(string currentName, Action<string> onSubmit)
+    {
+        bool returnToBrowserState = ui?.CurrentState != null;
+        bool handled = false;
+
+        void Close(Action action)
+        {
+            if (handled)
+                return;
+
+            handled = true;
+            Main.QueueMainThreadAction(() =>
+            {
+                action?.Invoke();
+
+                if (returnToBrowserState)
+                    OpenReplayBrowser();
+                else
+                    CloseReplayBrowser();
+            });
+        }
+
+        Main.clrInput();
+        ui.SetState(new ConfirmRenameState(currentName, name => Close(() => onSubmit?.Invoke(name)), () => Close(null)));
     }
 
     private void CloseReplayBrowser()
@@ -236,19 +281,13 @@ public class ExtraStateMainMenuSystem : ModSystem
 
     private void PostUpdateUIStates(On_Main.orig_UpdateUIStates orig, GameTime gameTime)
     {
+        if (Main.gameMenu && KeyboardHelper.Pressed(Keys.Escape) && (ui?.CurrentState != null || Main.menuMode == 888))
+            CloseReplayBrowser();
+
         if (Main.gameMenu && ui?.CurrentState != null)
-        {
-            var old = UserInterface.ActiveInstance;
-            try
-            {
-                UserInterface.ActiveInstance = ui;
-                ui.Update(gameTime);
-            }
-            finally
-            {
-                UserInterface.ActiveInstance = old;
-            }
-        }
+            UpdateInterface(ui, gameTime);
+        else
+            UpdateReplayOverlay(gameTime);
 
         orig(gameTime);
 
@@ -257,14 +296,60 @@ public class ExtraStateMainMenuSystem : ModSystem
             if (ui?.CurrentState != null)
                 ui.SetState(null);
 
+            if (reeseMainMenuUI?.CurrentState != null)
+                reeseMainMenuUI.SetState(null);
+
             return;
         }
 
         // If we left our custom empty-background menu, kill matchmaking UI
-        if (ui?.CurrentState != null && Main.menuMode != 888)
+        if (ui?.CurrentState != null)
+            Main.menuMode = 888;
+    }
+
+    private void UpdateReplayOverlay(GameTime gameTime)
+    {
+        if (ShouldShowOverlay())
         {
-            ui.SetState(null);
-            Main.blockMouse = false;
+            if (reeseMainMenuUI == null)
+                return;
+
+            if (reeseMainMenuUI?.CurrentState == null)
+                reeseMainMenuUI.SetState(reeseMainMenuState);
+
+            UpdateInterface(reeseMainMenuUI, gameTime);
+        }
+        else if (reeseMainMenuUI?.CurrentState != null)
+        {
+            reeseMainMenuUI.SetState(null);
+        }
+    }
+
+    private static void DrawInterface(UserInterface userInterface)
+    {
+        var old = UserInterface.ActiveInstance;
+        try
+        {
+            UserInterface.ActiveInstance = userInterface;
+            userInterface.Draw(Main.spriteBatch, new GameTime());
+        }
+        finally
+        {
+            UserInterface.ActiveInstance = old;
+        }
+    }
+
+    private static void UpdateInterface(UserInterface userInterface, GameTime gameTime)
+    {
+        var old = UserInterface.ActiveInstance;
+        try
+        {
+            UserInterface.ActiveInstance = userInterface;
+            userInterface.Update(gameTime);
+        }
+        finally
+        {
+            UserInterface.ActiveInstance = old;
         }
     }
 }

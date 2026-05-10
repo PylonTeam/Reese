@@ -1,16 +1,13 @@
-using Reese.Common.MainMenu.State;
 using Reese.Core.Debug;
 using System;
 using System.IO;
-using Terraria;
 using Terraria.Audio;
-using Terraria.GameContent.UI.States;
 using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace Reese.Common.MainMenu;
 
-internal static class ReplayMenuActions
+internal static class ReplayItemActions
 {
     public static void Play(string path)
     {
@@ -40,12 +37,8 @@ internal static class ReplayMenuActions
     public static void Rename(string path, Action onRenamed = null)
     {
         SoundEngine.PlaySound(SoundID.MenuOpen);
-        Main.clrInput();
-
         string currentName = Path.GetFileNameWithoutExtension(path);
-        UIVirtualKeyboard keyboard = new("Rename Replay", currentName, name => FinishRename(path, name, onRenamed), () => Main.MenuUI.SetState(null), 0, allowEmpty: false);
-        keyboard.SetMaxInputLength(40);
-        Main.MenuUI.SetState(keyboard);
+        ModContent.GetInstance<ExtraStateMainMenuSystem>().OpenRename(currentName, name => FinishRename(path, name, onRenamed));
     }
 
     private static void FinishRename(string path, string name, Action onRenamed)

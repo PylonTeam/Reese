@@ -59,7 +59,7 @@ public abstract class DraggablePanel : UIElement
         TitlePanel.SetPadding(0);
         TitlePanel.BackgroundColor = new Color(63, 82, 151) * 1f;
 
-        UIText titleText = new(title, large: true, textScale: 0.7f)
+        UIText titleText = new(title, large: true, textScale: 0.55f)
         {
             HAlign = 0.5f,
             VAlign = 0.5f

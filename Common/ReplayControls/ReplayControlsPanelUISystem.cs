@@ -5,13 +5,14 @@ using Terraria;
 using Terraria.ModLoader;
 using Terraria.UI;
 
-namespace Reese.Common.ReplayTool;
+namespace Reese.Common.ReplayControls;
 
 [Autoload(Side = ModSide.Client)]
-public sealed class ReplayToolPanelSystem : ModSystem
+public sealed class ReplayControlsPanelUISystem : ModSystem
 {
     private UserInterface ui;
     private UIState replayToolPanelUIState;
+    private ReplayControlsPanel replayToolPanel;
 
     public bool IsActive() => ui?.CurrentState != null;
 
@@ -21,6 +22,7 @@ public sealed class ReplayToolPanelSystem : ModSystem
         {
             ui.SetState(null);
             replayToolPanelUIState = null;
+            replayToolPanel = null;
             return;
         }
 
@@ -42,19 +44,27 @@ public sealed class ReplayToolPanelSystem : ModSystem
     {
         ui = new UserInterface();
         replayToolPanelUIState = null;
+        replayToolPanel = null;
     }
 
     public override void OnWorldUnload()
     {
         ui?.SetState(null);
         replayToolPanelUIState = null;
+        replayToolPanel = null;
     }
 
     private void RebuildPanel()
     {
         replayToolPanelUIState = new UIState();
-        replayToolPanelUIState.Append(new ReplayToolPanel());
+        replayToolPanel = new ReplayControlsPanel();
+        replayToolPanelUIState.Append(replayToolPanel);
         ui.SetState(replayToolPanelUIState);
+    }
+
+    public bool IsMouseOverPanel()
+    {
+        return IsActive() && replayToolPanel?.ContainsPoint(Main.MouseScreen) == true;
     }
 
     public override void UpdateUI(GameTime gameTime)
