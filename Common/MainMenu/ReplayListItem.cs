@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.ReplaySpectate.Drawers;
+using Reese.Common.Replayer.ReplaySpectate.Drawers;
 using Reese.Core.Debug;
 using Reese.Core.Stats;
 using Reese.UI;

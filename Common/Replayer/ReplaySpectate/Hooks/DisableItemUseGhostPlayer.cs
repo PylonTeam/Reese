@@ -1,0 +1,24 @@
+﻿using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
+
+namespace Reese.Common.Replayer.ReplaySpectate.Hooks;
+
+internal class DisableItemUseGhostPlayer : ModPlayer
+{
+    public override bool CanUseItem(Item item)
+    {
+        return !Player.ghost && !SpectatorModeSystem.IsInSpectateMode(Player);
+    }
+
+    public override void PreUpdate()
+    {
+        if (!Player.ghost && !SpectatorModeSystem.IsInSpectateMode(Player))
+            return;
+
+        Player.controlUseItem = false;
+        Player.releaseUseItem = false;
+        Player.channel = false;
+        Player.itemAnimation = 0;
+        Player.itemTime = 0;
+        Player.reuseDelay = 0;
+    }
+}

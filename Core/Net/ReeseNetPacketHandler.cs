@@ -11,7 +11,7 @@ internal static class ReeseNetPacketHandler
         switch (messageType)
         {
             case ReesePacketIdentifier.RequestToggleSpectateMode:
-                Common.ReplaySpectate.SpectatorMode.SpectatorModeNetHandler.Receive(reader, sender);
+                Common.Replayer.ReplaySpectate.SpectatorMode.SpectatorModeNetHandler.Receive(reader, sender);
                 break;
             default:
                 throw new Exception($"Unknown {nameof(ReesePacketIdentifier)}: {messageType}");

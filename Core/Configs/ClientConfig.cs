@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Reese.Common.ReplaySpectate.UI;
+using Reese.Common.Replayer.ReplaySpectate.UI;
 using Reese.Core.Debug;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
@@ -31,8 +31,8 @@ public class ClientConfig : ModConfig
     public bool AddExtraMenuState = true;
 
     [BackgroundColor(30, 150, 30)]
-    [DefaultValue(false)]
-    public bool ShowInMainMenu = false;
+    [DefaultValue(true)]
+    public bool ShowInMainMenu = true;
 
     [Header("Replaying")]
 
@@ -58,9 +58,6 @@ public class ClientConfig : ModConfig
     // Temporary options set to false to hide them from users until they are ready to be used.
     // These will likely be removed in the future once the features they relate to are fully implemented and ready for use.
     [BackgroundColor(150, 150, 150, 150)]
-    [DefaultValue(false)] public bool IsRecordingEnabled;
-
-    [BackgroundColor(150, 150, 150, 150)]
     [DefaultValue(false)] public bool IsSeekbarEnabled;
 
     #region Methods
@@ -70,7 +67,7 @@ public class ClientConfig : ModConfig
         Log.Chat("Client config changed");
 
         // Rebuild spectate UI
-        var spectateUISystem = ModContent.GetInstance<SpectatorUISystem>();
+        var spectateUISystem = ModContent.GetInstance<ReplayUISystem>();
         spectateUISystem?.RebuildUI();
     }
     #endregion

@@ -1,32 +1,30 @@
 [h1]Reese[/h1]
-Record and replay your Terraria worlds.
+Record and replay your Terraria experience.
 
-Reese saves a replay file while you play, then lets you watch that session again from the main menu. It is built for simple demo capture, testing, debugging, and sharing runs with other players.
-
-[h1]How it works[/h1]
-Reese records the server packets that Terraria sends to players. When you play a replay, Reese opens that file and feeds the saved packets back into Terraria like a replay server.
-
-This keeps the replay close to normal Terraria behavior while still letting you pause, change speed, step frames, and spectate the world.
+Reese records and saves a replay file while you play and lets you watch that session again from the main menu. It is built for players who wish to share their runs with other players.
 
 [h1]How to use[/h1]
 Start or host a multiplayer world and play normally. Reese starts recording when a real player joins and stops when the last real player leaves.
 
+[h1]How the recorder works[/h1]
+Reese records the server packets that Terraria sends to players. The recorder creates a fake server-side record client player with its own socket connection to the server.
+The recorder writes server packets to that fake client. That means the replay is closer to a server-observed replay.
+
+[h1]How the replayer works[/h1]
+When you play a replay, Reese opens that file and feeds the saved packets back into Terraria like a replay server.
+This keeps the replay close to normal Terraria behavior while still letting you pause, change speed, step frames, and spectate the world.
 Saved replays appear in the Reese replay browser on the main menu. Pick a replay and press Play to watch it.
 
 [h1]Server console commands[/h1]
-startrecording [player name]
-Starts recording if Reese is not already recording. If no name is given, Reese uses the first active player.
+/reese start
+Starts recording if Reese is not already recording.
 
-stoprecording
-Stops the current recording. If Reese is not recording, it will say so.
-
-reeseinspect [file name]
-Prints useful replay details and packet diagnostics to the log. If no file is given, it inspects the latest replay.
-
-[h1]Notes[/h1]
-Reese is still focused on reliable replay capture first. Some advanced spectator features, seeking behavior, and interaction playback may continue to improve over time.
+/reese stop
+Stops recording if Reese is currently recording.
 
 [h2]Planned[/h2]
-Chest spectate
-Trash slot spectate
-Buff timer spectate
+More compressed filesize
+Add more replay controls (seeking, etc.)
+Add map data reveal
+Add favorites to replay browser
+Add hover tooltips to inventory drawer

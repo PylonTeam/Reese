@@ -1,5 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.ReplaySpectate.Drawers;
+using Reese.Common.Replayer.ReplaySpectate.Drawers;
 using Reese.Core.Utilities;
 using ReLogic.Content;
 using System;
@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.Localization;
-using static Reese.Common.ReplaySpectate.Drawers.BiomeHelper;
+using static Reese.Common.Replayer.ReplaySpectate.Drawers.BiomeHelper;
 
 namespace Reese.Core.Stats;
 

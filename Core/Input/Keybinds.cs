@@ -1,5 +1,5 @@
 using Microsoft.Xna.Framework.Input;
-using Reese.Common.ReplayControls;
+using Reese.Common.Replayer.ReplaySpectate.ReplayControls;
 using Terraria.GameInput;
 
 namespace Reese.Core.Input;

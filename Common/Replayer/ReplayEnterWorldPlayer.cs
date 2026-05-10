@@ -1,7 +1,7 @@
 using Reese.Core.Debug;
-using Reese.Common.ReplaySpectate.SpectatorMode;
-using Reese.Common.ReplayControls;
 using System.IO;
+using Reese.Common.Replayer.ReplaySpectate.ReplayControls;
+using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
 
 namespace Reese.Common.Replayer;
 
