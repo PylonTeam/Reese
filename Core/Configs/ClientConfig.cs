@@ -51,9 +51,17 @@ public class ClientConfig : ModConfig
     [JsonConverter(typeof(StringEnumConverter))]
     public ReplayHUDSize replayHUDSize;
 
+    [Header("Debug")]
     [BackgroundColor(150, 150, 150, 150)]
-    [Header("Chat")]
     [DefaultValue(false)] public bool ShowDebugMessages;
+
+    // Temporary options set to false to hide them from users until they are ready to be used.
+    // These will likely be removed in the future once the features they relate to are fully implemented and ready for use.
+    [BackgroundColor(150, 150, 150, 150)]
+    [DefaultValue(false)] public bool IsRecordingEnabled;
+
+    [BackgroundColor(150, 150, 150, 150)]
+    [DefaultValue(false)] public bool IsSeekbarEnabled;
 
     #region Methods
     public override void OnChanged()
