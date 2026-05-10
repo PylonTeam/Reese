@@ -15,18 +15,19 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
-using static Reese.Common.MainMenu.ReplayBrowserPanel;
 
 namespace Reese.Common.MainMenu;
 
 internal sealed class ReplayListItem : UIPanel
 {
     private readonly ActionHoverLabel actionHoverLabel;
+    private readonly bool isFavorite;
 
     public ReplayListItem(ReplayListEntry entry, Action onDeleted)
     {
         var constructorWatch = System.Diagnostics.Stopwatch.StartNew();
         ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(entry.FullPath);
+        isFavorite = entry.IsFavorite;
 
         // Layout
         ReplayBrowserLayout.Update();
@@ -96,12 +97,16 @@ internal sealed class ReplayListItem : UIPanel
         actionHoverLabel.Height.Set(ReplayBrowserLayout.ActionButtonSize, 0f);
         Append(actionHoverLabel);
 
+        Asset<Texture2D> favoriteTexture = Main.Assets.Request<Texture2D>(
+            isFavorite ? "Images/UI/ButtonFavoriteActive" : "Images/UI/ButtonFavoriteInactive");
+
         // Actions
         ReplayActionDefinition[] actions =
         [
             new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayItemActions.Play(entry.FullPath)),
+            new(favoriteTexture, isFavorite ? "Unfavorite" : "Favorite", () => ReplayItemActions.Favorite(entry.FullPath, onDeleted)),
+            //new(Main.Assets.Request<Texture2D>("Images/UI/ButtonSeed"), "Upload image", () => ReplayItemActions.ChoosePreviewImage(entry.FullPath, onDeleted)),
             new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayItemActions.Rename(entry.FullPath, onDeleted)),
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonSeed"), "Upload image", () => ReplayItemActions.ChoosePreviewImage(entry.FullPath, onDeleted)),
         ];
 
         actionHoverLabel = new ActionHoverLabel();
@@ -168,7 +173,7 @@ internal sealed class ReplayListItem : UIPanel
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
             Rectangle area = GetDimensions().ToRectangle();
-            Texture2D texture = ReplayPreviewImages.GetTexture(info.PreviewImagePath) ?? fallbackIcon.Value;
+            Texture2D texture = ReplayImages.GetTexture(info.PreviewImagePath) ?? fallbackIcon.Value;
             DrawTextureFit(spriteBatch, texture, new Rectangle(area.X, area.Y, area.Width, area.Height));
         }
 

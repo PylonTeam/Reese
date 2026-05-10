@@ -6,7 +6,7 @@ using System.IO;
 
 namespace Reese.Common.MainMenu;
 
-internal sealed class ReplayDisplayInfo
+public sealed class ReplayDisplayInfo
 {
     public string FullPath { get; init; }
     public string FileName { get; init; }
@@ -20,7 +20,6 @@ internal sealed class ReplayDisplayInfo
 
     public string DurationText => FormatDurationText(Duration);
     public string FileSizeText => FormatFileSizeText(FileSizeBytes);
-    public bool IsFavorite { get; init; }
 
     public static ReplayDisplayInfo FromFile(string path)
     {
@@ -48,7 +47,7 @@ internal sealed class ReplayDisplayInfo
                 DurationTicks = metadata.DurationTicks,
                 Date = date,
                 FileSizeBytes = fileSizeBytes,
-                PreviewImagePath = ReplayPreviewImages.GetPreviewPath(path)
+                PreviewImagePath = ReplayImages.GetPreviewPath(path)
             };
         }
         catch (Exception e)
@@ -65,7 +64,7 @@ internal sealed class ReplayDisplayInfo
                 DurationTicks = 0,
                 Date = date,
                 FileSizeBytes = fileSizeBytes,
-                PreviewImagePath = ReplayPreviewImages.GetPreviewPath(path)
+                PreviewImagePath = ReplayImages.GetPreviewPath(path)
             };
         }
     }

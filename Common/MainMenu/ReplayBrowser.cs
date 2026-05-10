@@ -158,7 +158,7 @@ internal sealed class ReplayBrowserPanel : UIElement
             }
 
             RefreshColumnStates();
-            Refresh();
+            ApplyCurrentFilter();
         }
 
         nameColumn.OnLeftClick += (_, _) => SortBy(SortColumn.Name);
@@ -325,11 +325,10 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private void ApplyCurrentFilter()
     {
-        var totalWatch = System.Diagnostics.Stopwatch.StartNew();
-
         if (list == null)
             return;
 
+        RefreshCachedFlags();
         list.Clear();
 
         bool hasAnyReplays = cachedEntries.Length > 0;
@@ -337,9 +336,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         ReplayListEntry[] entries = cachedEntries;
 
         if (!string.IsNullOrWhiteSpace(query))
-        {
             entries = entries.Where(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
-        }
 
         if (entries.Length == 0)
         {
@@ -348,11 +345,7 @@ internal sealed class ReplayBrowserPanel : UIElement
             else
                 AddMessage("No replays yet", "Host a multiplayer world to create one, or place a .reese file in the folder");
 
-            var recalcEmptyWatch = System.Diagnostics.Stopwatch.StartNew();
             list.Recalculate();
-            recalcEmptyWatch.Stop();
-
-            totalWatch.Stop();
             return;
         }
 
@@ -361,6 +354,12 @@ internal sealed class ReplayBrowserPanel : UIElement
             list.Add(new ReplayListItem(entry, () => Refresh(showLoading: false)));
 
         list.Recalculate();
+    }
+
+    private void RefreshCachedFlags()
+    {
+        for (int i = 0; i < cachedEntries.Length; i++)
+            cachedEntries[i] = cachedEntries[i].WithCurrentFlags();
     }
 
     private static ReplayListEntry[] LoadReplayEntries(string dir)
@@ -387,17 +386,17 @@ internal sealed class ReplayBrowserPanel : UIElement
         IOrderedEnumerable<ReplayListEntry> sorted = sortColumn switch
         {
             SortColumn.Name => sortAscending
-                ? entries.OrderBy(x => Path.GetFileNameWithoutExtension(x.FullPath))
-                : entries.OrderByDescending(x => Path.GetFileNameWithoutExtension(x.FullPath)),
+                ? entries.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Name)
+                : entries.OrderByDescending(x => x.IsFavorite).ThenByDescending(x => x.Name),
             SortColumn.Duration => sortAscending
-                ? entries.OrderBy(x => x.DurationTicks)
-                : entries.OrderByDescending(x => x.DurationTicks),
+                ? entries.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.DurationTicks)
+                : entries.OrderByDescending(x => x.IsFavorite).ThenByDescending(x => x.DurationTicks),
             SortColumn.Size => sortAscending
-                ? entries.OrderBy(x => x.SizeBytes)
-                : entries.OrderByDescending(x => x.SizeBytes),
+                ? entries.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.SizeBytes)
+                : entries.OrderByDescending(x => x.IsFavorite).ThenByDescending(x => x.SizeBytes),
             _ => sortAscending
-                ? entries.OrderBy(x => x.Date)
-                : entries.OrderByDescending(x => x.Date)
+                ? entries.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Date)
+                : entries.OrderByDescending(x => x.IsFavorite).ThenByDescending(x => x.Date)
         };
 
         return sorted.ToArray();

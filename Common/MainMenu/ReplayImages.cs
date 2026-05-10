@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Reese.Common.MainMenu;
 
-internal static class ReplayPreviewImages
+internal static class ReplayImages
 {
     private static readonly Dictionary<string, Texture2D> cachedTextures = [];
 
@@ -104,7 +104,8 @@ internal static class ReplayPreviewImages
     {
         string directory = Path.GetDirectoryName(replayPath);
         string name = Path.GetFileNameWithoutExtension(replayPath);
-        return Path.Combine(directory, name + ".preview" + extension);
+        //return Path.Combine(directory, name + ".preview" + extension);
+        return Path.Combine(directory, name + extension);
     }
 
     private static void ClearCachedTexture(string path)

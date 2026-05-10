@@ -25,8 +25,10 @@ internal static class ReplayItemActions
                 if (File.Exists(path))
                     File.Delete(path);
 
+                ReplayFavorites.Delete(path);
+                ReplayImages.DeletePreview(path);
+
                 onDeleted?.Invoke();
-                ReplayPreviewImages.DeletePreview(path);
             }
             catch (Exception e)
             {
@@ -59,6 +61,10 @@ internal static class ReplayItemActions
 
             string destination = GetAvailableReplayPath(directory, newName);
             File.Move(path, destination);
+
+            ReplayFavorites.Move(path, destination);
+            ReplayImages.MovePreview(path, destination);
+
             onRenamed?.Invoke();
         }
         catch (Exception e)
@@ -95,7 +101,7 @@ internal static class ReplayItemActions
 
         try
         {
-            if (ReplayPreviewImages.ChooseAndSavePreview(path))
+            if (ReplayImages.ChooseAndSavePreview(path))
                 onChanged?.Invoke();
         }
         catch (Exception e)
