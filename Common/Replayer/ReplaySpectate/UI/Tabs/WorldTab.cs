@@ -1,5 +1,4 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
 using Reese.Common.Replayer.ReplaySpectate.UI.Sections;
 using Reese.Core.Stats;
 using ReLogic.Content;

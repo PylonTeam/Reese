@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.Replayer.ReplaySpectate;
 using Reese.Common.Replayer.ReplaySpectate.TeammateOverlay.Drawers;
 using ReLogic.Graphics;
 using Terraria.GameContent;
@@ -86,7 +87,7 @@ internal static class PlayerHudOverlay
 
     public static void Draw(SpriteBatch sb)
     {
-        Player player = GetDrawTarget();
+        Player player = GetDrawTarget(out bool inventoryOpen);
 
         if (player?.active != true)
         {
@@ -94,7 +95,7 @@ internal static class PlayerHudOverlay
             return;
         }
 
-        DrawPlayerHud(sb, player, IsOpen(player));
+        DrawPlayerHud(sb, player, inventoryOpen);
     }
 
     public static void DrawPlayerHud(SpriteBatch sb, Player player, bool inventoryOpen)
@@ -188,11 +189,22 @@ internal static class PlayerHudOverlay
         BuffDrawer.DrawBuffs(spriteBatch, position, player, viewport);
     }
 
-    private static Player GetDrawTarget()
+    private static Player GetDrawTarget(out bool inventoryOpen)
     {
         if (IsValidPlayerIndex(playerIndex))
+        {
+            inventoryOpen = true;
             return Main.player[playerIndex];
+        }
 
+        Player lockedTarget = SpectatorTargetSystem.GetLockedPlayerTarget();
+        if (lockedTarget?.active == true)
+        {
+            inventoryOpen = false;
+            return lockedTarget;
+        }
+
+        inventoryOpen = false;
         return null;
     }
 

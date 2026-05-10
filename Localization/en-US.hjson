@@ -53,6 +53,11 @@ Mods: {
 					Label: Is Seekbar Enabled
 					Tooltip: ""
 				}
+
+				ShowWelcomeMessageOnEnterWorld: {
+					Label: Show Welcome Message On Enter World
+					Tooltip: ""
+				}
 			}
 
 			ReplayHUDPosition: {

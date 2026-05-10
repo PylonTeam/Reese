@@ -1,5 +1,6 @@
-﻿using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
+﻿using Reese.Core.Configs;
 using System.Collections.Generic;
+using Terraria.ModLoader;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplaySpectate.UI;
@@ -146,10 +147,12 @@ public class ReplayUISystem : ModSystem
 
     public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
-        int spectatorIndex = layers.FindIndex(l => l.Name == "Vanilla: Death Text");
+        bool configUiOpen = ConfigHelper.IsAnyConfigUIOpen();
+        int mouseTextIndex = layers.FindIndex(l => l.Name == "Vanilla: Mouse Text");
+        int logicIndex = layers.FindIndex(l => l.Name == "Vanilla: Interface Logic 1");
+        int deathTextIndex = layers.FindIndex(l => l.Name == "Vanilla: Death Text");
 
-        if (ConfigHelper.IsAnyConfigUIOpen())
-            spectatorIndex = layers.FindIndex(l => l.Name == "Vanilla: Interface Logic 1");
+        int spectatorIndex = GetSpectatorInsertIndex(mouseTextIndex, logicIndex, deathTextIndex, configUiOpen);
 
         if (spectatorIndex != -1 && spectatorInterface?.CurrentState != null)
         {
@@ -170,4 +173,16 @@ public class ReplayUISystem : ModSystem
             return true;
         }, InterfaceScaleType.UI));
     }
+
+    private static int GetSpectatorInsertIndex(int mouseTextIndex, int logicIndex, int deathTextIndex, bool configUiOpen)
+    {
+        if (mouseTextIndex != -1)
+            return mouseTextIndex;
+
+        if (configUiOpen && logicIndex != -1)
+            return logicIndex;
+
+        return deathTextIndex;
+    }
+
 }

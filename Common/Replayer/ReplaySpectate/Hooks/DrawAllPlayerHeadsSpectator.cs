@@ -1,6 +1,4 @@
-﻿using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
-
-namespace Reese.Common.Replayer.ReplaySpectate.Hooks;
+﻿namespace Reese.Common.Replayer.ReplaySpectate.Hooks;
 
 /// <summary>
 /// Draws all player heads on the map if we are a spectator

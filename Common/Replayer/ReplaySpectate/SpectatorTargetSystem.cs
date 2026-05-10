@@ -1,5 +1,4 @@
-﻿using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using Terraria.ID;
 

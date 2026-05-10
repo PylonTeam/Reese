@@ -1,5 +1,4 @@
-﻿using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
-using Terraria.Graphics.Light;
+﻿using Terraria.Graphics.Light;
 
 namespace Reese.Common.Replayer.ReplaySpectate.Hooks;
 

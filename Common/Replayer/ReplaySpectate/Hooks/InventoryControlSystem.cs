@@ -1,6 +1,4 @@
 ﻿using Microsoft.Xna.Framework.Input;
-using Reese.Common.Replayer.ReplaySpectate;
-using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
 using Reese.Common.Replayer.ReplaySpectate.TeammateOverlay;
 using Reese.Core.Debug;
 using Reese.Core.Utilities;

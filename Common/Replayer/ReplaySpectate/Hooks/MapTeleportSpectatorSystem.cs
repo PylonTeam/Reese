@@ -1,5 +1,4 @@
-﻿using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
-using Reese.Core.Debug;
+﻿using Reese.Core.Debug;
 using Terraria.GameContent;
 
 namespace Reese.Common.Replayer.ReplaySpectate.Hooks;

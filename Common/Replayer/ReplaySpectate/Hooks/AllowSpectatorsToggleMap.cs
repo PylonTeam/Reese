@@ -1,5 +1,4 @@
 ﻿using Microsoft.Xna.Framework.Input;
-using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
 using Terraria.GameInput;
 
 namespace Reese.Common.Replayer.ReplaySpectate.Hooks;

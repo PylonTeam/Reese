@@ -116,6 +116,7 @@ public static class InventoryDrawer
     {
         ownedHoverThisFrame = true;
         Main.LocalPlayer.mouseInterface = true;
+        Main.mouseText = true;
     }
 
     private static void FinishHoverFrame()

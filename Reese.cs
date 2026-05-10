@@ -1,6 +1,3 @@
-using Reese.Core.Net;
-using System.IO;
-
 namespace Reese;
 
 // General FIXMEs in architecture and implementation
@@ -20,6 +17,4 @@ namespace Reese;
 
 public class Reese : Mod
 {
-    public override void HandlePacket(BinaryReader reader, int whoAmI)
-        => ReeseNetPacketHandler.HandlePacket(reader, whoAmI);
 }
