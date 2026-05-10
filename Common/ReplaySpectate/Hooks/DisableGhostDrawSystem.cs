@@ -45,6 +45,9 @@ internal sealed class DisableGhostDrawSystem : ModSystem
 
     public static bool ShouldDrawGhost(Player drawPlayer)
     {
+        if (!ReplayDrawGate.ShouldDrawGhost(drawPlayer))
+            return false;
+
         if (drawPlayer == null || !drawPlayer.active || !drawPlayer.ghost)
             return true;
 

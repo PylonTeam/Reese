@@ -24,7 +24,7 @@ public static class StatDrawer
 
     public static void DrawReplayStatInMainMenu(SpriteBatch spriteBatch, Rectangle area, PlayerStatSnapshot stat, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f)
     {
-        DrawStat(spriteBatch, area, stat.Icon.Value, stat.IconFrame, stat.Text, scale, drawIcon, iconScale, centerText, textScaleMultiplier);
+        DrawStat(spriteBatch, area, drawIcon ? stat.Icon?.Value : null, stat.IconFrame, stat.Text, scale, drawIcon, iconScale, centerText, textScaleMultiplier);
         DrawMainMenuTooltip(area, stat.HoverText);
     }
 
@@ -109,6 +109,11 @@ public static class StatDrawer
 
         string truncatedText = Truncate(FontAssets.MouseText.Value, text, textArea.Width, textScale);
         Vector2 position = new(textArea.X, textArea.Y);
+
+        if (textScaleMultiplier != 1f)
+        {
+            position.Y += 2f;
+        }
 
         if (centerText)
         {

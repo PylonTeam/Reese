@@ -363,7 +363,7 @@ public class SpectatorTargetSystem : ModSystem
 
     private static void ApplyFollowDirection(Player local, int direction)
     {
-        int normalizedDirection = direction < 0 ? -1 : 1;
+        int normalizedDirection = Main.MouseWorld.X < local.Center.X ? -1 : 1;
 
         local.direction = normalizedDirection;
         local.ghostDir = normalizedDirection;

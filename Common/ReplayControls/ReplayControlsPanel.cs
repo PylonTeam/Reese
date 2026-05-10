@@ -15,7 +15,7 @@ namespace Reese.Common.ReplayControls;
 
 public sealed class ReplayControlsPanel : DraggablePanel
 {
-    private static readonly float[] SpeedPresets = [0.25f, 0.5f, 1f, 2f, 4f];
+    private static readonly float[] SpeedPresets = [0.125f, 0.25f, 1f, 4f, 8f];
 
     private readonly Slider positionSlider;
     private readonly UIText positionLabel;
@@ -23,12 +23,12 @@ public sealed class ReplayControlsPanel : DraggablePanel
     private readonly HorizontalRule horizontalRule;
     private readonly VerticalRule verticalRule;
     private readonly CompactTextPanel<string>[] speedButtons;
-    private readonly IconActionButton speedDownButton;
+    private readonly IconActionButton goToStartButton;
     private readonly IconActionButton playButton;
     private readonly IconActionButton pauseButton;
     private readonly IconActionButton stopButton;
     private readonly IconActionButton nextFrameButton;
-    private readonly IconActionButton speedUpButton;
+    private readonly IconActionButton goToEndButton;
 
     protected override bool HasResizeButton() => false;
 
@@ -103,12 +103,12 @@ public sealed class ReplayControlsPanel : DraggablePanel
         verticalRule = new VerticalRule();
         ContentPanel.Append(verticalRule);
 
-        speedDownButton = CreateTransportButton(Ass.Icon_SpeedDown, "Go to start", GoToStart, 0);
+        goToStartButton = CreateTransportButton(Ass.Icon_SpeedDown, "Go to start", GoToStart, 0);
         nextFrameButton = CreateTransportButton(Ass.Icon_NextFrame, "Next Frame", StepOneFrame, 1);
         playButton = CreateTransportButton(Ass.Icon_Play, "Play", Resume, 2, large: true);
         pauseButton = CreateTransportButton(Ass.Icon_Pause, "Pause", Pause, 3);
         stopButton = CreateTransportButton(Ass.Icon_Stop, "Stop Replay", () => Replayer.Replayer.StopPlayback(), 4);
-        speedUpButton = CreateTransportButton(Ass.Icon_SpeedUp, "Go to end", GoToEnd, 5);
+        goToEndButton = CreateTransportButton(Ass.Icon_SpeedUp, "Go to end", GoToEnd, 5);
 
         ApplyLayout();
         RefreshVisualState();
@@ -188,12 +188,12 @@ public sealed class ReplayControlsPanel : DraggablePanel
             verticalRule.Height.Set(ReplayControlsPanelLayout.DividerHeight, 0f);
         }
 
-        ApplyTransportButtonLayout(speedDownButton, 0);
+        ApplyTransportButtonLayout(goToStartButton, 0);
         ApplyTransportButtonLayout(nextFrameButton, 1);
         ApplyTransportButtonLayout(playButton, 2, large: true);
         ApplyTransportButtonLayout(pauseButton, 3);
         ApplyTransportButtonLayout(stopButton, 4);
-        ApplyTransportButtonLayout(speedUpButton, 5);
+        ApplyTransportButtonLayout(goToEndButton, 5);
     }
 
     public override void Update(GameTime gameTime)
@@ -291,12 +291,12 @@ public sealed class ReplayControlsPanel : DraggablePanel
             speedButtons[i].BorderColor = selected ? Color.Yellow : Color.Black;
         }
 
-        speedDownButton.SetSelected(false);
+        goToStartButton.SetSelected(false);
         nextFrameButton.SetSelected(false);
         playButton.SetSelected(!paused);
         pauseButton.SetSelected(paused);
         stopButton.SetSelected(false);
-        speedUpButton.SetSelected(false);
+        goToEndButton.SetSelected(false);
     }
 
     private static uint GetDurationTicks()

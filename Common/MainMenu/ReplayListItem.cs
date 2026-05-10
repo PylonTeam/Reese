@@ -42,8 +42,8 @@ internal sealed class ReplayListItem : UIPanel
         // Replay Filename
         Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(info.FileName), info.MetadataTooltip)
         {
-            Left = { Pixels = 66f },
-            Top = { Pixels = 6f },
+            Left = { Pixels = 70f },
+            Top = { Pixels = 10f },
             Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - 76f },
             Height = { Pixels = 22f }
         });
@@ -76,7 +76,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // Length
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(info.Duration), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.16f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(info.Duration), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
         {
             Left = { Pixels = ReplayBrowserLayout.DurationLeft + 6f },
             Top = { Pixels = 34f },
@@ -84,9 +84,19 @@ internal sealed class ReplayListItem : UIPanel
             Height = { Pixels = 24f }
         });
 
+        // Size
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuTextStat(info.FileSizeText), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 0.8f)
+        {
+            Left = { Pixels = ReplayBrowserLayout.SizeLeft + 4f },
+            Top = { Pixels = 34f },
+            Width = { Pixels = ReplayBrowserLayout.SizeColumnWidth - 8f },
+            Height = { Pixels = 24f }
+        });
+
         //Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DateLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
         //Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DurationLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
 
+        // Hover label
         actionHoverLabel = new ActionHoverLabel();
         actionHoverLabel.Left.Set(ReplayBrowserLayout.ReplayItemHeight - ReplayBrowserLayout.ActionButtonRightPadding + ReplayBrowserLayout.ActionLabelGap, 0f);
         actionHoverLabel.Top.Set(ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f, 0f);
@@ -101,13 +111,13 @@ internal sealed class ReplayListItem : UIPanel
         ];
         UIImageButton[] previewActionButtons = AppendActionButtons(actions, actionHoverLabel);
 
-        float buttonTop = ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f;
-        float deleteLeft = ReplayBrowserLayout.DurationLeft + ReplayBrowserLayout.DurationColumnWidth - ReplayBrowserLayout.ActionButtonRightPadding - ReplayBrowserLayout.ActionButtonSize;
+        float buttonTop = ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f - 1;
+        float deleteLeft = ReplayBrowserLayout.SizeLeft + ReplayBrowserLayout.SizeColumnWidth - ReplayBrowserLayout.ActionButtonRightPadding - ReplayBrowserLayout.ActionButtonSize - 2;
         ActionHoverLabel deleteHoverLabel = new()
         {
             TextAlign = 1f
         };
-        deleteHoverLabel.Left.Set(deleteLeft - ReplayBrowserLayout.ActionLabelGap - ReplayBrowserLayout.ActionLabelWidth, 0f);
+        deleteHoverLabel.Left.Set(deleteLeft - ReplayBrowserLayout.ActionLabelGap - ReplayBrowserLayout.ActionLabelWidth + 4, 0f);
         deleteHoverLabel.Top.Set(buttonTop, 0f);
         deleteHoverLabel.Width.Set(ReplayBrowserLayout.ActionLabelWidth, 0f);
         deleteHoverLabel.Height.Set(ReplayBrowserLayout.ActionButtonSize, 0f);
@@ -145,7 +155,7 @@ internal sealed class ReplayListItem : UIPanel
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
-            const float TextScale = 1f;
+            const float TextScale = 0.95f;
 
             Rectangle area = GetDimensions().ToRectangle();
             var font = FontAssets.MouseText.Value;
@@ -161,7 +171,7 @@ internal sealed class ReplayListItem : UIPanel
 
         private static string FitText(ReLogic.Graphics.DynamicSpriteFont font, string value, float maxWidth)
         {
-            const float TextScale = 1f;
+            const float TextScale = 0.95f;
 
             if (font.MeasureString(value).X * TextScale <= maxWidth)
                 return value;
@@ -183,8 +193,8 @@ internal sealed class ReplayListItem : UIPanel
         UIImageButton[] buttons = new UIImageButton[actions.Length];
         float buttonSize = ReplayBrowserLayout.ActionButtonSize;
         float buttonGap = ReplayBrowserLayout.ActionButtonGap;
-        float top = ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - buttonSize) * 0.5f;
-        float left = ReplayBrowserLayout.ReplayItemHeight - ReplayBrowserLayout.ActionButtonRightPadding - buttonSize * actions.Length - buttonGap * Math.Max(0, actions.Length - 1);
+        float top = ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - buttonSize) * 0.5f + 1;
+        float left = ReplayBrowserLayout.ReplayItemHeight - ReplayBrowserLayout.ActionButtonRightPadding - buttonSize * actions.Length - buttonGap * Math.Max(0, actions.Length - 1) + 4;
 
         for (int i = 0; i < actions.Length; i++)
         {
@@ -298,6 +308,8 @@ internal sealed class ReplayListItem : UIPanel
         {
             Width.Set(size, 0f);
             Height.Set(size, 0f);
+            Left.Set(6, 0);
+            Top.Set(6, 0);
 
             preview.Width.Set(size, 0f);
             preview.Height.Set(size, 0f);

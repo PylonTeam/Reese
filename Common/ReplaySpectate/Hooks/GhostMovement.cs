@@ -14,6 +14,8 @@ namespace Reese.Common.ReplaySpectate.Hooks;
 [Autoload(Side = ModSide.Both)]
 internal class GhostMovement : ModSystem
 {
+    private const float CursorTeleportLerp = 0.18f;
+
     public override void Load()
     {
         On_Player.Ghost += OnPlayerGhost;
@@ -58,6 +60,8 @@ internal class GhostMovement : ModSystem
         if (!self.ghost || self.whoAmI != Main.myPlayer)
             return;
 
+        FaceMouse(self);
+
         bool fastGhost = Main.keyState.IsKeyDown(Keys.LeftShift) || Main.keyState.IsKeyDown(Keys.RightShift);
         if (fastGhost)
         {
@@ -69,13 +73,29 @@ internal class GhostMovement : ModSystem
         }
 
         if (Main.mouseRight && !IsMouseOverAnyInterface())
-        {
-            Vector2 targetPosition = Main.MouseWorld - new Vector2(self.width * 0.5f, self.height * 0.5f);
-            self.Teleport(targetPosition, TeleportationStyleID.RodOfDiscord);
+            SmoothMoveToCursor(self);
+    }
 
-            if (Main.netMode != NetmodeID.SinglePlayer)
-                NetMessage.SendData(MessageID.TeleportEntity, -1, -1, null, 0, self.whoAmI, targetPosition.X, targetPosition.Y, TeleportationStyleID.RodOfDiscord);
-        }
+    private static void FaceMouse(Player player)
+    {
+        int direction = Main.MouseWorld.X < player.Center.X ? -1 : 1;
+        player.direction = direction;
+        player.ghostDir = direction;
+    }
+
+    private static void SmoothMoveToCursor(Player player)
+    {
+        Vector2 targetPosition = Main.MouseWorld - new Vector2(player.width * 0.5f, player.height * 0.5f);
+        Vector2 nextPosition = Vector2.Lerp(player.position, targetPosition, CursorTeleportLerp);
+
+        if (Vector2.DistanceSquared(nextPosition, targetPosition) < 4f)
+            nextPosition = targetPosition;
+
+        player.position = nextPosition;
+        player.velocity = Vector2.Zero;
+
+        if (Main.netMode != NetmodeID.SinglePlayer)
+            NetMessage.SendData(MessageID.PlayerControls, -1, -1, null, player.whoAmI);
     }
 
     private static bool IsMouseOverAnyInterface()

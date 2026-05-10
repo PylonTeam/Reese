@@ -174,8 +174,6 @@ internal sealed class TimeScaleSystem : ModSystem
 
     private static void NotifyWorldTickAdvanced()
     {
-        ModContent.GetInstance<LocalWorldSessionSystem>()?.AdvanceWorldTick();
-
         if (Main.netMode != NetmodeID.Server && ReplaySession.IsReplayPlayback)
             ModContent.GetInstance<Replayer.Replayer>()?.AdvancePlaybackTick();
     }

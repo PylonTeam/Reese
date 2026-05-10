@@ -1,5 +1,7 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.Replayer;
 using Reese.Common.ReplaySpectate.SpectatorMode;
+using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 using Reese.Core.Utilities;
 using Terraria.DataStructures;
 using Terraria.Graphics;
@@ -39,6 +41,9 @@ internal sealed class GhostMapHeadLayer : ModMapLayer
     public override void Draw(ref MapOverlayDrawContext context, ref string text)
     {
         if (!SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer))
+            return;
+
+        if (ReplaySession.IsReplayPlayback && !SpectatorDrawSettings.IsDrawGhostsOn)
             return;
 
         Texture2D ghostRight = Ass.GhostRight.Value;

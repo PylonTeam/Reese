@@ -102,6 +102,12 @@ internal static class PlayerStats
         return new PlayerStatSnapshot("Length", display, $"Length: {FormatLengthText(length)}", Ass.Icon_Watch, null);
     }
 
+    public static PlayerStatSnapshot BuildMainMenuTextStat(string text)
+    {
+        text = string.IsNullOrWhiteSpace(text) ? "-" : text.Trim();
+        return new PlayerStatSnapshot("Text", text, text, null, null);
+    }
+
     private static string FormatLengthText(TimeSpan length)
     {
         int hours = (int)length.TotalHours;

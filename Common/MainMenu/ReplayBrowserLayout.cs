@@ -19,20 +19,22 @@ internal static class ReplayBrowserLayout
     internal static float NameColumnWidth;
     internal static float DateColumnWidth;
     internal static float DurationColumnWidth;
+    internal static float SizeColumnWidth;
     internal static float ActionColumnWidth;
     internal static float TableWidth;
     internal static float DateLeft;
     internal static float DurationLeft;
+    internal static float SizeLeft;
 
     internal static bool Update()
     {
         bool changed = false;
 
-        Set(ref ReplayItemHeight, 62f, ref changed);
-        Set(ref ReplayItemActionHeight, 30f, ref changed);
+        Set(ref ReplayItemHeight, 58f, ref changed);
+        Set(ref ReplayItemActionHeight, 32f, ref changed);
         Set(ref ReplayItemTotalHeight, ReplayItemHeight + ReplayItemActionHeight, ref changed);
         Set(ref ActionButtonSize, 22f, ref changed);
-        Set(ref ActionButtonGap, 4f, ref changed);
+        Set(ref ActionButtonGap, 3f, ref changed);
         Set(ref ActionButtonRightPadding, 4f, ref changed);
         Set(ref ActionLabelGap, 8f, ref changed);
         Set(ref ActionLabelWidth, 180f, ref changed);
@@ -40,13 +42,27 @@ internal static class ReplayBrowserLayout
         Set(ref ContentPadding, 6f, ref changed);
         Set(ref TableColumnHeight, 28f, ref changed);
         Set(ref ListTop, TableColumnHeight + 4f, ref changed);
-        Set(ref NameColumnWidth, 246f, ref changed);
-        Set(ref DateColumnWidth, 124f, ref changed);
         Set(ref ActionColumnWidth, 48f, ref changed);
         Set(ref TableWidth, ReplayBrowser.PanelWidth - ContentPadding * 2f - ScrollbarWidth - 4f, ref changed);
-        Set(ref DurationColumnWidth, Math.Max(80f, TableWidth - NameColumnWidth - DateColumnWidth), ref changed);
+
+        const float baseNameColumnWidth = 234f;
+        const float baseDateColumnWidth = 110f;
+        const float baseDurationColumnWidth = 92f;
+        const float baseSizeColumnWidth = 91f;
+
+        float baseTotalWidth = baseNameColumnWidth + baseDateColumnWidth + baseDurationColumnWidth + baseSizeColumnWidth;
+        float fittedNameColumnWidth = MathF.Round(baseNameColumnWidth / baseTotalWidth * TableWidth);
+        float fittedDateColumnWidth = MathF.Round(baseDateColumnWidth / baseTotalWidth * TableWidth);
+        float fittedDurationColumnWidth = MathF.Round(baseDurationColumnWidth / baseTotalWidth * TableWidth);
+        float fittedSizeColumnWidth = TableWidth - fittedNameColumnWidth - fittedDateColumnWidth - fittedDurationColumnWidth;
+
+        Set(ref NameColumnWidth, fittedNameColumnWidth, ref changed);
+        Set(ref DateColumnWidth, fittedDateColumnWidth, ref changed);
+        Set(ref DurationColumnWidth, fittedDurationColumnWidth, ref changed);
+        Set(ref SizeColumnWidth, fittedSizeColumnWidth, ref changed);
         Set(ref DateLeft, NameColumnWidth, ref changed);
-        Set(ref DurationLeft, NameColumnWidth + DateColumnWidth, ref changed);
+        Set(ref DurationLeft, DateLeft + DateColumnWidth, ref changed);
+        Set(ref SizeLeft, DurationLeft + DurationColumnWidth, ref changed);
 
         return changed;
     }

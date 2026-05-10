@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 
 namespace Reese.Common.MainMenu;
 
@@ -17,6 +18,8 @@ internal sealed class ReplayDisplayInfo
     public TimeSpan Duration { get; init; }
     public string DurationText => FormatDurationText(Duration);
     public DateTime Date { get; init; }
+    public long FileSizeBytes { get; init; }
+    public string FileSizeText => FormatFileSizeText(FileSizeBytes);
     public string MetadataTooltip { get; init; }
     public ReplayPlayerSnapshot PlayerSnapshot { get; init; }
 
@@ -27,6 +30,7 @@ internal sealed class ReplayDisplayInfo
         string playerName = "-";
         TimeSpan duration = TimeSpan.Zero;
         DateTime date = File.GetLastWriteTime(path);
+        long fileSizeBytes = new FileInfo(path).Length;
         string metadataTooltip = string.Empty;
         ReplayPlayerSnapshot playerSnapshot = null;
 
@@ -65,6 +69,7 @@ internal sealed class ReplayDisplayInfo
             PlayerNameRaw = playerName,
             Duration = duration,
             Date = date,
+            FileSizeBytes = fileSizeBytes,
             MetadataTooltip = metadataTooltip,
             PlayerSnapshot = playerSnapshot
         };
@@ -77,25 +82,42 @@ internal sealed class ReplayDisplayInfo
         string finalized = metadata?.Finalized == true ? "Yes" : "No";
         string cleanEof = report.HasCleanEndMarker ? "Yes" : "No";
         string endReason = string.IsNullOrWhiteSpace(metadata?.EndReason) ? "Unknown" : metadata.EndReason;
-        string[] modNames = metadata?.ModNames ?? [];
+        string[] modNames = metadata?.ModNames?.Where(m => m != "ModLoader").ToArray() ?? [];
 
+#if DEBUG
         List<string> lines =
         [
-            $"Filename: {Path.GetFileName(report.Path)}",
-            $"Format: v{report.FormatVersion}",
-            $"World ID: {metadata?.WorldId ?? 0}",
-            $"Tick rate: {tickRate}",
-            $"Blocks: {report.BlockCount:N0}",
+            $"Name: {Path.GetFileName(report.Path)}",
+            //$"Format: v{report.FormatVersion}",
+            //$"World ID: {metadata?.WorldId ?? 0}",
+            //$"Tick rate: {tickRate}",
+            //$"Blocks: {report.BlockCount:N0}",
             $"Packets: {report.PacketCount:N0}",
-            $"Malformed packets: {report.MalformedPacketDataCount:N0}",
-            $"Clean EOF: {cleanEof}",
-            $"Finalized: {finalized}",
-            $"End reason: {endReason}",
-            $"Mod Count: {modNames.Length:N0}"
+            //$"Malformed packets: {report.MalformedPacketDataCount:N0}",
+            //$"Clean EOF: {cleanEof}",
+            //$"Finalized: {finalized}",
+            //$"End reason: {endReason}",
+            //$"Mod Count: {modNames.Length:N0}"
         ];
+#else
+List<string> lines =
+        [
+            $"Name: {Path.GetFileName(report.Path)}",
+            //$"Format: v{report.FormatVersion}",
+            //$"World ID: {metadata?.WorldId ?? 0}",
+            //$"Tick rate: {tickRate}",
+            //$"Blocks: {report.BlockCount:N0}",
+            $"Packets: {report.PacketCount:N0}",
+            //$"Malformed packets: {report.MalformedPacketDataCount:N0}",
+            //$"Clean EOF: {cleanEof}",
+            //$"Finalized: {finalized}",
+            //$"End reason: {endReason}",
+            //$"Mod Count: {modNames.Length:N0}"
+        ];
+#endif
 
         if (modNames.Length > 0)
-            lines.Add($"Mod Names: {FormatModNames(modNames)}");
+            lines.Add($"Mods: {FormatModNames(modNames)}");
 
         if (!string.IsNullOrWhiteSpace(report.Error))
             lines.Add($"Error: {report.Error}");
@@ -105,7 +127,7 @@ internal sealed class ReplayDisplayInfo
 
     private static string FormatModNames(string[] modNames)
     {
-        const int maxShown = 4;
+        const int maxShown = 8;
         string text = string.Join(", ", modNames.Length > maxShown ? modNames[..maxShown] : modNames);
         return modNames.Length > maxShown ? $"{text}, +{modNames.Length - maxShown:N0} more" : text;
     }
@@ -118,6 +140,12 @@ internal sealed class ReplayDisplayInfo
     private static string FormatDurationText(TimeSpan duration)
     {
         return $"{(int)duration.TotalHours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
+    }
+
+    private static string FormatFileSizeText(long bytes)
+    {
+        long kilobytes = Math.Max(1, (long)Math.Ceiling(bytes / 1024d));
+        return kilobytes.ToString("N0", CultureInfo.InvariantCulture).Replace(",", " ") + " KB";
     }
 
     private static string InferWorldName(string fileName)

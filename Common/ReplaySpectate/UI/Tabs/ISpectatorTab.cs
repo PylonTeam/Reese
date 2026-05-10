@@ -15,5 +15,6 @@ internal interface ISpectatorTab
 internal enum SpectatorTab
 {
     NPCs,
-    World
+    World,
+    Replay
 }

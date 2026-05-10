@@ -3,6 +3,7 @@ using Microsoft.Xna.Framework.Input;
 using Reese.Common.ReplaySpectate.TeammateOverlay;
 using Reese.Common.ReplaySpectate.UI.Tabs;
 using Reese.Common.ReplaySpectate.UI.Tabs.NPCsTab;
+using Reese.Common.ReplaySpectate.UI.Tabs.ReplayTab;
 using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab;
 using Reese.Core.Utilities;
 using ReLogic.Content;
@@ -45,6 +46,7 @@ internal sealed class SpectatorInfoPanel : UIElement
 
         tabs.Add(new SpectatorNPCTab());
         tabs.Add(new SpectatorWorldTab());
+        tabs.Add(new SpectatorReplayTab());
         currentTab = tabs[1];
 
         Rebuild();

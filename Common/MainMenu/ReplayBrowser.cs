@@ -47,6 +47,8 @@ internal sealed class ReplayBrowser : UIElement
     {
         Main.QueueMainThreadAction(() =>
         {
+            ModContent.GetInstance<ExtraStateMainMenuSystem>().CloseForReplayLaunch();
+
             Main.LoadPlayers();
             var player = Main.PlayerList.FirstOrDefault();
             if (player == null)
@@ -89,6 +91,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         Name,
         Date,
         Duration,
+        Size,
     }
 
     private UIList list;
@@ -132,15 +135,17 @@ internal sealed class ReplayBrowserPanel : UIElement
         tableHeader.Height.Set(ReplayBrowserLayout.TableColumnHeight, 0f);
         container.Append(tableHeader);
 
-        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Replay Name", 0f, ReplayBrowserLayout.NameColumnWidth);
+        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Replay", 0f, ReplayBrowserLayout.NameColumnWidth);
         UISortableTableColumn dateColumn = UISortableTableColumn.AppendHeader(tableHeader, "Date", ReplayBrowserLayout.NameColumnWidth, ReplayBrowserLayout.DateColumnWidth);
         UISortableTableColumn durationColumn = UISortableTableColumn.AppendHeader(tableHeader, "Length", ReplayBrowserLayout.NameColumnWidth + ReplayBrowserLayout.DateColumnWidth, ReplayBrowserLayout.DurationColumnWidth);
+        UISortableTableColumn sizeColumn = UISortableTableColumn.AppendHeader(tableHeader, "Size", ReplayBrowserLayout.SizeLeft, ReplayBrowserLayout.SizeColumnWidth);
 
         void RefreshColumnStates()
         {
             nameColumn.SetSortState(sortColumn == SortColumn.Name, sortAscending);
             dateColumn.SetSortState(sortColumn == SortColumn.Date, sortAscending);
             durationColumn.SetSortState(sortColumn == SortColumn.Duration, sortAscending);
+            sizeColumn.SetSortState(sortColumn == SortColumn.Size, sortAscending);
         }
 
         void SortBy(SortColumn column)
@@ -160,6 +165,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         nameColumn.OnLeftClick += (_, _) => SortBy(SortColumn.Name);
         dateColumn.OnLeftClick += (_, _) => SortBy(SortColumn.Date);
         durationColumn.OnLeftClick += (_, _) => SortBy(SortColumn.Duration);
+        sizeColumn.OnLeftClick += (_, _) => SortBy(SortColumn.Size);
         RefreshColumnStates();
 
         list = new UIList();
@@ -273,8 +279,7 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private void OpenReeseClientConfig()
     {
-        var clientConfig = ModContent.GetInstance<ClientConfig>();
-        clientConfig.Open();
+        ModContent.GetInstance<ExtraStateMainMenuSystem>().OpenClientConfig();
     }
 
     public void Refresh(bool showLoading = true)
@@ -370,6 +375,9 @@ internal sealed class ReplayBrowserPanel : UIElement
             SortColumn.Duration => sortAscending
                 ? entries.OrderBy(x => x.DurationTicks)
                 : entries.OrderByDescending(x => x.DurationTicks),
+            SortColumn.Size => sortAscending
+                ? entries.OrderBy(x => x.SizeBytes)
+                : entries.OrderByDescending(x => x.SizeBytes),
             _ => sortAscending
                 ? entries.OrderBy(x => x.Date)
                 : entries.OrderByDescending(x => x.Date)
@@ -411,18 +419,21 @@ internal sealed class ReplayBrowserPanel : UIElement
         public readonly string Path;
         public readonly DateTime Date;
         public readonly uint DurationTicks;
+        public readonly long SizeBytes;
 
-        private ReplayEntry(string path, DateTime date, uint durationTicks)
+        private ReplayEntry(string path, DateTime date, uint durationTicks, long sizeBytes)
         {
             Path = path;
             Date = date;
             DurationTicks = durationTicks;
+            SizeBytes = sizeBytes;
         }
 
         public static ReplayEntry FromFile(string path)
         {
             uint durationTicks = 0;
             DateTime date = File.GetLastWriteTime(path);
+            long sizeBytes = new FileInfo(path).Length;
             try
             {
                 ReplayInspectionReport report = ReplayInspector.Inspect(path);
@@ -434,7 +445,7 @@ internal sealed class ReplayBrowserPanel : UIElement
             {
             }
 
-            return new ReplayEntry(path, date, durationTicks);
+            return new ReplayEntry(path, date, durationTicks, sizeBytes);
         }
     }
 }

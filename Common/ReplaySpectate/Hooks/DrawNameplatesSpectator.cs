@@ -130,6 +130,9 @@ internal sealed class DrawNameplatesSpectator : ModSystem
 
             if (player.ghost)
             {
+                if (!ReplayDrawGate.ShouldDrawGhost(player))
+                    return;
+
                 Texture2D texture = this.player.direction == -1 ? Ass.GhostLeft.Value : Ass.GhostRight.Value;
                 Vector2 ghostPos = vec + new Vector2(12f, 0f);
                 float ghostScale = 1.0f;
@@ -260,6 +263,9 @@ internal sealed class DrawNameplatesSpectator : ModSystem
         //bool drawSpectators = ModContent.GetInstance<ClientConfig>().DrawSpectators;
         bool drawSpectators = true;
         bool otherIsSpectator = otherPlayer.ghost || SpectatorModeSystem.IsInSpectateMode(otherPlayer);
+
+        if (!ReplayDrawGate.ShouldDrawNameplate(otherPlayer, otherIsSpectator))
+            return false;
 
         if (otherPlayer.dead && !otherIsSpectator)
             return false;

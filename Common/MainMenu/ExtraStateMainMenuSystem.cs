@@ -272,10 +272,37 @@ public class ExtraStateMainMenuSystem : ModSystem
         ui.SetState(new ConfirmRenameState(currentName, name => Close(() => onSubmit?.Invoke(name)), () => Close(null)));
     }
 
+    internal void OpenClientConfig()
+    {
+        Main.QueueMainThreadAction(() =>
+        {
+            CloseAllMenuUI(resetMenuMode: true);
+            ModContent.GetInstance<ClientConfig>().Open(() =>
+            {
+                CloseAllMenuUI(resetMenuMode: true);
+                Main.menuMode = 0;
+            });
+        });
+    }
+
+    internal void CloseForReplayLaunch()
+    {
+        CloseAllMenuUI(resetMenuMode: false);
+    }
+
     private void CloseReplayBrowser()
     {
+        CloseAllMenuUI(resetMenuMode: true);
+    }
+
+    private void CloseAllMenuUI(bool resetMenuMode)
+    {
         ui?.SetState(null);
-        Main.menuMode = 0;
+        reeseMainMenuUI?.SetState(null);
+
+        if (resetMenuMode)
+            Main.menuMode = 0;
+
         Main.blockMouse = false;
     }
 
@@ -293,12 +320,7 @@ public class ExtraStateMainMenuSystem : ModSystem
 
         if (!Main.gameMenu)
         {
-            if (ui?.CurrentState != null)
-                ui.SetState(null);
-
-            if (reeseMainMenuUI?.CurrentState != null)
-                reeseMainMenuUI.SetState(null);
-
+            CloseAllMenuUI(resetMenuMode: false);
             return;
         }
 

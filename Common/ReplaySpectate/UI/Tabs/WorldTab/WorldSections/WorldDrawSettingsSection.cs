@@ -1,51 +1,31 @@
-﻿using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.ReplaySpectate.Hooks;
+using Microsoft.Xna.Framework.Graphics;
 using System.Collections.Generic;
+using Terraria.GameContent;
+using Terraria.ID;
 
 namespace Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 
 internal sealed class WorldDrawSettingsSection : WorldSectionBase
 {
     public override WorldSection Section => WorldSection.Settings;
-    public override string HeaderText => "Draw Settings";
+    public override string HeaderText => "Replay Settings";
     public override float Height => 214f;
 
     public override IReadOnlyList<WorldSectionRow> GetRows()
     {
         return
         [
-            new("Players:", () => $"Fullbright: {OnOff(FullbrightSpectatorSystem.Enabled)}", GetFullbrightIcon, onLeftClick: () => FullbrightSpectatorSystem.Enabled = !FullbrightSpectatorSystem.Enabled),
-            new("NPCs:", () => $"Reveal Map: {OnOff(MapRevealHelper.Revealed)}", GetRevealMapIcon, onLeftClick: () => MapRevealHelper.SetRevealed(!MapRevealHelper.Revealed)),
-            new("Projectiles:", () => $"Draw Players: {SpectatorClientSettings.DrawPlayersLabel}", GetDrawPlayersIcon, onLeftClick: SpectatorClientSettings.CycleDrawPlayers),
-            new("Items:", () => $"Auto Director: {OnOff(AutoDirectorSystem.Enabled)}", GetAutoDirectorIcon, onLeftClick: () => AutoDirectorSystem.Enabled = !AutoDirectorSystem.Enabled)
+            new("Draw Players:", () => $"Draw Players: {OnOff(SpectatorDrawSettings.IsDrawPlayersOn)}", () => Ass.Icon_Player.Value, onLeftClick: SpectatorDrawSettings.TogglePlayers),
+            new("Draw Ghosts:", () => $"Draw Ghosts: {OnOff(SpectatorDrawSettings.IsDrawGhostsOn)}", () => Ass.GhostRight.Value, onLeftClick: SpectatorDrawSettings.ToggleGhosts),
+            new("Draw Projectiles:", () => $"Draw Projectiles: {OnOff(SpectatorDrawSettings.IsDrawProjectilesOn)}", GetProjectileIcon, onLeftClick: SpectatorDrawSettings.ToggleProjectiles),
+            new("Draw NPCs:", () => $"Draw NPCs: {OnOff(SpectatorDrawSettings.IsDrawNPCsOn)}", () => Ass.Icon_NPC.Value, onLeftClick: SpectatorDrawSettings.ToggleNPCs),
+            new("Draw Items:", () => $"Draw Items: {OnOff(SpectatorDrawSettings.IsDrawItemsOn)}", GetItemIcon, onLeftClick: SpectatorDrawSettings.ToggleItems)
         ];
     }
 
     private static string OnOff(bool value) => value ? "On" : "Off";
 
-    private static Texture2D GetFullbrightIcon() => FullbrightSpectatorSystem.Enabled ? Ass.Icon_CandelabraOn.Value : Ass.Icon_CandelabraOff.Value;
+    private static Texture2D GetProjectileIcon() => TextureAssets.Projectile[ProjectileID.WoodenArrowFriendly].Value;
 
-    private static Texture2D GetRevealMapIcon() => MapRevealHelper.Revealed ? Ass.Icon_MapOn.Value : Ass.Icon_MapOff.Value;
-
-    private static Texture2D GetDrawPlayersIcon()
-    {
-        return SpectatorClientSettings.DrawPlayers switch
-        {
-            SpectatorPlayerDrawMode.FullPlayer => Ass.Icon_Player.Value,
-            _ => null
-        };
-    }
-
-    private static Texture2D GetPlayerCardsIcon()
-    {
-        return SpectatorControlsPanel.ShownPlayerCardCount switch
-        {
-            1 => Ass.Icon_Card1.Value,
-            2 => Ass.Icon_Card2.Value,
-            3 => Ass.Icon_Card3.Value,
-            _ => Ass.Icon_Card1.Value
-        };
-    }
-
-    private static Texture2D GetAutoDirectorIcon() => AutoDirectorSystem.Enabled ? Ass.Icon_FilmProjectorOn.Value : Ass.Icon_FilmProjectorOff.Value;
+    private static Texture2D GetItemIcon() => TextureAssets.Item[ItemID.GoldCoin].Value;
 }
