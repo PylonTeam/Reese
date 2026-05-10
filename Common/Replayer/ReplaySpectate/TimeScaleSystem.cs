@@ -1,13 +1,12 @@
 ﻿using Microsoft.VisualBasic;
 using Microsoft.Xna.Framework;
-using Reese.Common.Replayer;
 using System;
 using System.Diagnostics;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace Reese.Common.Replayer.ReplaySpectate.ReplayControls.TimeScale;
+namespace Reese.Common.Replayer.ReplaySpectate;
 
 /// <summary>
 /// How it works:

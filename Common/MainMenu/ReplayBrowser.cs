@@ -338,11 +338,7 @@ internal sealed class ReplayBrowserPanel : UIElement
 
         if (!string.IsNullOrWhiteSpace(query))
         {
-            var filterWatch = System.Diagnostics.Stopwatch.StartNew();
             entries = entries.Where(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
-            filterWatch.Stop();
-
-            Log.Debug($"Replay filter: query='{query}', before={cachedEntries.Length}, after={entries.Length}, ms={filterWatch.ElapsedMilliseconds}");
         }
 
         if (entries.Length == 0)
@@ -357,26 +353,14 @@ internal sealed class ReplayBrowserPanel : UIElement
             recalcEmptyWatch.Stop();
 
             totalWatch.Stop();
-            Log.Debug($"Replay apply filter empty: cached={cachedEntries.Length}, recalcMs={recalcEmptyWatch.ElapsedMilliseconds}, totalMs={totalWatch.ElapsedMilliseconds}");
             return;
         }
 
-        var sortWatch = System.Diagnostics.Stopwatch.StartNew();
         ReplayListEntry[] sortedEntries = SortEntries(entries);
-        sortWatch.Stop();
-
-        var rowsWatch = System.Diagnostics.Stopwatch.StartNew();
         foreach (ReplayListEntry entry in sortedEntries)
             list.Add(new ReplayListItem(entry, () => Refresh(showLoading: false)));
-        rowsWatch.Stop();
 
-        var recalcWatch = System.Diagnostics.Stopwatch.StartNew();
         list.Recalculate();
-        recalcWatch.Stop();
-
-        totalWatch.Stop();
-
-        Log.Info($"Replay UI rebuild: rows={sortedEntries.Length}, sortMs={sortWatch.ElapsedMilliseconds}, rowCreateMs={rowsWatch.ElapsedMilliseconds}, recalcMs={recalcWatch.ElapsedMilliseconds}, totalMs={totalWatch.ElapsedMilliseconds}, thread={ProfileProbe.ThreadInfo()}");
     }
 
     private static ReplayListEntry[] LoadReplayEntries(string dir)

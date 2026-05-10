@@ -25,7 +25,7 @@ internal sealed class NPCTab : TabPage
 
     public override float IconScale => 1f;
 
-    public override Vector2 IconOffset => new Vector2(0, 0);
+    public override Vector2 IconOffset => new Vector2(0, -2);
 
     public override void Refresh()
     {

@@ -43,11 +43,8 @@ public class SpectatorTargetSystem : ModSystem
             Main.npc[npcId]?.active == true;
     }
 
-    public static void SetPlayerTarget(int slot, bool preserveAutoDirector = false)
+    public static void SetPlayerTarget(int slot)
     {
-        if (!preserveAutoDirector)
-            AutoDirectorSystem.Enabled = false;
-
         int next = CanTarget(slot) ? slot : -1;
 
         target = next;
@@ -58,11 +55,8 @@ public class SpectatorTargetSystem : ModSystem
             SnapLocalPlayerNear(Main.player[target]);
     }
 
-    public static void SetNPCTarget(int slot, bool preserveAutoDirector = false)
+    public static void SetNPCTarget(int slot)
     {
-        if (!preserveAutoDirector)
-            AutoDirectorSystem.Enabled = false;
-
         int next = CanTargetNPC(slot) ? slot : -1;
 
         npcTarget = next;
@@ -117,11 +111,8 @@ public class SpectatorTargetSystem : ModSystem
         return targets;
     }
 
-    public static void ClearTarget(bool preserveAutoDirector = false, bool moveCameraToLocal = true)
+    public static void ClearTarget(bool moveCameraToLocal = true)
     {
-        if (!preserveAutoDirector)
-            AutoDirectorSystem.Enabled = false;
-
         if (target == -1 && npcTarget == -1)
             return;
 

@@ -240,7 +240,7 @@ internal sealed class ReplayInfoPanel : UIElement
 
             Append(new UIImage(icon.Value)
             {
-                Left = new StyleDimension(12f + iconOffset.X, 0f),
+                Left = new StyleDimension(6f + iconOffset.X, 0f),
                 Top = new StyleDimension(-5f + iconOffset.Y, 0f),
                 VAlign = 0.5f,
                 Width = new StyleDimension(20f, 0f),
@@ -250,7 +250,7 @@ internal sealed class ReplayInfoPanel : UIElement
 
             Append(new UIText(headerText, textScale: 0.85f)
             {
-                Left = new StyleDimension(42f, 0f),
+                Left = new StyleDimension(38f, 0f),
                 VAlign = 0.5f
             });
         }

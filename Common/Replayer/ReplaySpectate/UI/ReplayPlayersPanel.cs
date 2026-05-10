@@ -31,7 +31,6 @@ internal sealed class ReplayPlayersPanel : UIPanel
     private int locked = -1; // currently locked spectated player index, -1 means no locked target
     private int lockedNpc = -1; // currently locked spectated NPC index, -1 means no locked NPC target
     private int hovered = -1; // currently hovered spectated player index, -1 means no hovered target
-    private bool lastAutoDirectorEnabled;
     private UIText statusText; // UI element for displaying the current status like "Spectating: PlayerName" or "Free camera" or "Auto-director"
 
     // Reflection
@@ -200,12 +199,6 @@ internal sealed class ReplayPlayersPanel : UIPanel
 
         if (IsMouseHovering)
             Main.LocalPlayer.mouseInterface = true;
-
-        if (lastAutoDirectorEnabled != AutoDirectorSystem.Enabled)
-        {
-            lastAutoDirectorEnabled = AutoDirectorSystem.Enabled;
-            UpdateStatusText();
-        }
     }
 
     public void UpdateTarget()
@@ -277,9 +270,6 @@ internal sealed class ReplayPlayersPanel : UIPanel
 
     private string GetStatusText()
     {
-        if (AutoDirectorSystem.Enabled)
-            return "Auto director On";
-
         if (hovered >= 0 && Main.player[hovered]?.active == true)
         {
             if (locked == hovered)

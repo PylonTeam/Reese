@@ -116,10 +116,10 @@ public class Slider : UIElement
         float rawTrackRatio = track.Width <= 0 ? 0f : MathHelper.Clamp((Main.MouseScreen.X - track.Left) / track.Width, 0f, 1f);
         float rawRectRatio = rect.Width <= 0 ? 0f : MathHelper.Clamp((Main.MouseScreen.X - rect.Left) / rect.Width, 0f, 1f);
 
-        Log.Debug(
-            $"Slider mouseX={Main.MouseScreen.X:0.##} rect=[{rect.Left},{rect.Right}] track=[{track.Left},{track.Right}] " +
-            $"rectRatio={rawRectRatio:0.###} trackRatio={rawTrackRatio:0.###} currentRatio={Ratio:0.###} knobX={knobX:0.##}"
-        );
+        //Log.Debug(
+        //    $"Slider mouseX={Main.MouseScreen.X:0.##} rect=[{rect.Left},{rect.Right}] track=[{track.Left},{track.Right}] " +
+        //    $"rectRatio={rawRectRatio:0.###} trackRatio={rawTrackRatio:0.###} currentRatio={Ratio:0.###} knobX={knobX:0.##}"
+        //);
     }
 
     protected override void DrawSelf(SpriteBatch sb)

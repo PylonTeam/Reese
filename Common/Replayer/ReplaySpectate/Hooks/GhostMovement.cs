@@ -1,7 +1,6 @@
 using Microsoft.Xna.Framework.Input;
 using System;
 using Terraria.ID;
-using Reese.Common.Replayer.ReplaySpectate.ReplayControls.TimeScale;
 using Reese.Common.Replayer.ReplaySpectate.UI.Settings;
 
 namespace Reese.Common.Replayer.ReplaySpectate.Hooks;

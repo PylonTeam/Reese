@@ -103,4 +103,19 @@ internal static class ReplayItemActions
             Log.Error($"Failed to set replay preview image '{path}': {e}");
         }
     }
+
+    public static void Favorite(string path, Action onChanged = null)
+    {
+        SoundEngine.PlaySound(SoundID.MenuTick);
+
+        try
+        {
+            ReplayFavorites.Toggle(path);
+            onChanged?.Invoke();
+        }
+        catch (Exception e)
+        {
+            Log.Error($"Failed to toggle replay favorite '{path}': {e}");
+        }
+    }
 }

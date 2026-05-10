@@ -20,6 +20,7 @@ internal sealed class ReplayDisplayInfo
 
     public string DurationText => FormatDurationText(Duration);
     public string FileSizeText => FormatFileSizeText(FileSizeBytes);
+    public bool IsFavorite { get; init; }
 
     public static ReplayDisplayInfo FromFile(string path)
     {

@@ -1,7 +1,7 @@
 using Reese.Core.Debug;
 using System.IO;
-using Reese.Common.Replayer.ReplaySpectate.ReplayControls;
 using Reese.Common.Replayer.ReplaySpectate.SpectatorMode;
+using Reese.Common.Replayer.ReplaySpectate.UI;
 
 namespace Reese.Common.Replayer;
 
@@ -13,14 +13,16 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
         if (!ReplaySession.IsReplayPlayback)
             return;
 
-        Main.NewText("Welcome to a Reese replay!");
-        Main.NewText("Here's a quick guide on navigating the UI: " + Path.GetFileName(""), Color.LightBlue);
-        Main.NewText("The top HUD is used for spectating players", Color.LightBlue);
-        Main.NewText("The bottom HUD is used for replay playback controls. Position slider is disabled, for now you can use go to start to restart a replay.", Color.LightBlue);
-        Main.NewText("The right-side HUD is used for replay settings, info and more spectating options.", Color.LightBlue);
+        string fileName = string.IsNullOrWhiteSpace(ReplaySession.CurrentPath) ? "Unknown replay" : Path.GetFileName(ReplaySession.CurrentPath);
+
+        Main.NewText("Welcome to Reese replay: " + fileName);
+        Main.NewText("Here's a quick guide on navigating the UI:");
+        Main.NewText("The top HUD is used for spectating players", Color.DodgerBlue);
+        Main.NewText("The bottom HUD is used for replay playback controls.", Color.DodgerBlue);
+        Main.NewText("The right-side HUD is used for replay settings, info and more spectating options.", Color.DodgerBlue);
 
         Log.Chat("Replay started");
         SpectatorModeSystem.RequestSetLocalMode(SpectateMode.Spectator);
-        ModContent.GetInstance<ReplayControlsPanelUISystem>().Open();
+        ModContent.GetInstance<ReplayUISystem>().ToggleReplayControls();
     }
 }

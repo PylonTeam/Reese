@@ -20,15 +20,15 @@ internal sealed class ReplayTab : TabPage
     public override string TooltipText => "Replay settings";
     public override Asset<Texture2D> Icon => Ass.Icon_CameraSmall;
 
-    public override float IconScale => 1f;
+    public override float IconScale => 1.25f;
 
     public override Vector2 IconOffset => new Vector2(0,0);
 
     protected override void Populate(UIList list)
     {
-        AddSection(list, new DrawSettings());
         AddSection(list, new ReplaySettings());
         AddSection(list, new ReplayInfo());
+        AddSection(list, new DrawSettings());
     }
 
     private sealed class DrawSettings : SettingsSection
@@ -92,7 +92,7 @@ internal sealed class ReplayTab : TabPage
 
     private sealed class ReplayInfo : InfoSection
     {
-        public override string HeaderText => "Replay";
+        public override string HeaderText => "Replay Info";
         public override float Height => 248f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
