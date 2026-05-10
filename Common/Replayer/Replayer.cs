@@ -21,7 +21,6 @@ public class Replayer : ModSystem, ITicker
     public static bool IsPlaybackSocketActive => CurrentReplaySocket is { IsClosed: false };
 
     private static string PendingReplayPath;
-    private static ReplayInspectionReport PendingReplayReport;
     private static ReplaySocket CurrentReplaySocket;
 
     public override void Load()
@@ -39,16 +38,15 @@ public class Replayer : ModSystem, ITicker
         if (!File.Exists(replayPath))
             throw new FileNotFoundException("Replay file not found", replayPath);
 
-        SetReplayLoadingStatus($"Inspecting replay: {Path.GetFileName(replayPath)}");
-        var report = ReplayInspector.Inspect(replayPath);
-        Log.Info(report.ToLogString());
-
         try
         {
+            SetReplayLoadingStatus("Opening replay");
             PendingReplayPath = replayPath;
-            PendingReplayReport = report;
-            ActiveDurationTicks = report.DurationTicks;
-            ActiveMetadata = report.Metadata;
+
+            using ReplayFile replayFile = ReplayFile.Read(ReplayFile.OpenReadShared(replayPath));
+            ActiveMetadata = replayFile.Metadata;
+            ActiveDurationTicks = replayFile.Metadata.DurationTicks;
+
             ReplaySession.BeginPlayback(replayPath);
 
             SetReplayLoadingStatus("Starting replay client loop");
@@ -60,7 +58,6 @@ public class Replayer : ModSystem, ITicker
         catch
         {
             PendingReplayPath = null;
-            PendingReplayReport = null;
             ActiveDurationTicks = 0;
             ActiveMetadata = null;
             ReplaySession.End("playback launch failed");
@@ -99,11 +96,10 @@ public class Replayer : ModSystem, ITicker
         Netplay.Connection.ReadBuffer ??= new byte[ushort.MaxValue]; // TML: 1024 -> ushort.MaxValue
         var replayFile = ReplayFile.Read(ReplayFile.OpenReadShared(stagePath));
         ActiveMetadata = replayFile.Metadata;
-        ActiveDurationTicks = Math.Max(ActiveDurationTicks, PendingReplayReport?.DurationTicks ?? replayFile.Metadata.DurationTicks);
+        ActiveDurationTicks = Math.Max(ActiveDurationTicks, replayFile.Metadata.DurationTicks);
         CurrentReplaySocket = new ReplaySocket(this, replayFile);
         Netplay.Connection.Socket = CurrentReplaySocket;
         Netplay.Connection.Socket.Connect(new ReplayRemoteAddress());
-        PendingReplayReport = null;
         SetReplayLoadingStatus("Replay stream ready; waiting for first packet");
     }
 

@@ -28,9 +28,9 @@ internal sealed class ReplayInfoPanel : UIElement
     public UIPanel ContentPanel;
     public UIPanel EyeTogglePanel;
 
-    private readonly List<ISpectatorTab> tabs = [];
+    private readonly List<ITab> tabs = [];
     private readonly List<SpectatorTabButton> tabButtons = [];
-    private ISpectatorTab currentTab;
+    private ITab currentTab;
     private UIPanel tabPanel;
     private bool isShiftedForPlayerHud;
 
@@ -41,9 +41,9 @@ internal sealed class ReplayInfoPanel : UIElement
         Top.Set(TopOffset, 0f);
         Width.Set(PanelWidth, 0f);
 
-        tabs.Add(new SpectatorReplayTab());
-        tabs.Add(new SpectatorWorldTab());
-        tabs.Add(new SpectatorNPCTab());
+        tabs.Add(new ReplayTab());
+        tabs.Add(new WorldTab());
+        tabs.Add(new NPCTab());
         currentTab = tabs[0];
 
         Rebuild();
@@ -140,8 +140,8 @@ internal sealed class ReplayInfoPanel : UIElement
 
         for (int i = 0; i < tabs.Count; i++)
         {
-            ISpectatorTab capturedTab = tabs[i];
-            SpectatorTabButton button = new(capturedTab.HeaderText, capturedTab.TooltipText, capturedTab.Icon, () => currentTab == capturedTab, () => ShowTab(capturedTab.Tab));
+            ITab capturedTab = tabs[i];
+            SpectatorTabButton button = new(capturedTab.HeaderText, capturedTab.TooltipText, capturedTab.Icon, capturedTab.IconScale, capturedTab.IconOffset, () => currentTab == capturedTab, () => ShowTab(capturedTab.Tab));
             button.Left.Set(0f, i / (float)tabs.Count);
             button.Width.Set(0f, 1f / tabs.Count);
 
@@ -189,7 +189,7 @@ internal sealed class ReplayInfoPanel : UIElement
 
     private void ShowTab(SpectatorTab tab)
     {
-        ISpectatorTab nextTab = GetTab(tab);
+        ITab nextTab = GetTab(tab);
 
         if (nextTab is null || ContentPanel is null)
             return;
@@ -211,9 +211,9 @@ internal sealed class ReplayInfoPanel : UIElement
         Recalculate();
     }
 
-    private ISpectatorTab GetTab(SpectatorTab tab)
+    private ITab GetTab(SpectatorTab tab)
     {
-        foreach (ISpectatorTab candidate in tabs)
+        foreach (ITab candidate in tabs)
         {
             if (candidate.Tab == tab)
                 return candidate;
@@ -227,7 +227,7 @@ internal sealed class ReplayInfoPanel : UIElement
         private readonly Func<bool> isSelected;
         private readonly string hoverText;
 
-        public SpectatorTabButton(string headerText, string tooltipText, Asset<Texture2D> icon, Func<bool> isSelected, Action onClick)
+        public SpectatorTabButton(string headerText, string tooltipText, Asset<Texture2D> icon, float iconScale, Vector2 iconOffset, Func<bool> isSelected, Action onClick)
         {
             this.isSelected = isSelected;
             hoverText = tooltipText;
@@ -240,11 +240,12 @@ internal sealed class ReplayInfoPanel : UIElement
 
             Append(new UIImage(icon.Value)
             {
-                Left = new StyleDimension(12f, 0f),
-                Top = new StyleDimension(headerText == "Replay" ? -8f : -5f, 0f),
+                Left = new StyleDimension(12f + iconOffset.X, 0f),
+                Top = new StyleDimension(-5f + iconOffset.Y, 0f),
                 VAlign = 0.5f,
                 Width = new StyleDimension(20f, 0f),
-                Height = new StyleDimension(20f, 0f)
+                Height = new StyleDimension(20f, 0f),
+                ImageScale = iconScale
             });
 
             Append(new UIText(headerText, textScale: 0.85f)
@@ -260,9 +261,6 @@ internal sealed class ReplayInfoPanel : UIElement
 
             BackgroundColor = isSelected() ? new Color(83, 97, 168) : new Color(63, 82, 151) * 0.85f;
             BorderColor = IsMouseHovering ? Color.Yellow : isSelected() ? Color.White : Color.Black;
-
-            // Move it 200px if playerhud is open, to avoid overlapping with the playerhud (drawing accessories and such) overlay
-            //Left.Set(PlayerHudOverlay.IsAnyOpen ? -RightOffset - 200f : -RightOffset, 0f);
 
             if (IsMouseHovering)
             {

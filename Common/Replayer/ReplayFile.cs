@@ -316,7 +316,6 @@ public sealed class ReplayMetadata
     public string TmlVersion { get; set; } = string.Empty;
     public string[] ModNames { get; set; } = [];
     public int TickRate { get; set; } = 60;
-    public ReplayPlayerSnapshot PlayerSnapshot { get; set; }
     public uint DurationTicks { get; set; }
     public int BlockCount { get; set; }
     public int PacketCount { get; set; }

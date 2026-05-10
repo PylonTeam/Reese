@@ -25,11 +25,15 @@ internal static class ReplayBrowserLayout
     internal static float DateLeft;
     internal static float DurationLeft;
     internal static float SizeLeft;
+    internal static float StatColumnPadding;
+    internal static float PreviewColumnWidth;
 
     internal static bool Update()
     {
         bool changed = false;
 
+        Set(ref PreviewColumnWidth, 60f, ref changed);
+        Set(ref StatColumnPadding, 6f, ref changed);
         Set(ref ReplayItemHeight, 58f, ref changed);
         Set(ref ReplayItemActionHeight, 32f, ref changed);
         Set(ref ReplayItemTotalHeight, ReplayItemHeight + ReplayItemActionHeight, ref changed);

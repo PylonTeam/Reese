@@ -23,6 +23,7 @@ internal sealed class ReplayListItem : UIPanel
 {
     private readonly UICharacter preview;
     private readonly ActionHoverLabel actionHoverLabel;
+    private UIImage _worldIcon;
 
     public ReplayListItem(ReplayListEntry entry, Action onDeleted)
     {
@@ -39,61 +40,55 @@ internal sealed class ReplayListItem : UIPanel
         BorderColor = new Color(89, 116, 213) * 0.95f;
 
         // Preview Character
-        preview = BuildPreviewCharacter(info);
-        preview.SetAnimated(false);
-        Append(new ReplayPreviewElement(preview, ReplayBrowserLayout.ReplayItemHeight));
+        //preview = BuildPreviewCharacter(info);
+        //preview.SetAnimated(false);
+        //Append(new ReplayPreviewElement(preview, ReplayBrowserLayout.ReplayItemHeight));
 
-        // Replay Filename
+        // Preview world
+        Append(new ReplayWorldIconElement(info, ReplayBrowserLayout.ReplayItemHeight));
+
+        // Replay filename
         Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(entry.FullPath), entry.Name)
         {
-            Left = { Pixels = 70f },
+            Left = { Pixels = ReplayBrowserLayout.PreviewColumnWidth + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 10f },
-            Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - 76f },
+            Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - ReplayBrowserLayout.PreviewColumnWidth - ReplayBrowserLayout.StatColumnPadding * 2f },
             Height = { Pixels = 22f }
         });
 
-        // Player Name
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuPlayerNameStat(info.PlayerName), 0.9f, iconScale: 1.45f)
-        {
-            Left = { Pixels = 66f },
-            Top = { Pixels = 34f },
-            Width = { Pixels = (ReplayBrowserLayout.NameColumnWidth - 66f - 6f) * 0.5f },
-            Height = { Pixels = 24f }
-        });
-
         // World Name
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuWorldNameStat(info.WorldName), 0.9f, iconScale: 1.3f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuWorldNameStat(info.WorldName), 0.9f, iconScale: 1.25f)
         {
-            Left = { Pixels = 66f + (ReplayBrowserLayout.NameColumnWidth - 66f - 6f) * 0.5f + 6f },
+            Left = { Pixels = ReplayBrowserLayout.PreviewColumnWidth + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
-            Width = { Pixels = (ReplayBrowserLayout.NameColumnWidth - 66f - 6f) * 0.5f },
+            Width = { Pixels = ReplayBrowserLayout.NameColumnWidth - ReplayBrowserLayout.PreviewColumnWidth - ReplayBrowserLayout.StatColumnPadding * 2f },
             Height = { Pixels = 24f }
         });
 
         // Date
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuDateStat(entry.Date), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuDateStat(entry.Date), 0.9f, drawIcon: false, centerText: true)
         {
-            Left = { Pixels = ReplayBrowserLayout.DateLeft + 6f },
+            Left = { Pixels = ReplayBrowserLayout.DateLeft + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
-            Width = { Pixels = ReplayBrowserLayout.DateColumnWidth - 12f },
+            Width = { Pixels = ReplayBrowserLayout.DateColumnWidth - ReplayBrowserLayout.StatColumnPadding * 2f },
             Height = { Pixels = 24f }
         });
 
         // Length
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(entry.Duration), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(entry.Duration), 0.9f, drawIcon: false, centerText: true)
         {
-            Left = { Pixels = ReplayBrowserLayout.DurationLeft + 6f },
+            Left = { Pixels = ReplayBrowserLayout.DurationLeft + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
-            Width = { Pixels = ReplayBrowserLayout.DurationColumnWidth - 12f },
+            Width = { Pixels = ReplayBrowserLayout.DurationColumnWidth - ReplayBrowserLayout.StatColumnPadding * 2f },
             Height = { Pixels = 24f }
         });
 
         // Size
         Append(new MainMenuStatElement(PlayerStats.BuildMainMenuSizeStat(info.FileSizeText), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 0.8f)
         {
-            Left = { Pixels = ReplayBrowserLayout.SizeLeft + 4f },
+            Left = { Pixels = ReplayBrowserLayout.SizeLeft + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
-            Width = { Pixels = ReplayBrowserLayout.SizeColumnWidth - 8f },
+            Width = { Pixels = ReplayBrowserLayout.SizeColumnWidth - ReplayBrowserLayout.StatColumnPadding * 2f },
             Height = { Pixels = 24f }
         });
 
@@ -151,6 +146,59 @@ internal sealed class ReplayListItem : UIPanel
             Log.Debug($"Replay row slow: {info.FileName} took {constructorWatch.ElapsedMilliseconds} ms");
     }
 
+    private sealed class ReplayWorldIconElement : UIElement
+    {
+        private readonly Asset<Texture2D> icon;
+
+        public ReplayWorldIconElement(ReplayDisplayInfo info, float size)
+        {
+            Width.Set(size, 0f);
+            Height.Set(size, 0f);
+            Left.Set(6f, 0f);
+            Top.Set(6f, 0f);
+
+            icon = GetIcon(info);
+        }
+
+        protected override void DrawSelf(SpriteBatch spriteBatch)
+        {
+            Rectangle area = GetDimensions().ToRectangle();
+            Texture2D texture = icon.Value;
+            spriteBatch.Draw(texture, area, Color.White);
+        }
+
+        private static Asset<Texture2D> GetIcon(ReplayDisplayInfo info)
+        {
+            var world = Main.WorldList?.FirstOrDefault(x =>
+                x != null &&
+                string.Equals(x.Name, info.WorldName, StringComparison.OrdinalIgnoreCase));
+
+            if (world == null)
+                return Main.Assets.Request<Texture2D>("Images/UI/IconCorruption");
+
+            if (world.DrunkWorld && world.RemixWorld)
+                return Main.Assets.Request<Texture2D>("Images/UI/IconEverything");
+
+            if (world.DrunkWorld)
+                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "CorruptionCrimson");
+
+            if (world.ForTheWorthy)
+                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "FTW");
+
+            if (world.Anniversary)
+                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "Anniversary");
+
+            if (world.DontStarve)
+                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "DontStarve");
+
+            if (world.RemixWorld)
+                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "Remix");
+
+            return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + (world.HasCorruption ? "Corruption" : "Crimson"));
+        }
+    }
+
+
     private sealed class ReplayNameElement : UIElement
     {
         private readonly string text;
@@ -172,40 +220,6 @@ internal sealed class ReplayListItem : UIPanel
             Vector2 position = new(area.X, area.Y + (area.Height - size.Y) * 0.5f);
 
             Utils.DrawBorderString(spriteBatch, text, position, Color.White, TextScale);
-        }
-
-        //protected override void DrawSelf(SpriteBatch spriteBatch)
-        //{
-        //    const float TextScale = 0.95f;
-
-        //    Rectangle area = GetDimensions().ToRectangle();
-        //    var font = FontAssets.MouseText.Value;
-        //    string drawText = FitText(font, text, area.Width);
-        //    Vector2 size = font.MeasureString(drawText) * TextScale;
-        //    Vector2 position = new(area.X, area.Y + (area.Height - size.Y) * 0.5f);
-
-        //    Utils.DrawBorderString(spriteBatch, drawText, position, Color.White, TextScale);
-
-        //    //if (IsMouseHovering && !string.IsNullOrWhiteSpace(tooltip))
-        //        //UICommon.TooltipMouseText(tooltip);
-        //}
-
-        private static string FitText(ReLogic.Graphics.DynamicSpriteFont font, string value, float maxWidth)
-        {
-            const float TextScale = 0.95f;
-
-            if (font.MeasureString(value).X * TextScale <= maxWidth)
-                return value;
-
-            const string suffix = "..";
-            for (int length = value.Length - 1; length > 0; length--)
-            {
-                string candidate = value[..length] + suffix;
-                if (font.MeasureString(candidate).X * TextScale <= maxWidth)
-                    return candidate;
-            }
-
-            return font.MeasureString(suffix).X * TextScale <= maxWidth ? suffix : string.Empty;
         }
     }
 
@@ -343,69 +357,6 @@ internal sealed class ReplayListItem : UIPanel
         }
     }
 
-    private static UICharacter BuildPreviewCharacter(ReplayDisplayInfo info)
-    {
-        try
-        {
-            return new UICharacter(BuildPreviewPlayer(info), animated: false, hasBackPanel: false, characterScale: 0.9f, useAClone: false);
-        }
-        catch (Exception e)
-        {
-            Log.Warn($"Failed to build replay preview character for '{info?.PlayerNameRaw}': {e.Message}");
-            return new UICharacter(BuildFallbackPreviewPlayer(), animated: false, hasBackPanel: false, characterScale: 0.9f, useAClone: false);
-        }
-    }
-
-    private static Player BuildFallbackPreviewPlayer()
-    {
-        Player player = new()
-        {
-            active = true,
-            dead = false,
-            name = "Player",
-            Male = true,
-            hair = 0,
-            skinVariant = 0,
-            hairColor = Color.Brown,
-            skinColor = Color.White,
-            eyeColor = Color.White,
-            shirtColor = Color.White,
-            underShirtColor = Color.White,
-            pantsColor = Color.White,
-            shoeColor = Color.White
-        };
-
-        return player;
-    }
-
-    private static Player BuildPreviewPlayer(ReplayDisplayInfo info)
-    {
-        if (info?.PlayerSnapshot != null)
-            return info.PlayerSnapshot.ToPlayer();
-
-        string playerName = info?.PlayerNameRaw;
-        Main.LoadPlayers();
-
-        var players = Main.PlayerList
-            .Where(x => x?.Player != null)
-            .ToArray();
-
-        if (!string.IsNullOrWhiteSpace(playerName))
-        {
-            var match = players.FirstOrDefault(x => string.Equals(x.Player.name, playerName, StringComparison.OrdinalIgnoreCase));
-            if (match?.Player != null)
-                return (Player)match.Player.clientClone();
-        }
-
-        if (players.Length > 0)
-        {
-            var selected = players.FirstOrDefault(x => x.Player == Main.LocalPlayer) ?? players[0];
-            return (Player)selected.Player.clientClone();
-        }
-
-        return new Player();
-    }
-
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
@@ -419,7 +370,6 @@ internal sealed class ReplayListItem : UIPanel
         base.MouseOver(evt);
         BackgroundColor = new Color(73, 94, 171);
         BorderColor = new Color(89, 116, 213);
-        preview.SetAnimated(true);
     }
 
     public override void MouseOut(UIMouseEvent evt)
@@ -428,6 +378,5 @@ internal sealed class ReplayListItem : UIPanel
         BackgroundColor = new Color(63, 82, 151) * 0.95f;
         BorderColor = new Color(89, 116, 213) * 0.95f;
         actionHoverLabel.ClearAction();
-        preview.SetAnimated(false);
     }
 }

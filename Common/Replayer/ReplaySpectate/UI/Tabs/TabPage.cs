@@ -5,7 +5,7 @@ using ReLogic.Content;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
-internal abstract class TabPage : UIElement, ISpectatorTab
+internal abstract class TabPage : UIElement, ITab
 {
     protected UIList List { get; private set; }
 
@@ -13,6 +13,8 @@ internal abstract class TabPage : UIElement, ISpectatorTab
     public abstract string HeaderText { get; }
     public abstract string TooltipText { get; }
     public abstract Asset<Texture2D> Icon { get; }
+    public abstract float IconScale { get; }
+    public abstract Vector2 IconOffset { get; }
 
     protected virtual float ScrollbarLeft => -22f;
     protected virtual float ScrollbarTop => 14f;

@@ -1,137 +1,89 @@
 using Reese.Common.Replayer;
 using Reese.Core.Debug;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-
-namespace Reese.Common.MainMenu;
 
 internal sealed class ReplayDisplayInfo
 {
     public string FullPath { get; init; }
     public string FileName { get; init; }
     public string WorldName { get; init; }
-    public string WorldNameRaw { get; init; }
     public string PlayerName { get; init; }
-    public string PlayerNameRaw { get; init; }
     public TimeSpan Duration { get; init; }
-    public string DurationText => FormatDurationText(Duration);
     public uint DurationTicks { get; init; }
     public DateTime Date { get; init; }
     public long FileSizeBytes { get; init; }
-    public string FileSizeText => FormatFileSizeText(FileSizeBytes);
     public string MetadataTooltip { get; init; }
-    public ReplayPlayerSnapshot PlayerSnapshot { get; init; }
+
+    public string DurationText => FormatDurationText(Duration);
+    public string FileSizeText => FormatFileSizeText(FileSizeBytes);
 
     public static ReplayDisplayInfo FromFile(string path)
     {
+        string fileName = Path.GetFileName(path);
+        long fileSizeBytes = File.Exists(path) ? new FileInfo(path).Length : 0;
+        DateTime date = File.Exists(path) ? File.GetLastWriteTime(path) : DateTime.MinValue;
+
         try
         {
-            ReplayInspectionReport report = ReplayInspector.InspectMetadata(path);
-            return string.IsNullOrWhiteSpace(report.Error) ? FromReport(path, report) : FromFallback(path, report.Error);
+            using ReplayFile replayFile = ReplayFile.Read(ReplayFile.OpenReadShared(path));
+            ReplayMetadata metadata = replayFile.Metadata ?? ReplayMetadata.Legacy();
+
+            if (DateTime.TryParse(metadata.CreatedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime createdUtc))
+                date = createdUtc.ToLocalTime();
+
+            string worldName = string.IsNullOrWhiteSpace(metadata.WorldName) ? InferWorldName(fileName) : metadata.WorldName;
+            string playerName = string.IsNullOrWhiteSpace(metadata.PlayerName) ? "-" : metadata.PlayerName;
+            int tickRate = metadata.TickRate > 0 ? metadata.TickRate : 60;
+
+            return new ReplayDisplayInfo
+            {
+                FullPath = path,
+                FileName = fileName,
+                WorldName = Compact(worldName),
+                PlayerName = Compact(playerName),
+                Duration = BuildDuration(metadata.DurationTicks, tickRate),
+                DurationTicks = metadata.DurationTicks,
+                Date = date,
+                FileSizeBytes = fileSizeBytes,
+                MetadataTooltip = BuildMetadataTooltip(fileName, metadata, fileSizeBytes)
+            };
         }
         catch (Exception e)
         {
-            string fileName = Path.GetFileName(path);
             Log.Warn($"Failed to read replay metadata for {fileName}: {e.Message}");
-            return FromFallback(path, e.Message);
+
+            string worldName = InferWorldName(fileName);
+            return new ReplayDisplayInfo
+            {
+                FullPath = path,
+                FileName = fileName,
+                WorldName = Compact(worldName),
+                PlayerName = "-",
+                Duration = TimeSpan.Zero,
+                DurationTicks = 0,
+                Date = date,
+                FileSizeBytes = fileSizeBytes,
+                MetadataTooltip = $"File: {fileName}\nSize: {FormatFileSizeText(fileSizeBytes)}\nError: {e.Message}"
+            };
         }
     }
 
-    internal static ReplayDisplayInfo FromFallback(string path, string error)
+    private static string BuildMetadataTooltip(string fileName, ReplayMetadata metadata, long fileSizeBytes)
     {
-        string fileName = Path.GetFileName(path);
-        string worldName = InferWorldName(fileName);
-        long fileSizeBytes = File.Exists(path) ? new FileInfo(path).Length : 0;
+        string[] mods = metadata.ModNames ?? [];
+        string modText = mods.Length == 0 ? "Mods: -" : $"Mods: {mods.Length:N0} loaded";
 
-        return new ReplayDisplayInfo
-        {
-            FullPath = path,
-            FileName = fileName,
-            WorldName = Compact(worldName),
-            WorldNameRaw = worldName,
-            PlayerName = "-",
-            PlayerNameRaw = "-",
-            Duration = TimeSpan.Zero,
-            DurationTicks = 0,
-            Date = File.Exists(path) ? File.GetLastWriteTime(path) : DateTime.MinValue,
-            FileSizeBytes = fileSizeBytes,
-            MetadataTooltip = $"Name: {fileName}\nError: {error}",
-            PlayerSnapshot = null
-        };
-    }
-
-    private static string BuildMetadataTooltip(ReplayInspectionReport report)
-    {
-        ReplayMetadata metadata = report.Metadata;
-        string[] modNames = metadata?.ModNames?.Where(m => m != "ModLoader").ToArray() ?? [];
-
-        List<string> lines =
+        return string.Join("\n",
         [
-            $"Name: {Path.GetFileName(report.Path)}"
-        ];
-
-        if (!string.IsNullOrWhiteSpace(metadata?.PlayerName))
-            lines.Add($"Player: {metadata.PlayerName}");
-
-        if (!string.IsNullOrWhiteSpace(metadata?.WorldName))
-            lines.Add($"World: {metadata.WorldName}");
-
-        if (metadata?.TickRate > 0)
-            lines.Add($"Tick rate: {metadata.TickRate}");
-
-        if (metadata?.DurationTicks > 0)
-            lines.Add($"Ticks: {metadata.DurationTicks:N0}");
-
-        if (modNames.Length > 0)
-            lines.Add($"Mods ({modNames.Length}): {FormatModNames(modNames)}");
-
-        if (!string.IsNullOrWhiteSpace(report.Error))
-            lines.Add($"Error: {report.Error}");
-
-        return string.Join("\n", lines);
-    }
-
-    //private static string BuildMetadataTooltip(ReplayInspectionReport report)
-    //{
-    //    ReplayMetadata metadata = report.Metadata;
-    //    int tickRate = metadata?.TickRate > 0 ? metadata.TickRate : 60;
-    //    string finalized = metadata?.Finalized == true ? "Yes" : "No";
-    //    string cleanEof = report.HasCleanEndMarker ? "Yes" : "No";
-    //    string endReason = string.IsNullOrWhiteSpace(metadata?.EndReason) ? "Unknown" : metadata.EndReason;
-    //    string[] modNames = metadata?.ModNames?.Where(m => m != "ModLoader").ToArray() ?? [];
-
-    //    List<string> lines =
-    //    [
-    //        $"Name: {Path.GetFileName(report.Path)}",
-    //        //$"Format: v{report.FormatVersion}",
-    //        //$"World ID: {metadata?.WorldId ?? 0}",
-    //        //$"Tick rate: {tickRate}",
-    //        //$"Blocks: {report.BlockCount:N0}",
-    //        $"Packets: {report.PacketCount:N0}",
-    //        //$"Malformed packets: {report.MalformedPacketDataCount:N0}",
-    //        //$"Clean EOF: {cleanEof}",
-    //        //$"Finalized: {finalized}",
-    //        //$"End reason: {endReason}",
-    //        //$"Mod Count: {modNames.Length:N0}"
-    //    ];
-
-    //    if (modNames.Length > 0)
-    //        lines.Add($"Mods ({modNames.Length}): {FormatModNames(modNames)}");
-
-    //    if (!string.IsNullOrWhiteSpace(report.Error))
-    //        lines.Add($"Error: {report.Error}");
-
-    //    return string.Join("\n", lines);
-    //}
-
-    private static string FormatModNames(string[] modNames)
-    {
-        const int maxShown = 8;
-        string text = string.Join(", ", modNames.Length > maxShown ? modNames[..maxShown] : modNames);
-        return modNames.Length > maxShown ? $"{text}, +{modNames.Length - maxShown:N0} more" : text;
+            $"File: {fileName}",
+            $"Player: {EmptyToDash(metadata.PlayerName)}",
+            $"World: {EmptyToDash(metadata.WorldName)}",
+            $"Length: {FormatDurationText(BuildDuration(metadata.DurationTicks, metadata.TickRate > 0 ? metadata.TickRate : 60))}",
+            $"Size: {FormatFileSizeText(fileSizeBytes)}",
+            modText
+        ]);
     }
 
     private static TimeSpan BuildDuration(uint ticks, int tickRate)
@@ -154,13 +106,10 @@ internal sealed class ReplayDisplayInfo
     {
         string name = Path.GetFileNameWithoutExtension(fileName);
 
-        if (name.StartsWith("SP_", StringComparison.OrdinalIgnoreCase) ||
-            name.StartsWith("MP_", StringComparison.OrdinalIgnoreCase))
-        {
+        if (name.StartsWith("SP_", StringComparison.OrdinalIgnoreCase) || name.StartsWith("MP_", StringComparison.OrdinalIgnoreCase))
             name = name[3..];
-        }
 
-        const int timestampLength = 19; // yyyy-MM-dd_HH-mm-ss
+        const int timestampLength = 19;
         if (name.Length > timestampLength + 1)
         {
             int timestampStart = name.Length - timestampLength;
@@ -191,41 +140,8 @@ internal sealed class ReplayDisplayInfo
         return value.Length <= 13 ? value : value[..12] + ".";
     }
 
-    public static ReplayDisplayInfo FromReport(string path, ReplayInspectionReport report)
+    private static string EmptyToDash(string value)
     {
-        string fileName = Path.GetFileName(path);
-        string worldName = InferWorldName(fileName);
-        string playerName = "-";
-        DateTime date = File.GetLastWriteTime(path);
-        long fileSizeBytes = new FileInfo(path).Length;
-        ReplayMetadata metadata = report.Metadata;
-
-        if (!string.IsNullOrWhiteSpace(metadata?.WorldName))
-            worldName = metadata.WorldName;
-
-        if (!string.IsNullOrWhiteSpace(metadata?.PlayerName))
-            playerName = metadata.PlayerName;
-
-        if (DateTime.TryParse(metadata?.CreatedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime createdUtc))
-            date = createdUtc.ToLocalTime();
-
-        uint durationTicks = metadata?.DurationTicks > 0 ? metadata.DurationTicks : report.DurationTicks;
-        int tickRate = metadata?.TickRate > 0 ? metadata.TickRate : 60;
-
-        return new ReplayDisplayInfo
-        {
-            FullPath = path,
-            FileName = fileName,
-            WorldName = Compact(worldName),
-            WorldNameRaw = worldName,
-            PlayerName = Compact(playerName),
-            PlayerNameRaw = playerName,
-            Duration = BuildDuration(durationTicks, tickRate),
-            DurationTicks = durationTicks,
-            Date = date,
-            FileSizeBytes = fileSizeBytes,
-            MetadataTooltip = BuildMetadataTooltip(report),
-            PlayerSnapshot = metadata?.PlayerSnapshot
-        };
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
     }
 }

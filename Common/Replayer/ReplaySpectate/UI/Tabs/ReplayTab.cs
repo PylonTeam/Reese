@@ -13,12 +13,16 @@ using Terraria.ID;
 
 namespace Reese.Common.Replayer.ReplaySpectate.UI.Tabs;
 
-internal sealed class SpectatorReplayTab : TabPage
+internal sealed class ReplayTab : TabPage
 {
     public override SpectatorTab Tab => SpectatorTab.Replay;
     public override string HeaderText => "Replay";
     public override string TooltipText => "Replay settings";
     public override Asset<Texture2D> Icon => Ass.Icon_CameraSmall;
+
+    public override float IconScale => 1f;
+
+    public override Vector2 IconOffset => new Vector2(0,0);
 
     protected override void Populate(UIList list)
     {
@@ -88,32 +92,20 @@ internal sealed class SpectatorReplayTab : TabPage
 
     private sealed class ReplayInfo : InfoSection
     {
-        public override string HeaderText => "Replay info";
-        public override float Height => 650f;
+        public override string HeaderText => "Replay";
+        public override float Height => 248f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
             return
             [
                 new(GetFileText(), GetFileText),
-                new(GetFormatText(), GetFormatText),
-                new(GetCreatedText(), GetCreatedText),
-                new(GetPlayerText(), GetPlayerText),
+                new(GetRecordedText(), GetRecordedText),
+                new(GetPlaybackText(), GetPlaybackText),
+                new(GetLengthText(), GetLengthText),
                 new(GetWorldText(), GetWorldText),
-                new(GetWorldIdText(), GetWorldIdText),
-                new(GetTickRateText(), GetTickRateText),
-                new(GetDurationText(), GetDurationText),
-                new(GetBlocksText(), GetBlocksText),
-                new(GetPacketsText(), GetPacketsText),
-                new(GetPacketBytesText(), GetPacketBytesText),
-                new(GetBaselineBytesText(), GetBaselineBytesText),
-                new(GetMalformedText(), GetMalformedText),
-                new(GetFinalizedText(), GetFinalizedText),
-                new(GetEndReasonText(), GetEndReasonText),
-                new(GetModVersionText(), GetModVersionText),
-                new(GetTmlVersionText(), GetTmlVersionText),
-                new(GetModsText(), GetModsText)
-            ];
+                new(GetModsText(), GetModsText, tooltip: GetModsTooltip())
+                ];
         }
 
         private static ReplayMetadata Metadata => Replayer.ActiveMetadata;
@@ -123,23 +115,31 @@ internal sealed class SpectatorReplayTab : TabPage
             return "File: " + (string.IsNullOrWhiteSpace(ReplaySession.CurrentPath) ? "-" : Path.GetFileName(ReplaySession.CurrentPath));
         }
 
-        private static string GetFormatText()
-        {
-            return $"Format: v{Metadata?.FormatVersion ?? 0}";
-        }
-
-        private static string GetCreatedText()
+        private static string GetRecordedText()
         {
             string created = Metadata?.CreatedUtc;
             if (DateTime.TryParse(created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date))
-                return "Created: " + date.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture);
+                return "Recorded: " + date.ToLocalTime().ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
 
-            return "Created: -";
+            return "Recorded: -";
         }
 
-        private static string GetPlayerText()
+        private static string GetPlaybackText()
         {
-            return "Player: " + EmptyToDash(Metadata?.PlayerName);
+            uint currentTick = Replayer.CurrentTick;
+            uint durationTicks = GetDurationTicks();
+            int tickRate = GetTickRate();
+
+            if (durationTicks == 0)
+                return $"Playback: {FormatDuration(currentTick, tickRate)}";
+
+            return $"Playback: {FormatDuration(currentTick, tickRate)} / {FormatDuration(durationTicks, tickRate)}";
+        }
+
+        private static string GetLengthText()
+        {
+            uint durationTicks = GetDurationTicks();
+            return "Length: " + (durationTicks == 0 ? "-" : FormatDuration(durationTicks, GetTickRate()));
         }
 
         private static string GetWorldText()
@@ -147,73 +147,38 @@ internal sealed class SpectatorReplayTab : TabPage
             return "World: " + EmptyToDash(Metadata?.WorldName);
         }
 
-        private static string GetWorldIdText()
-        {
-            return $"World ID: {Metadata?.WorldId ?? 0}";
-        }
-
-        private static string GetTickRateText()
-        {
-            return $"Tick Rate: {Metadata?.TickRate ?? 0}";
-        }
-
-        private static string GetDurationText()
-        {
-            int tickRate = Math.Max(1, Metadata?.TickRate ?? 60);
-            uint ticks = Metadata?.DurationTicks > 0 ? Metadata.DurationTicks : Replayer.ActiveDurationTicks;
-            TimeSpan duration = TimeSpan.FromSeconds(ticks / (double)tickRate);
-            return $"Duration: {(int)duration.TotalHours:00}:{duration.Minutes:00}:{duration.Seconds:00}";
-        }
-
-        private static string GetBlocksText()
-        {
-            return $"Blocks: {Metadata?.BlockCount ?? 0:N0}";
-        }
-
-        private static string GetPacketsText()
-        {
-            return $"Packets: {Metadata?.PacketCount ?? 0:N0}";
-        }
-
-        private static string GetPacketBytesText()
-        {
-            return $"Packet Bytes: {Metadata?.PacketDataBytes ?? 0:N0}";
-        }
-
-        private static string GetBaselineBytesText()
-        {
-            return $"Baseline Bytes: {Metadata?.BaselineBytes ?? 0:N0}";
-        }
-
-        private static string GetMalformedText()
-        {
-            return $"Malformed Packets: {Metadata?.MalformedPacketDataCount ?? 0:N0}";
-        }
-
-        private static string GetFinalizedText()
-        {
-            return $"Finalized: {(Metadata?.Finalized == true ? "Yes" : "No")}";
-        }
-
-        private static string GetEndReasonText()
-        {
-            return "End Reason: " + EmptyToDash(Metadata?.EndReason);
-        }
-
-        private static string GetModVersionText()
-        {
-            return "Mod Version: " + EmptyToDash(Metadata?.ModVersion);
-        }
-
-        private static string GetTmlVersionText()
-        {
-            return "tML Version: " + EmptyToDash(Metadata?.TmlVersion);
-        }
-
         private static string GetModsText()
         {
             string[] mods = Metadata?.ModNames ?? [];
-            return mods.Length == 0 ? "Mods: -" : $"Mods ({mods.Length:N0}): {string.Join(", ", mods)}";
+            return mods.Length == 0 ? "Mods: -" : $"Mods: {mods.Length:N0} loaded";
+        }
+
+        private static string GetModsTooltip()
+        {
+            string[] mods = Metadata?.ModNames ?? [];
+
+            if (mods.Length == 0)
+                return "Mods: -";
+
+            return "Mods:\n" + string.Join(", ", mods);
+        }
+
+        private static uint GetDurationTicks()
+        {
+            return Metadata?.DurationTicks > 0 ? Metadata.DurationTicks : Replayer.ActiveDurationTicks;
+        }
+
+        private static int GetTickRate()
+        {
+            return Math.Max(1, Metadata?.TickRate ?? 60);
+        }
+
+        private static string FormatDuration(uint ticks, int tickRate)
+        {
+            TimeSpan duration = TimeSpan.FromSeconds(ticks / (double)tickRate);
+            return duration.TotalHours >= 1d
+                ? $"{(int)duration.TotalHours:00}:{duration.Minutes:00}:{duration.Seconds:00}"
+                : $"{duration.Minutes:00}:{duration.Seconds:00}";
         }
 
         private static string EmptyToDash(string value)

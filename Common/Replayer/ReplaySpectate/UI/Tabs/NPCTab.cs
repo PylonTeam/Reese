@@ -5,7 +5,7 @@ using ReLogic.Content;
 using System.Collections.Generic;
 using Terraria.GameContent.UI.Elements;
 
-internal sealed class SpectatorNPCTab : TabPage
+internal sealed class NPCTab : TabPage
 {
     private readonly List<(int WhoAmI, int Type, string Name)> npcSnapshot = [];
 
@@ -22,6 +22,10 @@ internal sealed class SpectatorNPCTab : TabPage
     protected override float ListWidth => -40f;
     protected override float ListHeight => -16f;
     protected override float ListPadding => 8f;
+
+    public override float IconScale => 1f;
+
+    public override Vector2 IconOffset => new Vector2(0, 0);
 
     public override void Refresh()
     {

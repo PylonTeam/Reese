@@ -78,12 +78,6 @@ internal static class PlayerStats
     //    player => $"{GetPlayerPingMs(player)} ms");
 
     #region Main menu stats
-    public static PlayerStatSnapshot BuildMainMenuPlayerNameStat(string playerName)
-    {
-        playerName = string.IsNullOrWhiteSpace(playerName) ? "-" : playerName.Trim();
-        return new PlayerStatSnapshot("Player", playerName, $"Player: {playerName}", Ass.Icon_PlayerHead, null);
-    }
-
     public static PlayerStatSnapshot BuildMainMenuWorldNameStat(string worldName)
     {
         worldName = string.IsNullOrWhiteSpace(worldName) ? "-" : worldName.Trim();

@@ -98,7 +98,6 @@ public class Recorder : ModSystem, ITicker
             TmlVersion = typeof(ModLoader).Assembly.GetName().Version?.ToString() ?? string.Empty,
             ModNames = GetLoadedModNames(),
             TickRate = 60,
-            PlayerSnapshot = ReplayPlayerSnapshot.FromPlayer(snapshotPlayer)
         };
         var replayFile = ReplayFile.Write(ReplayFile.OpenWriteShared(filePath), metadata);
 
@@ -118,7 +117,7 @@ public class Recorder : ModSystem, ITicker
         // Flush now, so that it comes at update delta 0
         replayFile.FlushTick();
         replayFile.FlushToDisk();
-        Log.Info("Replay baseline flushed: " + ReplayInspector.Inspect(filePath).ToLogString());
+        Log.Info("Replay baseline flushed");
     }
 
     private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
@@ -206,7 +205,6 @@ public class Recorder : ModSystem, ITicker
                 {
                     File.Copy(_lastReplayPath, recordBinPath, true);
                     Log.Info($"Wrote record.bin: {recordBinPath} (source: {Path.GetFileName(_lastReplayPath)})");
-                    Log.Info(ReplayInspector.Inspect(_lastReplayPath).ToLogString());
                 }
                 else
                 {

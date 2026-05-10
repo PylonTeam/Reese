@@ -13,12 +13,14 @@ using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplaySpectate.UI.Tabs;
 
-internal sealed class SpectatorWorldTab : TabPage
+internal sealed class WorldTab : TabPage
 {
     public override SpectatorTab Tab => SpectatorTab.World;
     public override string HeaderText => "World";
     public override string TooltipText => "World stats";
     public override Asset<Texture2D> Icon => Ass.Icon_World;
+    public override float IconScale => 1f;
+    public override Vector2 IconOffset => new Vector2(0, 0);
 
     protected override void Populate(UIList list)
     {
