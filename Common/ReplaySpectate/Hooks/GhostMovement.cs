@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework.Input;
 using GhostSpectating.Common;
 using Reese.Common.ReplaySpectate.UI;
+using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 using System;
 using Terraria.ID;
 using Reese.Common.ReplayControls;
@@ -42,7 +43,7 @@ internal class GhostMovement : ModSystem
         if (local?.active != true || !local.ghost || local.whoAmI != Main.myPlayer)
             return;
 
-        bool moving = HasMovementInput(local) || (Main.mouseRight && !IsMouseOverAnyInterface());
+        bool moving = HasMovementInput(local) || IsRightClickTeleporting();
         if (moving)
             SpectatorTargetSystem.ClearTarget(moveCameraToLocal: false);
 
@@ -60,7 +61,7 @@ internal class GhostMovement : ModSystem
         if (!self.ghost || self.whoAmI != Main.myPlayer)
             return;
 
-        FaceMouse(self);
+        ApplyGhostDirection(self);
 
         bool fastGhost = Main.keyState.IsKeyDown(Keys.LeftShift) || Main.keyState.IsKeyDown(Keys.RightShift);
         if (fastGhost)
@@ -72,16 +73,32 @@ internal class GhostMovement : ModSystem
                 NetMessage.SendData(MessageID.PlayerControls, -1, -1, null, self.whoAmI);
         }
 
-        if (Main.mouseRight && !IsMouseOverAnyInterface())
+        if (IsRightClickTeleporting())
             SmoothMoveToCursor(self);
     }
 
-    private static void FaceMouse(Player player)
+    internal static void ApplyGhostDirection(Player player)
     {
-        int direction = Main.MouseWorld.X < player.Center.X ? -1 : 1;
+        int direction = GetGhostDirection(player);
         player.direction = direction;
         player.ghostDir = direction;
     }
+
+    private static int GetGhostDirection(Player player)
+    {
+        if (IsRightClickTeleporting())
+            return GetMouseDirection(player);
+
+        if (player.controlLeft && !player.controlRight)
+            return -1;
+
+        if (player.controlRight && !player.controlLeft)
+            return 1;
+
+        return GetMouseDirection(player);
+    }
+
+    private static int GetMouseDirection(Player player) => Main.MouseWorld.X < player.Center.X ? -1 : 1;
 
     private static void SmoothMoveToCursor(Player player)
     {
@@ -98,12 +115,19 @@ internal class GhostMovement : ModSystem
             NetMessage.SendData(MessageID.PlayerControls, -1, -1, null, player.whoAmI);
     }
 
-    private static bool IsMouseOverAnyInterface()
+    // Obsolete because we're using right click instead of left click, which doesn't have the same issues with UI interaction.
+    // Keep this commented out.
+    //private static bool IsMouseOverAnyInterface()
+    //{
+    //    return Main.blockMouse ||
+    //           Main.LocalPlayer?.mouseInterface == true ||
+    //           ModContent.GetInstance<ReplayControlsPanelUISystem>().IsMouseOverPanel() ||
+    //           ModContent.GetInstance<SpectatorUISystem>().IsMouseOverSpectatorUI();
+    //}
+
+    private static bool IsRightClickTeleporting()
     {
-        return Main.blockMouse ||
-               Main.LocalPlayer?.mouseInterface == true ||
-               ModContent.GetInstance<ReplayControlsPanelUISystem>().IsMouseOverPanel() ||
-               ModContent.GetInstance<SpectatorUISystem>().IsMouseOverSpectatorUI();
+        return SpectatorClientSettings.RightClickTeleport && Main.mouseRight;
     }
 
     private static bool HasMovementInput(Player player)

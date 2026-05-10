@@ -11,6 +11,7 @@ internal sealed class SpectatorWorldTab : UIElement, ISpectatorTab
     private readonly WorldSectionBase[] sections =
     [
         new WorldInfoSection(),
+        new WorldMiscInfoSection(),
         new WorldBossInfoSection()
     ];
 

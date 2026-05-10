@@ -132,18 +132,23 @@ public class Replayer : ModSystem, ITicker
         if (duration > 0)
             targetTick = Math.Min(targetTick, duration);
 
-        if (targetTick < replayer.Ticks)
+        bool resetStream = targetTick < replayer.Ticks;
+        if (resetStream && CurrentReplaySocket?.ResetToStart() != true)
         {
-            SetReplayLoadingStatus($"Backward seek requested ({FormatTick(targetTick)}), but this replay stream can only seek forward right now", warn: true);
+            SetReplayStatus("Unable to seek replay", $"Unable to seek back to {FormatTick(targetTick)}", warn: true);
             return;
         }
 
-        if (targetTick == replayer.Ticks)
+        if (!resetStream && targetTick == replayer.Ticks)
             return;
 
         replayer.Ticks = targetTick;
         CurrentReplaySocket?.ClearWaitLog();
-        SetReplayLoadingStatus($"Seeking forward to {FormatTick(targetTick)}");
+
+        if (Netplay.Connection != null)
+            Netplay.Connection.StatusText = string.Empty;
+
+        SetReplayStatus("Seeking replay...", $"Seeking to {FormatTick(targetTick)}");
     }
 
     public static void SeekToStart()
@@ -154,15 +159,16 @@ public class Replayer : ModSystem, ITicker
         var replayer = ModContent.GetInstance<Replayer>();
         if (CurrentReplaySocket?.ResetToStart() != true)
         {
-            SetReplayLoadingStatus("Unable to return to the replay start", warn: true);
+            SetReplayStatus("Unable to seek replay", "Unable to return to the replay start", warn: true);
             return;
         }
 
         replayer.Ticks = 0;
+
         if (Netplay.Connection != null)
             Netplay.Connection.StatusText = string.Empty;
 
-        SetReplayLoadingStatus("Returned to replay start");
+        SetReplayStatus("Seeking replay...", "Returned to replay start");
     }
 
     public static void SeekToEnd()
@@ -176,7 +182,7 @@ public class Replayer : ModSystem, ITicker
 
         SeekToTick(duration);
         ModContent.GetInstance<TimeScaleSystem>().SetTimeScale(0f);
-        SetReplayLoadingStatus("Seeking to replay end");
+        SetReplayStatus("Seeking replay...", "Seeking to replay end");
     }
 
     public static void StopPlayback(string reason = "manual replay stop")
@@ -195,21 +201,32 @@ public class Replayer : ModSystem, ITicker
         ReplaySession.End(reason);
     }
 
-    private static void SetReplayLoadingStatus(string message, bool warn = false)
+    private static void SetReplayLoadingStatus(string developerMessage, bool warn = false)
     {
-        string status = $"Replay loading: {message}";
-        Main.statusText = status;
+        Main.statusText = warn ? "Replay loading failed" : "Loading replay...";
+        LogReplayFlow(developerMessage, warn);
+    }
+
+    private static void SetReplayStatus(string userMessage, string developerMessage, bool warn = false)
+    {
+        Main.statusText = userMessage;
+        LogReplayFlow(developerMessage, warn);
+    }
+
+    private static void LogReplayFlow(string message, bool warn = false)
+    {
+        string text = $"Replay flow: {message}";
 
         if (warn)
-            Log.Warn(status);
+            Log.Warn(text);
         else
-            Log.Info(status);
+            Log.Info(text);
     }
 
     private static void MarkReplayEnded()
     {
         ModContent.GetInstance<TimeScaleSystem>().SetTimeScale(1f);
-        Main.statusText = ReplayEndedStatusText;
+        SetReplayStatus(ReplayEndedStatusText, "Replay ended");
 
         if (Netplay.Connection != null)
         {
@@ -221,7 +238,7 @@ public class Replayer : ModSystem, ITicker
     private static void PauseAtReplayEnd()
     {
         ModContent.GetInstance<TimeScaleSystem>().SetTimeScale(0f);
-        Main.statusText = ReplayEndedStatusText;
+        SetReplayStatus(ReplayEndedStatusText, "Replay reached EOF and paused at final frame");
 
         if (Netplay.Connection != null)
             Netplay.Connection.StatusText = ReplayEndedStatusText;
@@ -329,7 +346,7 @@ public class Replayer : ModSystem, ITicker
             {
                 if (!_reportedWaitingForTick)
                 {
-                    SetReplayLoadingStatus($"Waiting for tick {replayFile.Tick} (current {ticker.Ticks})");
+                    LogReplayFlow($"Waiting for replay tick {replayFile.Tick}; current tick is {ticker.Ticks}");
                     _reportedWaitingForTick = true;
                 }
 
@@ -339,7 +356,7 @@ public class Replayer : ModSystem, ITicker
             bool hasData = replayFile.NumberOfPacketDataBytesRemaining > 0;
             if (hasData && !_reportedFirstPacket)
             {
-                SetReplayLoadingStatus($"Feeding replay packets at tick {ticker.Ticks}");
+                LogReplayFlow($"Feeding replay packets at tick {ticker.Ticks}");
                 _reportedFirstPacket = true;
             }
 

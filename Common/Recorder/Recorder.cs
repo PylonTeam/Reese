@@ -1,4 +1,5 @@
 using Reese.Common.Replayer;
+using Reese.Core.Configs;
 using Reese.Core.Debug;
 using System;
 using System.IO;
@@ -68,6 +69,9 @@ public class Recorder : ModSystem, ITicker
 
     public void StartRecording(string playerName)
     {
+        if (!IsRecordingEnabledForThisInstance())
+            return;
+
         if (ReplaySession.IsReplayPlayback)
             return;
 
@@ -137,6 +141,14 @@ public class Recorder : ModSystem, ITicker
         if (ReplaySession.IsReplayPlayback)
             return;
 
+        if (!IsRecordingEnabledForThisInstance())
+        {
+            if (ReplaySession.IsRecording)
+                StopRecording();
+
+            return;
+        }
+
         if (!ReplaySession.IsRecording && Main.netMode == NetmodeID.Server)
         {
             var firstPlayer = GetFirstRealActivePlayer();
@@ -173,6 +185,8 @@ public class Recorder : ModSystem, ITicker
         if (!ReplaySession.IsRecording)
             return;
 
+        bool saveFiles = IsRecordingEnabledForThisInstance();
+
         if (ReplaySession.IsRecording || Main.dedServ)
         {
             foreach (var remoteClient in Netplay.Clients)
@@ -182,27 +196,46 @@ public class Recorder : ModSystem, ITicker
             }
         }
 
-        try
+        if (saveFiles)
         {
-            var recordBinPath = ReeseReplayPaths.GetFile();
+            try
+            {
+                var recordBinPath = ReeseReplayPaths.GetFile();
 
-            if (!string.IsNullOrWhiteSpace(_lastReplayPath) && File.Exists(_lastReplayPath))
-            {
-                File.Copy(_lastReplayPath, recordBinPath, true);
-                Log.Info($"Wrote record.bin: {recordBinPath} (source: {Path.GetFileName(_lastReplayPath)})");
-                Log.Info(ReplayInspector.Inspect(_lastReplayPath).ToLogString());
+                if (!string.IsNullOrWhiteSpace(_lastReplayPath) && File.Exists(_lastReplayPath))
+                {
+                    File.Copy(_lastReplayPath, recordBinPath, true);
+                    Log.Info($"Wrote record.bin: {recordBinPath} (source: {Path.GetFileName(_lastReplayPath)})");
+                    Log.Info(ReplayInspector.Inspect(_lastReplayPath).ToLogString());
+                }
+                else
+                {
+                    Log.Warn("record.bin not written (no last replay path / file missing)");
+                }
             }
-            else
+            catch (Exception e)
             {
-                Log.Warn("record.bin not written (no last replay path / file missing)");
+                Log.Warn("Failed to write record.bin: " + e);
             }
         }
-        catch (Exception e)
+        else if (!string.IsNullOrWhiteSpace(_lastReplayPath) && File.Exists(_lastReplayPath))
         {
-            Log.Warn("Failed to write record.bin: " + e);
+            try
+            {
+                File.Delete(_lastReplayPath);
+            }
+            catch (Exception e)
+            {
+                Log.Warn("Failed to delete disabled recording file: " + e);
+            }
         }
 
         ReplaySession.End("recording stopped");
+    }
+
+    private static bool IsRecordingEnabledForThisInstance()
+    {
+        return Main.dedServ || ModContent.GetInstance<ClientConfig>().IsRecordingEnabled;
     }
 
     private static void WriteBaseline(RemoteClient recordClient, string recordClientName)

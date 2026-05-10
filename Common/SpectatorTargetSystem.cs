@@ -1,6 +1,7 @@
 ﻿using Reese.Common;
 using Reese.Common.ReplaySpectate;
 using Reese.Common.ReplaySpectate.SpectatorMode;
+using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 using System.Collections.Generic;
 using Terraria.ID;
 
@@ -363,7 +364,16 @@ public class SpectatorTargetSystem : ModSystem
 
     private static void ApplyFollowDirection(Player local, int direction)
     {
-        int normalizedDirection = Main.MouseWorld.X < local.Center.X ? -1 : 1;
+        int normalizedDirection;
+
+        if (SpectatorClientSettings.RightClickTeleport && Main.mouseRight)
+            normalizedDirection = Main.MouseWorld.X < local.Center.X ? -1 : 1;
+        else if (local.controlLeft && !local.controlRight)
+            normalizedDirection = -1;
+        else if (local.controlRight && !local.controlLeft)
+            normalizedDirection = 1;
+        else
+            normalizedDirection = Main.MouseWorld.X < local.Center.X ? -1 : 1;
 
         local.direction = normalizedDirection;
         local.ghostDir = normalizedDirection;

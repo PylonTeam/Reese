@@ -79,7 +79,7 @@ internal static class PlayerHudOverlay
 
     public static void ClearOwnedHover()
     {
-        //InventoryDrawer.ClearOwnedHover();
+        InventoryDrawer.ClearOwnedHover();
         HotbarDrawer.ClearOwnedHover();
         BuffDrawer.ClearOwnedHover();
     }
@@ -113,13 +113,13 @@ internal static class PlayerHudOverlay
                 DrawResourceBars(sb, player);
 
                 Vector2 inventoryPosition = new(20f, 20f);
-                //InventoryDrawer.DrawInventory(sb, inventoryPosition, player, viewport);
+                InventoryDrawer.DrawInventory(sb, inventoryPosition, player, viewport);
                 DrawInventoryBuffs(sb, player, viewport, inventoryPosition);
 
                 return;
             }
 
-            //InventoryDrawer.ClearOwnedHover();
+            InventoryDrawer.ClearOwnedHover();
             DrawHotbarHud(sb, player);
             DrawResourceAndBuffHud(sb, player);
         }
@@ -144,7 +144,7 @@ internal static class PlayerHudOverlay
         if (player?.active != true)
             return;
 
-        //InventoryDrawer.ClearOwnedHover();
+        InventoryDrawer.ClearOwnedHover();
         BuffDrawer.ClearOwnedHover();
         DrawHotbar(sb, player);
     }
@@ -154,7 +154,7 @@ internal static class PlayerHudOverlay
         if (player?.active != true)
             return;
 
-        //InventoryDrawer.ClearOwnedHover();
+        InventoryDrawer.ClearOwnedHover();
         DrawResourceBarsHud(sb, player);
         DrawBuffHud(sb, player);
     }
@@ -164,7 +164,7 @@ internal static class PlayerHudOverlay
         if (player?.active != true)
             return;
 
-        //InventoryDrawer.ClearOwnedHover();
+        InventoryDrawer.ClearOwnedHover();
         DrawResourceBars(sb, player);
     }
 
@@ -175,7 +175,7 @@ internal static class PlayerHudOverlay
 
         Rectangle viewport = new(0, 0, Main.screenWidth, Main.screenHeight);
 
-        //InventoryDrawer.ClearOwnedHover();
+        InventoryDrawer.ClearOwnedHover();
         DrawBuffs(sb, player, viewport);
     }
 

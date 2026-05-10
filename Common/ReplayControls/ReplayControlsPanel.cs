@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.ReplayControls.TimeScale;
 using Reese.Common.Replayer;
+using Reese.Core.Configs;
 using Reese.Core.Utilities;
 using Reese.UI;
 using System;
@@ -15,7 +16,7 @@ namespace Reese.Common.ReplayControls;
 
 public sealed class ReplayControlsPanel : DraggablePanel
 {
-    private static readonly float[] SpeedPresets = [0.125f, 0.25f, 1f, 4f, 8f];
+    private static readonly float[] SpeedPresets = [0.25f, 0.5f, 1f, 2f, 4f];
 
     private readonly Slider positionSlider;
     private readonly UIText positionLabel;
@@ -23,6 +24,7 @@ public sealed class ReplayControlsPanel : DraggablePanel
     private readonly HorizontalRule horizontalRule;
     private readonly VerticalRule verticalRule;
     private readonly CompactTextPanel<string>[] speedButtons;
+    private readonly UIText transportStatusLabel;
     private readonly IconActionButton goToStartButton;
     private readonly IconActionButton playButton;
     private readonly IconActionButton pauseButton;
@@ -67,6 +69,9 @@ public sealed class ReplayControlsPanel : DraggablePanel
         };
         positionSlider.OnDrag += ratio =>
         {
+            if (!ModContent.GetInstance<ClientConfig>().IsSeekbarEnabled)
+                return;
+
             uint duration = GetDurationTicks();
             Replayer.Replayer.SeekToTick((uint)Math.Round(ratio * duration));
         };
@@ -102,6 +107,14 @@ public sealed class ReplayControlsPanel : DraggablePanel
 
         verticalRule = new VerticalRule();
         ContentPanel.Append(verticalRule);
+
+        transportStatusLabel = new UIText("", 0.86f)
+        {
+            TextOriginX = 0f,
+            TextOriginY = 0f,
+            TextColor = Color.White
+        };
+        ContentPanel.Append(transportStatusLabel);
 
         goToStartButton = CreateTransportButton(Ass.Icon_SpeedDown, "Go to start", GoToStart, 0);
         nextFrameButton = CreateTransportButton(Ass.Icon_NextFrame, "Next Frame", StepOneFrame, 1);
@@ -186,6 +199,12 @@ public sealed class ReplayControlsPanel : DraggablePanel
             verticalRule.Top.Set(ReplayControlsPanelLayout.DividerTop, 0f);
             verticalRule.Width.Set(ReplayControlsPanelLayout.DividerWidth, 0f);
             verticalRule.Height.Set(ReplayControlsPanelLayout.DividerHeight, 0f);
+        }
+
+        if (transportStatusLabel != null)
+        {
+            transportStatusLabel.Left.Set(ReplayControlsPanelLayout.TransportStatusLeft, 0f);
+            transportStatusLabel.Top.Set(ReplayControlsPanelLayout.TransportStatusTop, 0f);
         }
 
         ApplyTransportButtonLayout(goToStartButton, 0);
@@ -275,6 +294,8 @@ public sealed class ReplayControlsPanel : DraggablePanel
 
     private void RefreshVisualState()
     {
+        positionSlider.AllowsInput = ModContent.GetInstance<ClientConfig>().IsSeekbarEnabled;
+
         uint durationTicks = GetDurationTicks();
         uint currentTick = Math.Min(Replayer.Replayer.CurrentTick, durationTicks);
         float speed = ModContent.GetInstance<TimeScaleSystem>().TimeScale;
@@ -282,13 +303,15 @@ public sealed class ReplayControlsPanel : DraggablePanel
 
         positionSlider.SetRatio(durationTicks == 0 ? 0f : currentTick / (float)durationTicks);
         positionLabel.SetText($"Position: {FormatTicks(currentTick)} / {FormatTicks(durationTicks)}");
-        speedLabel.SetText($"Speed: {speed:0.###}x");
+        speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
+        transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Elapsed: {Main.GameUpdateCount} ticks");
 
         for (int i = 0; i < speedButtons.Length; i++)
         {
             bool selected = Math.Abs(speed - SpeedPresets[i]) < 0.001f;
-            speedButtons[i].BackgroundColor = selected ? new Color(73, 94, 171) : new Color(44, 57, 105);
-            speedButtons[i].BorderColor = selected ? Color.Yellow : Color.Black;
+            bool hovered = speedButtons[i].IsMouseHovering;
+            speedButtons[i].BackgroundColor = selected ? new Color(73, 94, 171) : hovered ? new Color(61, 78, 141) : new Color(44, 57, 105);
+            speedButtons[i].BorderColor = selected || hovered ? Color.Yellow : Color.Black;
         }
 
         goToStartButton.SetSelected(false);
@@ -306,7 +329,24 @@ public sealed class ReplayControlsPanel : DraggablePanel
 
     private static string FormatSpeedButton(float speed)
     {
+        if (Math.Abs(speed - 0.25f) < 0.001f)
+            return "1/4x";
+
+        if (Math.Abs(speed - 0.5f) < 0.001f)
+            return "1/2x";
+
         return speed == 1f ? "1x" : $"{speed:0.##}x";
+    }
+
+    private static string GetReplayStatus(uint currentTick, uint durationTicks, bool paused)
+    {
+        if (durationTicks > 1 && currentTick >= durationTicks)
+            return "End of file";
+
+        if (currentTick == 0)
+            return "At start";
+
+        return paused ? "Paused" : "Playing";
     }
 
     private static string FormatTicks(uint ticks)

@@ -1,5 +1,4 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.ReplaySpectate.SpectatorMode;
 using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab;
 using System;
 using System.Collections.Generic;
@@ -12,7 +11,7 @@ internal sealed class WorldInfoSection : WorldSectionBase
 {
     public override WorldSection Section => WorldSection.WorldInfo;
     public override string HeaderText => "World info";
-    public override float Height => 354+30f; // one row is 30!
+    public override float Height => 316f;
     public override bool UsesCommonRowTooltips => true;
 
     public override IReadOnlyList<WorldSectionRow> GetRows()
@@ -26,30 +25,8 @@ internal sealed class WorldInfoSection : WorldSectionBase
             new(GetSeedText(), GetSeedText, GetWorldSeedIcon, iconScale: 1.3f),
             new(GetTimeText(), GetTimeText, GetTimeIcon, iconScale: 0.65f),
             new(GetWeatherText(), GetWeatherText, GetWeatherIcon, iconScale: 0.68f),
-            new(GetMoonText(), GetMoonText, GetMoonIcon, iconScale: 0.75f),
-            new(GetPlayersOnlineText(), GetPlayersOnlineText, GetPlayersOnlineTexutre, iconScale: 1.0f),
-            new(GetSpectatorsOnlineText(), GetSpectatorsOnlineText, GetSpectatorsOnlineTexutre, iconScale: 0.75f),
+            new(GetMoonText(), GetMoonText, GetMoonIcon, iconScale: 0.75f)
         ];
-    }
-
-    private string GetSpectatorsOnlineText()
-    {
-        return "Spectators Online: " + SpectatorModeSystem.GetSpectatorCount().ToString();
-    }
-
-    private string GetPlayersOnlineText()
-    {
-        return "Players Online: " + SpectatorModeSystem.GetPlayersOnlineCount().ToString();
-    }
-
-    private static Texture2D GetPlayersOnlineTexutre()
-    {
-        return Ass.Icon_PlayerHead.Value;
-    }
-
-    private static Texture2D GetSpectatorsOnlineTexutre()
-    {
-        return Ass.GhostRight.Value;
     }
 
     private static Texture2D GetWorldSignTexture()

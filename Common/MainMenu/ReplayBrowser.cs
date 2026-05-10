@@ -1,5 +1,4 @@
 using Reese.Common.Replayer;
-using Reese.Core.Configs;
 using Reese.Core.Debug;
 using Reese.UI;
 using System;
@@ -183,25 +182,27 @@ internal sealed class ReplayBrowserPanel : UIElement
         container.Append(scrollbar);
         list.SetScrollbar(scrollbar);
 
-        UITextPanel<string> header = new("Reese", 0.72f, true)
+        UITextPanel<string> header = new("Reese", 0.66f, true)
         {
             BackgroundColor = new Color(73, 94, 171),
             BorderColor = Color.Black
         };
+        header.Top.Set(0, 0);
         header.Width.Set(0f, 1f);
         header.Height.Set(headerHeight, 0f);
         header.SetPadding(6f);
         Append(header);
 
-        UIImage cameraIcon = new(Ass.Icon_Camera)
+        UIImage cameraIcon = new(Ass.Icon_CameraSmall)
         {
             HAlign = 0.5f,
             VAlign = 0f,
-            Top = { Pixels = -4f },
+            Top = { Pixels = 0f },
             Left = { Pixels = -66f }
         };
-        cameraIcon.Width.Set(24f, 0f);
-        cameraIcon.Height.Set(24f, 0f);
+        cameraIcon.ImageScale = 1.5f;
+        cameraIcon.Width.Set(30f, 0f);
+        cameraIcon.Height.Set(30f, 0f);
         header.Append(cameraIcon);
 
         UIElement buttonStrip = new()

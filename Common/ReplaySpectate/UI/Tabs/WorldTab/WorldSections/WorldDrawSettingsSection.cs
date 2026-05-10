@@ -8,7 +8,7 @@ namespace Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 internal sealed class WorldDrawSettingsSection : WorldSectionBase
 {
     public override WorldSection Section => WorldSection.Settings;
-    public override string HeaderText => "Replay Settings";
+    public override string HeaderText => "Draw Settings";
     public override float Height => 214f;
 
     public override IReadOnlyList<WorldSectionRow> GetRows()

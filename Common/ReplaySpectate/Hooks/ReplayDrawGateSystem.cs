@@ -32,13 +32,12 @@ internal static class ReplayDrawGate
 [Autoload(Side = ModSide.Client)]
 internal sealed class ReplayPlayerDrawGate : ModPlayer
 {
-    public override void HideDrawLayers(PlayerDrawSet drawInfo)
+    public override void TransformDrawData(ref PlayerDrawSet drawInfo)
     {
         if (ReplayDrawGate.ShouldDrawPlayer(drawInfo.drawPlayer))
             return;
 
-        foreach (PlayerDrawLayer layer in PlayerDrawLayerLoader.GetDrawLayers(drawInfo))
-            layer.Hide();
+        drawInfo.DrawDataCache.Clear();
     }
 }
 

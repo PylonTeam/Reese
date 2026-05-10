@@ -12,13 +12,14 @@ internal sealed class SpectatorReplayTab : UIElement, ISpectatorTab
     private readonly WorldSectionBase[] sections =
     [
         new WorldDrawSettingsSection(),
-        new WorldSpectatorSettingsSection()
+        new WorldSpectatorSettingsSection(),
+        new ReplayInfoSection()
     ];
 
     public SpectatorTab Tab => SpectatorTab.Replay;
     public string HeaderText => "Replay";
     public string TooltipText => "Replay settings";
-    public Asset<Texture2D> Icon => Ass.Icon_Camera;
+    public Asset<Texture2D> Icon => Ass.Icon_CameraSmall;
 
     public SpectatorReplayTab()
     {

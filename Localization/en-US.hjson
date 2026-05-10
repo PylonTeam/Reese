@@ -11,6 +11,7 @@ Mods: {
 					UI: UI
 					Chat: Chat
 					Replaying: Replaying
+					Debug: Debug Header
 				}
 
 				AddExtraMenuState: {
@@ -40,6 +41,16 @@ Mods: {
 
 				replayHUDSize: {
 					Label: Replay HUD Size
+					Tooltip: ""
+				}
+
+				IsRecordingEnabled: {
+					Label: Is Recording Enabled
+					Tooltip: ""
+				}
+
+				IsSeekbarEnabled: {
+					Label: Is Seekbar Enabled
 					Tooltip: ""
 				}
 			}
@@ -75,6 +86,18 @@ Mods: {
 					Label: Big
 					Tooltip: ""
 				}
+			}
+		}
+
+		Items: {
+			Icon_Camera: {
+				DisplayName: Icon_ Camera
+				Tooltip: ""
+			}
+
+			Icon_CameraSmall: {
+				DisplayName: Icon_ Camera Small
+				Tooltip: ""
 			}
 		}
 	}

@@ -31,6 +31,8 @@ internal static class ReplayControlsPanelLayout
     internal static float DividerTop;
     internal static float DividerWidth;
     internal static float DividerHeight;
+    internal static float TransportStatusLeft;
+    internal static float TransportStatusTop;
     internal static float TransportLeft;
     internal static float TransportTop;
     internal static float TransportGap;
@@ -49,7 +51,7 @@ internal static class ReplayControlsPanelLayout
         Set(ref ContentHeight, PanelHeight - HeaderHeight, ref changed);
         Set(ref PositionLabelLeft, 12f, ref changed);
         Set(ref PositionLabelTop, 10f, ref changed);
-        Set(ref PositionSliderLeft, 168f, ref changed);
+        Set(ref PositionSliderLeft, 174f, ref changed);
         Set(ref PositionSliderTop, 11f, ref changed);
         Set(ref PositionSliderRightPadding, 12f, ref changed);
         Set(ref PositionSliderHeight, 20f, ref changed);
@@ -68,8 +70,10 @@ internal static class ReplayControlsPanelLayout
         Set(ref DividerTop, 42f, ref changed);
         Set(ref DividerWidth, 2f, ref changed);
         Set(ref DividerHeight, 70f, ref changed);
+        Set(ref TransportStatusLeft, 334f, ref changed);
+        Set(ref TransportStatusTop, 50f, ref changed);
         Set(ref TransportLeft, 334f, ref changed);
-        Set(ref TransportTop, 55f, ref changed);
+        Set(ref TransportTop, 78f, ref changed);
         Set(ref TransportGap, 14f, ref changed);
         Set(ref TransportButtonWidth, 42f, ref changed);
         Set(ref TransportPlayButtonWidth, 48f, ref changed);

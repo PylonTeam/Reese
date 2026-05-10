@@ -24,6 +24,8 @@ internal enum WorldSection
 {
     Settings,
     WorldInfo,
+    MiscInfo,
+    ReplayInfo,
     BossesDefeated
 }
 

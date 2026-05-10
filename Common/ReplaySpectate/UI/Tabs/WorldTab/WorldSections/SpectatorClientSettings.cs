@@ -10,6 +10,7 @@ internal enum SpectatorPlayerDrawMode
 internal static class SpectatorClientSettings
 {
     public static SpectatorPlayerDrawMode DrawPlayers { get; set; } = SpectatorPlayerDrawMode.FullPlayer;
+    public static bool RightClickTeleport { get; set; } = true;
 
     public static void CycleDrawPlayers()
     {
@@ -27,4 +28,6 @@ internal static class SpectatorClientSettings
         SpectatorPlayerDrawMode.PlayerHeads => "Player Heads",
         _ => "None"
     };
+
+    public static void ToggleRightClickTeleport() => RightClickTeleport = !RightClickTeleport;
 }

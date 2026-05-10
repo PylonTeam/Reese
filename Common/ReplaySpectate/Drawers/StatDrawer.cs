@@ -147,7 +147,7 @@ public static class StatDrawer
         }
 
         float textScale = 0.75f * scale;
-        int textLeft = area.X + (int)MathF.Round(31f * scale);
+        int textLeft = area.X + (int)MathF.Round((texture == null ? 7f : 31f) * scale);
         int textTop = area.Y + (int)MathF.Round(5f * scale);
         Rectangle textArea = new(textLeft, textTop, area.Right - textLeft - (int)MathF.Round(4f * scale), area.Height);
         string displayText = Truncate(FontAssets.MouseText.Value, text, textArea.Width, textScale);

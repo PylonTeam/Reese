@@ -180,7 +180,7 @@ public class SpectatorInfoEyeOnlyButton : UIPanel
             ModContent.GetInstance<SpectatorUISystem>().ToggleSpectatorInfoPanel();
         };
 
-        Append(new UIImage(Ass.Icon_Eye.Value)
+        Append(new UIImage(Ass.Icon_EyeOff.Value)
         {
             HAlign = 0.5f,
             VAlign = 0.5f
@@ -196,7 +196,7 @@ public class SpectatorInfoEyeOnlyButton : UIPanel
         if (IsMouseHovering)
         {
             Main.LocalPlayer.mouseInterface = true;
-            Main.instance.MouseText("Show spectator info");
+            Main.instance.MouseText("Show Replay Info");
         }
     }
 }

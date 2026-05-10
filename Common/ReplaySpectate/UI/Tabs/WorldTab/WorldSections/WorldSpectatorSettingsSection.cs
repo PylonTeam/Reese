@@ -10,7 +10,7 @@ internal sealed class WorldSpectatorSettingsSection : WorldSectionBase
 {
     public override WorldSection Section => WorldSection.Settings;
     public override string HeaderText => "Spectator Settings";
-    public override float Height => 214f;
+    public override float Height => 248f;
 
     public override IReadOnlyList<WorldSectionRow> GetRows()
     {
@@ -26,7 +26,8 @@ internal sealed class WorldSpectatorSettingsSection : WorldSectionBase
                 onLeftClick: () => SpectatorControlsPanel.ChangeShownPlayerCards(1),
                 onRightClick: () => SpectatorControlsPanel.ChangeShownPlayerCards(-1),
                 tooltip: "Left click to increase number of cards shown\nRight click to decrease"),
-            new("Auto Director:", () => $"Auto Director: {OnOff(AutoDirectorSystem.Enabled)}", GetAutoDirectorIcon, onLeftClick: () => AutoDirectorSystem.Enabled = !AutoDirectorSystem.Enabled)
+            new("Auto Director:", () => $"Auto Director: {OnOff(AutoDirectorSystem.Enabled)}", GetAutoDirectorIcon, onLeftClick: () => AutoDirectorSystem.Enabled = !AutoDirectorSystem.Enabled),
+            new("Right Click Teleport:", () => $"Right Click Teleport: {OnOff(SpectatorClientSettings.RightClickTeleport)}", GetRightClickTeleportIcon, onLeftClick: SpectatorClientSettings.ToggleRightClickTeleport)
         ];
     }
 
@@ -58,4 +59,6 @@ internal sealed class WorldSpectatorSettingsSection : WorldSectionBase
     }
 
     private static Texture2D GetAutoDirectorIcon() => AutoDirectorSystem.Enabled ? Ass.Icon_FilmProjectorOn.Value : Ass.Icon_FilmProjectorOff.Value;
+
+    private static Texture2D GetRightClickTeleportIcon() => SpectatorClientSettings.RightClickTeleport ? Ass.Icon_TeleportOn.Value : Ass.Icon_TeleportOff.Value;
 }

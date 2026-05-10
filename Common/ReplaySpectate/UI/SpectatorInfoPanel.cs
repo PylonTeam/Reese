@@ -44,10 +44,10 @@ internal sealed class SpectatorInfoPanel : UIElement
         Top.Set(TopOffset, 0f);
         Width.Set(PanelWidth, 0f);
 
-        tabs.Add(new SpectatorNPCTab());
-        tabs.Add(new SpectatorWorldTab());
         tabs.Add(new SpectatorReplayTab());
-        currentTab = tabs[1];
+        tabs.Add(new SpectatorWorldTab());
+        tabs.Add(new SpectatorNPCTab());
+        currentTab = tabs[0];
 
         Rebuild();
     }
@@ -185,7 +185,7 @@ internal sealed class SpectatorInfoPanel : UIElement
             if (IsMouseHovering)
             {
                 Main.LocalPlayer.mouseInterface = true;
-                Main.instance.MouseText("Hide spectator info");
+                Main.instance.MouseText("Hide Replay Info");
             }
         }
     }
@@ -244,10 +244,10 @@ internal sealed class SpectatorInfoPanel : UIElement
             Append(new UIImage(icon.Value)
             {
                 Left = new StyleDimension(12f, 0f),
-                Top = new StyleDimension(-5f, 0f),
+                Top = new StyleDimension(headerText == "Replay" ? -8f : -5f, 0f),
                 VAlign = 0.5f,
-                Width = new StyleDimension(22f, 0f),
-                Height = new StyleDimension(22f, 0f)
+                Width = new StyleDimension(20f, 0f),
+                Height = new StyleDimension(20f, 0f)
             });
 
             Append(new UIText(headerText, textScale: 0.85f)

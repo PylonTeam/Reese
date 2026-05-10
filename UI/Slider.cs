@@ -16,6 +16,7 @@ public class Slider : UIElement
 {
     public Asset<Texture2D> InnerTexture;
     public Asset<Texture2D> OuterTexture;
+    public bool AllowsInput = true;
     public bool IsHeld;
     public float Ratio;
 
@@ -31,6 +32,9 @@ public class Slider : UIElement
     public override void LeftMouseDown(UIMouseEvent evt)
     {
         base.LeftMouseDown(evt);
+
+        if (!AllowsInput)
+            return;
 
         if (ContainsPoint(evt.MousePosition))
         {
@@ -55,8 +59,25 @@ public class Slider : UIElement
     {
         base.Update(gameTime);
 
-        if (IsHeld)
+        if (!AllowsInput)
+        {
+            IsHeld = false;
+            return;
+        }
+
+        if (IsMouseHovering || IsHeld)
+            Main.LocalPlayer.mouseInterface = true;
+
+        if (IsMouseHovering && Main.mouseLeft && Main.mouseLeftRelease)
+        {
+            IsHeld = true;
+            Main.mouseLeftRelease = false;
+        }
+
+        if (IsHeld && Main.mouseLeft)
             UpdateRatioFromMouse();
+        else if (!Main.mouseLeft)
+            IsHeld = false;
 
         if (IsHeld || IsMouseHovering)
             DebugTrack();
@@ -72,7 +93,8 @@ public class Slider : UIElement
         Rectangle track = GetTrackRectangle();
         float mouseX = MathHelper.Clamp(Main.MouseScreen.X, track.Left, track.Right);
         float rawRatio = track.Width <= 0 ? 0f : (mouseX - track.Left) / track.Width;
-        OnDrag?.Invoke(MathHelper.Clamp(rawRatio, 0f, 1f));
+        SetRatio(rawRatio);
+        OnDrag?.Invoke(Ratio);
     }
 
     private Rectangle GetTrackRectangle()

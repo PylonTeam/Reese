@@ -17,6 +17,7 @@ public static class Ass
 {
     // Replay tool assets
     public static Asset<Texture2D> Icon_Camera;
+    public static Asset<Texture2D> Icon_CameraSmall;
     public static Asset<Texture2D> Icon_NextFrame;
     public static Asset<Texture2D> Icon_Pause;
     public static Asset<Texture2D> Icon_Play;
@@ -53,7 +54,7 @@ public static class Ass
     public static Asset<Texture2D> Icon_Dead;
     public static Asset<Texture2D> Icon_Distance;
     public static Asset<Texture2D> Icon_Eye;
-    public static Asset<Texture2D> Icon_Eye_Off;
+    public static Asset<Texture2D> Icon_EyeOff;
     public static Asset<Texture2D> Icon_FilmProjectorOn;
     public static Asset<Texture2D> Icon_FilmProjectorOff;
     public static Asset<Texture2D> Icon_GhostTeleport;
@@ -65,6 +66,8 @@ public static class Ass
     public static Asset<Texture2D> Icon_NPC;
     public static Asset<Texture2D> Icon_Player;
     public static Asset<Texture2D> Icon_PlayerHead;
+    public static Asset<Texture2D> Icon_TeleportOn;
+    public static Asset<Texture2D> Icon_TeleportOff;
     public static Asset<Texture2D> Icon_Time;
     public static Asset<Texture2D> Icon_World;
 
