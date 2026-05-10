@@ -14,7 +14,7 @@ internal static class BiomeHelper
 {
     private static readonly FieldInfo FilterIconFrameInfo = typeof(FilterProviderInfoElement).GetField("_filterIconFrame", BindingFlags.NonPublic | BindingFlags.Instance);
 
-    internal static readonly SpawnConditionBestiaryInfoElement ShimmerBiome = new("Shimmer", 0, "GhostSpectating/Assets/Custom/MapBG_Shimmer");
+    internal static readonly SpawnConditionBestiaryInfoElement ShimmerBiome = new("Shimmer", 0, "Reese/Assets/Custom/MapBG_Shimmer");
     internal static readonly SpawnConditionBestiaryInfoElement ForestBiome = new("Forest", 0, "Terraria/Images/MapBG0");
 
     internal readonly struct PlayerBiomeVisual

@@ -1,5 +1,4 @@
-﻿using GhostSpectating.Common;
-using Reese.Common.Replayer;
+﻿using Reese.Common.Replayer;
 using Reese.Common.ReplaySpectate.UI;
 using Reese.Core.Debug;
 using System.Collections.Generic;

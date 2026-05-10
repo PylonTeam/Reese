@@ -1,7 +1,7 @@
-﻿using GhostSpectating.Common;
-using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.ReplaySpectate.Drawers;
 using Reese.Common.ReplaySpectate.TeammateOverlay;
+using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
 using Terraria.GameContent;

@@ -1,11 +1,10 @@
-﻿using Reese.Common;
-using Reese.Common.ReplaySpectate;
+﻿using Reese.Common.ReplaySpectate;
 using Reese.Common.ReplaySpectate.SpectatorMode;
 using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 using System.Collections.Generic;
 using Terraria.ID;
 
-namespace GhostSpectating.Common;
+namespace Reese.Common;
 
 [Autoload(Side = ModSide.Client)]
 public class SpectatorTargetSystem : ModSystem

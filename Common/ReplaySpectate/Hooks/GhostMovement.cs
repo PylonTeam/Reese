@@ -1,5 +1,4 @@
 using Microsoft.Xna.Framework.Input;
-using GhostSpectating.Common;
 using Reese.Common.ReplaySpectate.UI;
 using Reese.Common.ReplaySpectate.UI.Tabs.WorldTab.WorldSections;
 using System;

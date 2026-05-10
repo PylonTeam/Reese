@@ -4,7 +4,7 @@ using Terraria;
 using Terraria.UI;
 using Terraria.UI.Gamepad;
 
-namespace Reese.Common.MainMenu;
+namespace Reese.Common.MainMenu.UI;
 
 public sealed class ConfirmDeleteState : UIState
 {

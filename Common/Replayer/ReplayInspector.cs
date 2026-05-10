@@ -15,6 +15,52 @@ public static class ReplayInspector
     private static readonly byte[] IdentifierBytes = Encoding.ASCII.GetBytes(Identifier);
     private const byte Version2Marker = (byte)'2';
 
+    public static ReplayInspectionReport InspectMetadata(string path)
+    {
+        var report = new ReplayInspectionReport
+        {
+            Path = path,
+            FileBytes = new FileInfo(path).Length
+        };
+
+        using var stream = ReplayFile.OpenReadShared(path);
+        using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+
+        byte[] identifier = reader.ReadBytes(Identifier.Length);
+        if (!identifier.SequenceEqual(IdentifierBytes))
+        {
+            report.Error = "Missing Reese identifier";
+            return report;
+        }
+
+        int marker = stream.ReadByte();
+        if (marker != Version2Marker)
+        {
+            report.FormatVersion = 1;
+            report.IsValid = true;
+            return report;
+        }
+
+        report.FormatVersion = 2;
+
+        int metadataByteCount = reader.ReadInt32();
+        if (metadataByteCount < 0 || metadataByteCount > 1024 * 1024)
+        {
+            report.Error = $"Invalid metadata length: {metadataByteCount}";
+            return report;
+        }
+
+        byte[] metadataBytes = reader.ReadBytes(metadataByteCount);
+        string metadataJson = Encoding.UTF8.GetString(metadataBytes).TrimEnd('\0', ' ', '\r', '\n', '\t');
+
+        if (!string.IsNullOrWhiteSpace(metadataJson))
+            report.Metadata = JsonSerializer.Deserialize<ReplayMetadata>(metadataJson);
+
+        report.DurationTicks = report.Metadata?.DurationTicks ?? 0;
+        report.IsValid = report.Error == null;
+        return report;
+    }
+
     public static ReplayInspectionReport Inspect(string path)
     {
         var report = new ReplayInspectionReport
@@ -156,6 +202,7 @@ public static class ReplayInspector
             packetBuffer.RemoveRange(0, packetLength);
         }
     }
+
 }
 
 public sealed class ReplayInspectionReport

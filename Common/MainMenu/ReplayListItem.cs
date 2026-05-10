@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.ReplaySpectate.Drawers;
 using Reese.Core.Debug;
+using Reese.Core.Stats;
 using Reese.UI;
 using ReLogic.Content;
 using System;
@@ -14,6 +15,7 @@ using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
+using static Reese.Common.MainMenu.ReplayBrowserPanel;
 
 namespace Reese.Common.MainMenu;
 
@@ -22,8 +24,11 @@ internal sealed class ReplayListItem : UIPanel
     private readonly UICharacter preview;
     private readonly ActionHoverLabel actionHoverLabel;
 
-    public ReplayListItem(string fullPath, Action onDeleted)
+    public ReplayListItem(ReplayListEntry entry, Action onDeleted)
     {
+        var constructorWatch = System.Diagnostics.Stopwatch.StartNew();
+        ReplayDisplayInfo info = entry.Info;
+
         // Layout
         ReplayBrowserLayout.Update();
         Width.Set(0f, 1f);
@@ -34,13 +39,12 @@ internal sealed class ReplayListItem : UIPanel
         BorderColor = new Color(89, 116, 213) * 0.95f;
 
         // Preview Character
-        ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(fullPath);
         preview = BuildPreviewCharacter(info);
         preview.SetAnimated(false);
         Append(new ReplayPreviewElement(preview, ReplayBrowserLayout.ReplayItemHeight));
 
         // Replay Filename
-        Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(info.FileName), info.MetadataTooltip)
+        Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(entry.FullPath), entry.Name)
         {
             Left = { Pixels = 70f },
             Top = { Pixels = 10f },
@@ -49,7 +53,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // Player Name
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuPlayerNameStat(info.PlayerNameRaw), 0.9f, iconScale: 1.45f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuPlayerNameStat(info.PlayerName), 0.9f, iconScale: 1.45f)
         {
             Left = { Pixels = 66f },
             Top = { Pixels = 34f },
@@ -58,7 +62,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // World Name
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuWorldNameStat(info.WorldNameRaw), 0.9f, iconScale: 1.3f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuWorldNameStat(info.WorldName), 0.9f, iconScale: 1.3f)
         {
             Left = { Pixels = 66f + (ReplayBrowserLayout.NameColumnWidth - 66f - 6f) * 0.5f + 6f },
             Top = { Pixels = 34f },
@@ -67,7 +71,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // Date
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuDateStat(info.Date), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuDateStat(entry.Date), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
         {
             Left = { Pixels = ReplayBrowserLayout.DateLeft + 6f },
             Top = { Pixels = 34f },
@@ -76,7 +80,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // Length
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(info.Duration), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(entry.Duration), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
         {
             Left = { Pixels = ReplayBrowserLayout.DurationLeft + 6f },
             Top = { Pixels = 34f },
@@ -85,7 +89,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // Size
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuTextStat(info.FileSizeText), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 0.8f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuSizeStat(info.FileSizeText), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 0.8f)
         {
             Left = { Pixels = ReplayBrowserLayout.SizeLeft + 4f },
             Top = { Pixels = 34f },
@@ -106,8 +110,8 @@ internal sealed class ReplayListItem : UIPanel
 
         ReplayActionDefinition[] actions =
         [
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayItemActions.Play(fullPath)),
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayItemActions.Rename(fullPath, onDeleted))
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayItemActions.Play(entry.FullPath)),
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayItemActions.Rename(entry.FullPath, onDeleted))
         ];
         UIImageButton[] previewActionButtons = AppendActionButtons(actions, actionHoverLabel);
 
@@ -124,7 +128,7 @@ internal sealed class ReplayListItem : UIPanel
         Append(deleteHoverLabel);
 
         UIImageButton deleteButton = CreateVanillaImageButton(
-            new ReplayActionDefinition(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", () => ReplayItemActions.Delete(fullPath, onDeleted)),
+            new ReplayActionDefinition(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", () => ReplayItemActions.Delete(entry.FullPath, onDeleted)),
             deleteHoverLabel,
             deleteLeft,
             buttonTop,
@@ -138,8 +142,13 @@ internal sealed class ReplayListItem : UIPanel
             if (actionButtons.Any(button => button.ContainsPoint(evt.MousePosition)))
                 return;
 
-            ReplayItemActions.Play(fullPath);
+            ReplayItemActions.Play(entry.FullPath);
         };
+
+        constructorWatch.Stop();
+
+        if (constructorWatch.ElapsedMilliseconds >= 20)
+            Log.Debug($"Replay row slow: {info.FileName} took {constructorWatch.ElapsedMilliseconds} ms");
     }
 
     private sealed class ReplayNameElement : UIElement
@@ -159,15 +168,27 @@ internal sealed class ReplayListItem : UIPanel
 
             Rectangle area = GetDimensions().ToRectangle();
             var font = FontAssets.MouseText.Value;
-            string drawText = FitText(font, text, area.Width);
-            Vector2 size = font.MeasureString(drawText) * TextScale;
+            Vector2 size = font.MeasureString(text) * TextScale;
             Vector2 position = new(area.X, area.Y + (area.Height - size.Y) * 0.5f);
 
-            Utils.DrawBorderString(spriteBatch, drawText, position, Color.White, TextScale);
-
-            if (IsMouseHovering && !string.IsNullOrWhiteSpace(tooltip))
-                UICommon.TooltipMouseText(tooltip);
+            Utils.DrawBorderString(spriteBatch, text, position, Color.White, TextScale);
         }
+
+        //protected override void DrawSelf(SpriteBatch spriteBatch)
+        //{
+        //    const float TextScale = 0.95f;
+
+        //    Rectangle area = GetDimensions().ToRectangle();
+        //    var font = FontAssets.MouseText.Value;
+        //    string drawText = FitText(font, text, area.Width);
+        //    Vector2 size = font.MeasureString(drawText) * TextScale;
+        //    Vector2 position = new(area.X, area.Y + (area.Height - size.Y) * 0.5f);
+
+        //    Utils.DrawBorderString(spriteBatch, drawText, position, Color.White, TextScale);
+
+        //    //if (IsMouseHovering && !string.IsNullOrWhiteSpace(tooltip))
+        //        //UICommon.TooltipMouseText(tooltip);
+        //}
 
         private static string FitText(ReLogic.Graphics.DynamicSpriteFont font, string value, float maxWidth)
         {

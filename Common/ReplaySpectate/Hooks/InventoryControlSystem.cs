@@ -1,5 +1,4 @@
-﻿using GhostSpectating.Common;
-using Microsoft.Xna.Framework.Input;
+﻿using Microsoft.Xna.Framework.Input;
 using Reese.Common.ReplaySpectate.SpectatorMode;
 using Reese.Common.ReplaySpectate.TeammateOverlay;
 using Reese.Core.Debug;

@@ -1,5 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.ReplaySpectate.Drawers;
+using Reese.Core.Stats;
 using System;
 using System.Collections.Generic;
 using Terraria.GameContent;

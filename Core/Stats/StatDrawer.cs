@@ -5,7 +5,7 @@ using System;
 using Terraria.GameContent;
 using Terraria.ModLoader.UI;
 
-namespace Reese.Common.ReplaySpectate.Drawers;
+namespace Reese.Core.Stats;
 
 public static class StatDrawer
 {
@@ -78,7 +78,7 @@ public static class StatDrawer
 
         int textLeft = area.X + (int)MathF.Round(7f * scale);
 
-        if (drawIcon)
+        if (drawIcon && texture != null)
         {
             int iconPaddingX = (int)MathF.Round(4f * scale);
             int iconPaddingY = (int)MathF.Round(3f * scale);

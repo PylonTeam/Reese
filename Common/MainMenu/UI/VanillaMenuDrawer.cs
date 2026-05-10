@@ -10,7 +10,7 @@ using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.UI.Gamepad;
 
-namespace Reese.Common.MainMenu;
+namespace Reese.Common.MainMenu.UI;
 
 public static class VanillaMenuDrawer
 {

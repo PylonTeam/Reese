@@ -1,4 +1,6 @@
-﻿namespace Reese.Core.Debug;
+﻿using System;
+
+namespace Reese.Core.Debug;
 
 internal static class ProfileProbe
 {
@@ -74,5 +76,18 @@ internal static class ProfileProbe
     private static string Indent(int count)
     {
         return new string(' ', count * 2);
+    }
+
+    public static string ThreadInfo()
+    {
+        System.Threading.Thread thread = System.Threading.Thread.CurrentThread;
+        return $"#{thread.ManagedThreadId}, pool={thread.IsThreadPoolThread}";
+    }
+
+    public static string FormatBytes(long bytes)
+    {
+        return bytes >= 1024L * 1024L
+            ? $"{bytes / 1024d / 1024d:0.0} MB"
+            : $"{Math.Max(1, bytes / 1024L):N0} KB";
     }
 }

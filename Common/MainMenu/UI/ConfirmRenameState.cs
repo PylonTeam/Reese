@@ -1,7 +1,7 @@
 using System;
 using Terraria.GameContent.UI.States;
 
-namespace Reese.Common.MainMenu;
+namespace Reese.Common.MainMenu.UI;
 
 public sealed class ConfirmRenameState : UIVirtualKeyboard
 {

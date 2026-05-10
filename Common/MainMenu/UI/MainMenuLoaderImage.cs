@@ -4,7 +4,7 @@ using ReLogic.Content;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
-namespace Reese.Common.MainMenu;
+namespace Reese.Common.MainMenu.UI;
 
 internal sealed class MainMenuLoaderImage : UIElement
 {

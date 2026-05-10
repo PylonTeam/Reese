@@ -1,6 +1,6 @@
-using GhostSpectating.Common;
 using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.ReplaySpectate.Drawers;
+using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
 using Terraria.GameContent;

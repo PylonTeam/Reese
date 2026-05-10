@@ -2,7 +2,7 @@
 using ReLogic.Content;
 using System;
 
-namespace Reese.Common.ReplaySpectate.Drawers;
+namespace Reese.Core.Stats;
 
 internal sealed class NPCStatDefinition(string id, string label, Asset<Texture2D> icon, Func<NPC, string> getText, Func<NPC, string>? getHoverText = null, Rectangle? iconFrame = null)
 {

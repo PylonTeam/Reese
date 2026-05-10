@@ -55,7 +55,7 @@ public class SpectatorUISystem : ModSystem
         if (spectatorInterface?.CurrentState != null)
         {
             layers.Insert(index, new LegacyGameInterfaceLayer(
-                "GhostSpectating: Spectator UI",
+                "Reese: Spectator UI",
                 () =>
                 {
                     spectatorInterface.Draw(Main.spriteBatch, Main._drawInterfaceGameTime);

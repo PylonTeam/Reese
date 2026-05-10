@@ -102,7 +102,7 @@ internal sealed class ReplayBrowserPanel : UIElement
     public event Action OnRefreshFinished;
 
     // Cache entries
-    private ReplayEntry[] cachedEntries = [];
+    private ReplayListEntry[] cachedEntries = [];
     private int refreshGeneration;
 
     public void Build()
@@ -176,7 +176,7 @@ internal sealed class ReplayBrowserPanel : UIElement
 
         UIScrollbar scrollbar = new();
         scrollbar.Width.Set(ReplayBrowserLayout.ScrollbarWidth, 0f);
-        scrollbar.Height.Set(-ReplayBrowserLayout.ListTop-6, 1f);
+        scrollbar.Height.Set(-ReplayBrowserLayout.ListTop - 6, 1f);
         scrollbar.Left.Set(-ReplayBrowserLayout.ScrollbarWidth, 1f);
         scrollbar.Top.Set(ReplayBrowserLayout.ListTop, 0f);
         container.Append(scrollbar);
@@ -325,6 +325,8 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private void ApplyCurrentFilter()
     {
+        var totalWatch = System.Diagnostics.Stopwatch.StartNew();
+
         if (list == null)
             return;
 
@@ -332,10 +334,16 @@ internal sealed class ReplayBrowserPanel : UIElement
 
         bool hasAnyReplays = cachedEntries.Length > 0;
         string query = searchBox?.currentString ?? string.Empty;
-        ReplayEntry[] entries = cachedEntries;
+        ReplayListEntry[] entries = cachedEntries;
 
         if (!string.IsNullOrWhiteSpace(query))
-            entries = entries.Where(x => Path.GetFileName(x.Path).Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+        {
+            var filterWatch = System.Diagnostics.Stopwatch.StartNew();
+            entries = entries.Where(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+            filterWatch.Stop();
+
+            Log.Debug($"Replay filter: query='{query}', before={cachedEntries.Length}, after={entries.Length}, ms={filterWatch.ElapsedMilliseconds}");
+        }
 
         if (entries.Length == 0)
         {
@@ -344,35 +352,59 @@ internal sealed class ReplayBrowserPanel : UIElement
             else
                 AddMessage("No replays yet", "Host a multiplayer world to create one, or place a .reese file in the folder");
 
+            var recalcEmptyWatch = System.Diagnostics.Stopwatch.StartNew();
             list.Recalculate();
+            recalcEmptyWatch.Stop();
+
+            totalWatch.Stop();
+            Log.Debug($"Replay apply filter empty: cached={cachedEntries.Length}, recalcMs={recalcEmptyWatch.ElapsedMilliseconds}, totalMs={totalWatch.ElapsedMilliseconds}");
             return;
         }
 
-        ReplayEntry[] sortedEntries = SortEntries(entries);
-        foreach (ReplayEntry entry in sortedEntries)
-            list.Add(new ReplayListItem(entry.Path, () => Refresh(showLoading: false)));
+        var sortWatch = System.Diagnostics.Stopwatch.StartNew();
+        ReplayListEntry[] sortedEntries = SortEntries(entries);
+        sortWatch.Stop();
 
+        var rowsWatch = System.Diagnostics.Stopwatch.StartNew();
+        foreach (ReplayListEntry entry in sortedEntries)
+            list.Add(new ReplayListItem(entry, () => Refresh(showLoading: false)));
+        rowsWatch.Stop();
+
+        var recalcWatch = System.Diagnostics.Stopwatch.StartNew();
         list.Recalculate();
+        recalcWatch.Stop();
+
+        totalWatch.Stop();
+
+        Log.Info($"Replay UI rebuild: rows={sortedEntries.Length}, sortMs={sortWatch.ElapsedMilliseconds}, rowCreateMs={rowsWatch.ElapsedMilliseconds}, recalcMs={recalcWatch.ElapsedMilliseconds}, totalMs={totalWatch.ElapsedMilliseconds}, thread={ProfileProbe.ThreadInfo()}");
     }
 
-    private static ReplayEntry[] LoadReplayEntries(string dir)
+    private static ReplayListEntry[] LoadReplayEntries(string dir)
     {
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+
         string[] files = Directory.GetFiles(dir, "*.reese", SearchOption.TopDirectoryOnly)
             .OrderByDescending(File.GetLastWriteTime)
             .ToArray();
 
-        ReplayEntry[] entries = files.Select(ReplayEntry.FromFile).ToArray();
-        Log.Debug($"Found {entries.Length} replay entries");
+        ReplayListEntry[] entries = new ReplayListEntry[files.Length];
+
+        for (int i = 0; i < files.Length; i++)
+            entries[i] = ReplayListEntry.FromFile(files[i]);
+
+        watch.Stop();
+
+        Log.Info($"Replay metadata load finished: entries={entries.Length}, ms={watch.ElapsedMilliseconds}");
         return entries;
     }
 
-    private ReplayEntry[] SortEntries(ReplayEntry[] entries)
+    private ReplayListEntry[] SortEntries(ReplayListEntry[] entries)
     {
-        IOrderedEnumerable<ReplayEntry> sorted = sortColumn switch
+        IOrderedEnumerable<ReplayListEntry> sorted = sortColumn switch
         {
             SortColumn.Name => sortAscending
-                ? entries.OrderBy(x => Path.GetFileNameWithoutExtension(x.Path))
-                : entries.OrderByDescending(x => Path.GetFileNameWithoutExtension(x.Path)),
+                ? entries.OrderBy(x => Path.GetFileNameWithoutExtension(x.FullPath))
+                : entries.OrderByDescending(x => Path.GetFileNameWithoutExtension(x.FullPath)),
             SortColumn.Duration => sortAscending
                 ? entries.OrderBy(x => x.DurationTicks)
                 : entries.OrderByDescending(x => x.DurationTicks),
@@ -415,38 +447,43 @@ internal sealed class ReplayBrowserPanel : UIElement
         list.Add(container);
     }
 
-    private readonly struct ReplayEntry
+    public readonly struct ReplayListEntry
     {
-        public readonly string Path;
+        public readonly string FullPath;
+        public readonly ReplayDisplayInfo Info;
+        public readonly string Name;
         public readonly DateTime Date;
+        public readonly TimeSpan Duration;
         public readonly uint DurationTicks;
         public readonly long SizeBytes;
 
-        private ReplayEntry(string path, DateTime date, uint durationTicks, long sizeBytes)
+        private ReplayListEntry(string fullPath, ReplayDisplayInfo info, uint durationTicks, long sizeBytes)
         {
-            Path = path;
-            Date = date;
+            FullPath = fullPath;
+            Info = info;
+            Name = Path.GetFileNameWithoutExtension(fullPath);
+            Date = info.Date;
+            Duration = info.Duration;
             DurationTicks = durationTicks;
             SizeBytes = sizeBytes;
         }
 
-        public static ReplayEntry FromFile(string path)
+        public static ReplayListEntry FromFile(string fullPath)
         {
-            uint durationTicks = 0;
-            DateTime date = File.GetLastWriteTime(path);
-            long sizeBytes = new FileInfo(path).Length;
-            try
-            {
-                ReplayInspectionReport report = ReplayInspector.Inspect(path);
-                durationTicks = report.Metadata?.DurationTicks > 0 ? report.Metadata.DurationTicks : report.DurationTicks;
-                if (DateTime.TryParse(report.Metadata?.CreatedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime createdUtc))
-                    date = createdUtc.ToLocalTime();
-            }
-            catch
-            {
-            }
+            var watch = System.Diagnostics.Stopwatch.StartNew();
 
-            return new ReplayEntry(path, date, durationTicks, sizeBytes);
+            ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(fullPath);
+            long sizeBytes = info.FileSizeBytes;
+            uint durationTicks = info.DurationTicks;
+
+            watch.Stop();
+
+            if (watch.ElapsedMilliseconds >= 50)
+                Log.Debug($"Replay metadata read slow: {Path.GetFileName(fullPath)} took {watch.ElapsedMilliseconds} ms, size={ProfileProbe.FormatBytes(sizeBytes)}, thread={ProfileProbe.ThreadInfo()}");
+
+            return new ReplayListEntry(fullPath, info, durationTicks, sizeBytes);
         }
     }
 }
+
+    

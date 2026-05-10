@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Terraria.GameContent;
 using Terraria.ID;
 
-namespace Reese.Common.ReplaySpectate.Drawers;
+namespace Reese.Core.Stats;
 
 internal static class NPCStats
 {

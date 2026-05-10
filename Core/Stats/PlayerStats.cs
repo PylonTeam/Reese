@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.ReplaySpectate.Drawers;
 using Reese.Core.Utilities;
 using ReLogic.Content;
 using System;
@@ -8,7 +9,7 @@ using Terraria.ID;
 using Terraria.Localization;
 using static Reese.Common.ReplaySpectate.Drawers.BiomeHelper;
 
-namespace Reese.Common.ReplaySpectate.Drawers;
+namespace Reese.Core.Stats;
 
 
 internal static class PlayerStats
@@ -102,10 +103,10 @@ internal static class PlayerStats
         return new PlayerStatSnapshot("Length", display, $"Length: {FormatLengthText(length)}", Ass.Icon_Watch, null);
     }
 
-    public static PlayerStatSnapshot BuildMainMenuTextStat(string text)
+    public static PlayerStatSnapshot BuildMainMenuSizeStat(string size)
     {
-        text = string.IsNullOrWhiteSpace(text) ? "-" : text.Trim();
-        return new PlayerStatSnapshot("Text", text, text, null, null);
+        size = string.IsNullOrWhiteSpace(size) ? "-" : size.Trim();
+        return new PlayerStatSnapshot("Size", size, $"Size: {size}", Ass.Icon_Watch, null);
     }
 
     private static string FormatLengthText(TimeSpan length)

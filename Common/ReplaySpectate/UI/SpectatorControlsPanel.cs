@@ -1,5 +1,4 @@
-﻿using GhostSpectating.Common;
-using Microsoft.Xna.Framework.Input;
+﻿using Microsoft.Xna.Framework.Input;
 using Reese.Core.Configs;
 using Reese.Core.Debug;
 using System;

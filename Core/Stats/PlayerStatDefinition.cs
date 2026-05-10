@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using System;
-namespace Reese.Common.ReplaySpectate.Drawers;
+namespace Reese.Core.Stats;
 
 public sealed class PlayerStatDefinition
 {
