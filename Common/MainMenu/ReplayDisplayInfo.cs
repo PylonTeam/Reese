@@ -31,7 +31,7 @@ public sealed class ReplayDisplayInfo
         if (!fileExists)
             Log.Warn($"Replay file missing: {path}");
 
-        return new ReplayDisplayInfo
+        var baseInfo = new ReplayDisplayInfo
         {
             FullPath = path ?? string.Empty,
             FileName = EmptyToError(fileName),
@@ -42,6 +42,33 @@ public sealed class ReplayDisplayInfo
             FileSizeBytes = fileSizeBytes,
             FileExists = fileExists,
             HasMetadata = false
+        };
+
+        if (!fileExists || string.IsNullOrWhiteSpace(path))
+            return baseInfo;
+
+        if (!global::Reese.ReplayFile.TryReadMetadata(path, out global::Reese.ReplayMetadata meta))
+            return baseInfo;
+
+        int tickRate = Math.Max(1, meta.TickRate);
+        bool useful = meta.FormatVersion >= 2 || meta.DurationTicks > 0 || !string.IsNullOrWhiteSpace(meta.WorldName);
+        if (!useful)
+            return baseInfo;
+
+        if (DateTime.TryParse(meta.CreatedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime recordedUtc))
+            date = recordedUtc.ToLocalTime();
+
+        return new ReplayDisplayInfo
+        {
+            FullPath = path,
+            FileName = baseInfo.FileName,
+            WorldName = string.IsNullOrWhiteSpace(meta.WorldName) ? "—" : meta.WorldName.Trim(),
+            DurationTicks = meta.DurationTicks,
+            Duration = TimeSpan.FromSeconds(meta.DurationTicks / (double)tickRate),
+            Date = date,
+            FileSizeBytes = fileSizeBytes,
+            FileExists = true,
+            HasMetadata = true
         };
     }
 

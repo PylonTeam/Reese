@@ -3,7 +3,9 @@ using Reese.Common.Replayer.ReplayHud.Shared.UI;
 using Reese.Core.Configs;
 using ReLogic.Content;
 using System;
+using Terraria;
 using Terraria.GameContent;
+using Terraria.ModLoader;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
@@ -74,7 +76,7 @@ public sealed class PlaybackHud : DraggablePanel
             if (!ModContent.GetInstance<ClientConfig>().IsSeekbarEnabled)
                 return;
 
-            //Replayer.SeekToTick((uint)Math.Round(ratio * GetDurationTicks()));
+            global::Reese.Replayer.SeekToTick((uint)Math.Round(ratio * GetDurationTicks()));
         };
         ContentPanel.Append(positionSlider);
 
@@ -242,13 +244,13 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void GoToStart()
     {
-        //Replayer.SeekToStart();
+        global::Reese.Replayer.SeekToStart();
         RefreshVisualState();
     }
 
     private void GoToEnd()
     {
-        //Replayer.SeekToEnd();
+        global::Reese.Replayer.SeekToEnd();
         RefreshVisualState();
     }
 
@@ -256,36 +258,40 @@ public sealed class PlaybackHud : DraggablePanel
     {
         positionSlider.AllowsInput = ModContent.GetInstance<ClientConfig>().IsSeekbarEnabled;
 
-        //uint durationTicks = GetDurationTicks();
-        //uint currentTick = Math.Min(Replayer.CurrentTick, durationTicks);
-        //float speed = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
-        //bool paused = speed <= 0f;
+        uint durationTicks = GetDurationTicks();
+        uint currentTick = Math.Min(global::Reese.Replayer.CurrentTick, durationTicks);
+        float speed = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
+        bool paused = speed <= 0f;
 
-        //positionSlider.SetRatio(currentTick / (float)durationTicks);
-        //positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
-        //speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
-        //transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Tick: {currentTick}");
+        positionSlider.SetRatio(currentTick / (float)durationTicks);
+        positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
+        speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
+        transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Tick: {currentTick}");
 
-        //for (int i = 0; i < speedButtons.Length; i++)
-        //{
-        //    bool selected = Math.Abs(speed - SpeedPresets[i]) < 0.001f;
-        //    bool hovered = speedButtons[i].IsMouseHovering;
+        for (int i = 0; i < speedButtons.Length; i++)
+        {
+            bool selected = Math.Abs(speed - SpeedPresets[i]) < 0.001f;
+            bool hovered = speedButtons[i].IsMouseHovering;
 
-        //    speedButtons[i].BackgroundColor = selected ? new Color(73, 94, 171) : hovered ? new Color(61, 78, 141) : new Color(44, 57, 105);
-        //    speedButtons[i].BorderColor = selected || hovered ? Color.Yellow : Color.Black;
-        //}
+            speedButtons[i].BackgroundColor = selected ? new Color(73, 94, 171) : hovered ? new Color(61, 78, 141) : new Color(44, 57, 105);
+            speedButtons[i].BorderColor = selected || hovered ? Color.Yellow : Color.Black;
+        }
 
-        //for (int i = 0; i < transportButtons.Length; i++)
-        //    transportButtons[i].SetSelected(false);
+        for (int i = 0; i < transportButtons.Length; i++)
+            transportButtons[i].SetSelected(false);
 
-        //transportButtons[2].SetSelected(!paused);
-        //transportButtons[3].SetSelected(paused);
+        transportButtons[2].SetSelected(!paused);
+        transportButtons[3].SetSelected(paused);
     }
 
     private static uint GetDurationTicks()
     {
-        return uint.MaxValue;
-        //return Math.Max(1u, Replayer.ActiveDurationTicks);
+        uint d = global::Reese.Replayer.ActiveDurationTicks;
+        if (d > 0)
+            return Math.Max(1u, d);
+
+        uint fromMeta = global::Reese.Replayer.ActiveMetadata.DurationTicks;
+        return Math.Max(1u, fromMeta);
     }
 
     private static string FormatSpeedButton(float speed)

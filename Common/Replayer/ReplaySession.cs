@@ -1,5 +1,6 @@
 using Reese.Core.Debug;
 using Terraria;
+using Terraria.ModLoader;
 
 namespace Reese.Common.Replayer;
 
@@ -45,5 +46,8 @@ public static class ReplaySession
 
         Mode = ReplaySessionMode.None;
         CurrentPath = null;
+
+        if (!Main.dedServ)
+            ModContent.GetInstance<global::Reese.Replayer>()?.ClearPlaybackState();
     }
 }

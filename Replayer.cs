@@ -1,7 +1,7 @@
 ﻿using log4net;
-using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using Reese.Common.Replayer;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using System;
 using System.IO;
 using System.Reflection;
@@ -17,83 +17,56 @@ public class Replayer : ModSystem, ITicker
 {
     private delegate void HighFpsSupportConfigEnsureValidateStateDelegate(object self);
 
+    /// <summary>Playback position used for packet gating and HUD (advanced in <see cref="AdvancePlaybackTick"/>).</summary>
     public uint Ticks { get; private set; }
-    private Hook _highFpsSupportConfigEnsureValidStateHook;
+
+    internal void SetPlaybackTickForSeek(uint value) => Ticks = value;
+
+    public static ReplayMetadata ActiveMetadata { get; private set; } = new ReplayMetadata();
+    public static uint ActiveDurationTicks { get; private set; }
+
+    private static ReplaySocket _activePlaybackSocket;
+
+    public static uint CurrentTick => ModContent.GetInstance<Replayer>()?.Ticks ?? 0;
 
     public override void Load()
     {
         On_Netplay.ClientLoopSetup += OnClientLoopSetup;
-        IL_Main.DoUpdate += il =>
-        {
-            var cursor = new ILCursor(il);
-            cursor.GotoNext(i => i.MatchStsfld<Main>("drawSkip"));
-            // cursor.Index += 1;
-            cursor.EmitDelegate(() =>
-            {
-                Ticks++;
-                if ((Ticks % 60) == 0)
-                    Mod.Logger.Info("Tick: " + Ticks);
-            });
-        };
-    }
-
-    public override void PostSetupContent()
-    {
-        if (!Main.dedServ)
-        {
-            if (ModLoader.TryGetMod("HighFPSSupport", out var highFpsSupport))
-            {
-                Mod.Logger.Info("Enabling HighFPSSupport interop to allow tick rate modification for replays");
-                // If we have the High FPS Support mod installed and loaded, we want to override their config validator
-                // (which ensures their tick rate modification only functions in single-player) to also function for
-                // multiplayer clients if a replay is being played.
-                _highFpsSupportConfigEnsureValidStateHook = new Hook(
-                    highFpsSupport.GetType().Assembly.GetType("HighFPSSupport.Config").GetMethod("EnsureValidState",
-                        BindingFlags.Public | BindingFlags.Instance), OnHighFpsSupportConfigEnsureValidState);
-            }
-        }
     }
 
     private void OnClientLoopSetup(On_Netplay.orig_ClientLoopSetup orig, RemoteAddress address)
     {
         orig(address);
 
-        // FIXME: shitty way to start watching replays from a specific magic IP lol
-        if (address.GetIdentifier() == "10.2.3.4")
-        {
-            Ticks = 0;
-            Mod.Logger.Info("Connecting to magic replay IP thingy!");
-            Netplay.Connection = new RemoteServer();
-            Netplay.Connection.ReadBuffer = new byte[ushort.MaxValue]; // TML: 1024 -> ushort.MaxValue
-            //Netplay.Connection.Socket = new ReplaySocket(this, ReplayFile.Read(File.OpenRead("record.bin")));
-
-            string replayPath = Common.Replayer.ReplaySession.CurrentPath;
-
-            if (string.IsNullOrWhiteSpace(replayPath) || !File.Exists(replayPath))
-            {
-                Mod.Logger.Error($"Replay path missing or invalid: {replayPath ?? "<null>"}");
-                Common.Replayer.ReplaySession.End("missing replay path");
-                Main.menuMode = 0;
-                return;
-            }
-
-            Mod.Logger.Info($"Opening replay file: {replayPath}");
-
-            FileStream stream = File.Open(replayPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            Netplay.Connection.Socket = new ReplaySocket(this, ReplayFile.Read(stream));
-        }
-    }
-
-    private void OnHighFpsSupportConfigEnsureValidState(HighFpsSupportConfigEnsureValidateStateDelegate orig,
-        object self)
-    {
-        // If we are watching a replay, then don't allow this to be invoked -- it will reset the tick rate option to the
-        // default, because it is only meant to function in single-player. In our scenario, it's totally okay for it to
-        // function with this multiplayer client.
-        if (Netplay.Connection?.Socket is ReplaySocket)
+        if (address.GetIdentifier() != "10.2.3.4")
             return;
 
-        orig(self);
+        Ticks = 0;
+        Mod.Logger.Info("Connecting to magic replay IP thingy!");
+        Netplay.Connection = new RemoteServer();
+        Netplay.Connection.ReadBuffer = new byte[ushort.MaxValue];
+
+        string replayPath = ReplaySession.CurrentPath;
+
+        if (string.IsNullOrWhiteSpace(replayPath) || !File.Exists(replayPath))
+        {
+            Mod.Logger.Error($"Replay path missing or invalid: {replayPath ?? "<null>"}");
+            ReplaySession.End("missing replay path");
+            Main.menuMode = 0;
+            return;
+        }
+
+        Mod.Logger.Info($"Opening replay file: {replayPath}");
+
+        FileStream stream = File.Open(replayPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        ReplayFile replayFile = ReplayFile.Read(stream);
+
+        ActiveMetadata = replayFile.Metadata;
+        ActiveDurationTicks = ActiveMetadata.DurationTicks;
+
+        var socket = new ReplaySocket(this, replayFile);
+        _activePlaybackSocket = socket;
+        Netplay.Connection.Socket = socket;
     }
 
     public void AdvancePlaybackTick()
@@ -101,18 +74,87 @@ public class Replayer : ModSystem, ITicker
         if (!ReplaySession.IsReplayPlayback)
             return;
 
-        //if (ActiveDurationTicks > 0 && Ticks >= ActiveDurationTicks)
-            //return;
+        if (ActiveDurationTicks > 0 && Ticks >= ActiveDurationTicks)
+            return;
 
         Ticks++;
-        //if ((Ticks % 60) == 0)
-        //Log.Info("Client replay tick: " + Ticks);
+    }
+
+    private static void ClearPlaybackSocketIf(ReplaySocket socket)
+    {
+        if (ReferenceEquals(_activePlaybackSocket, socket))
+            _activePlaybackSocket = null;
+    }
+
+    /// <summary>Clears static playback state when a session ends or the mod unloads.</summary>
+    public void ClearPlaybackState()
+    {
+        ActiveMetadata = new ReplayMetadata();
+        ActiveDurationTicks = 0;
+        _activePlaybackSocket = null;
+    }
+
+    public static void SeekToTick(uint targetTick)
+    {
+        if (!ReplaySession.IsReplayPlayback)
+            return;
+
+        var replayer = ModContent.GetInstance<Replayer>();
+        uint duration = ActiveDurationTicks;
+        if (duration > 0)
+            targetTick = Math.Min(targetTick, duration);
+
+        bool resetStream = targetTick < replayer.Ticks;
+        if (resetStream && _activePlaybackSocket?.ResetToStart() != true)
+        {
+            Main.statusText = "Unable to seek replay";
+            return;
+        }
+
+        if (!resetStream && targetTick == replayer.Ticks)
+            return;
+
+        replayer.SetPlaybackTickForSeek(targetTick);
+        _activePlaybackSocket?.ClearWaitLog();
+
+        if (Netplay.Connection != null)
+            Netplay.Connection.StatusText = string.Empty;
+    }
+
+    public static void SeekToStart()
+    {
+        if (!ReplaySession.IsReplayPlayback)
+            return;
+
+        var replayer = ModContent.GetInstance<Replayer>();
+        if (_activePlaybackSocket?.ResetToStart() != true)
+        {
+            Main.statusText = "Unable to seek replay";
+            return;
+        }
+
+        replayer.SetPlaybackTickForSeek(0);
+
+        if (Netplay.Connection != null)
+            Netplay.Connection.StatusText = string.Empty;
+    }
+
+    public static void SeekToEnd()
+    {
+        if (!ReplaySession.IsReplayPlayback)
+            return;
+
+        uint duration = ActiveDurationTicks;
+        if (duration == 0)
+            return;
+
+        SeekToTick(duration);
+        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(0f);
     }
 
     public override void Unload()
     {
-        _highFpsSupportConfigEnsureValidStateHook?.Dispose();
-        _highFpsSupportConfigEnsureValidStateHook = null;
+        ClearPlaybackState();
     }
 
     private class ReplayRemoteAddress : RemoteAddress
@@ -124,16 +166,26 @@ public class Replayer : ModSystem, ITicker
         public override string ToString() => GetFriendlyName();
     }
 
-    private class ReplaySocket(ITicker ticker, ReplayFile replayFile) : ISocket
+    public class ReplaySocket(ITicker ticker, ReplayFile replayFile) : ISocket
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(ReplaySocket));
         private readonly ReplayRemoteAddress _remoteAddress = new();
+        private bool _reportedWaitingForTick;
 
         public void Close()
         {
+            ClearPlaybackSocketIf(this);
             Logger.Info("Closing replay socket");
             replayFile.Dispose();
         }
+
+        public bool ResetToStart()
+        {
+            _reportedWaitingForTick = false;
+            return replayFile.ResetRead();
+        }
+
+        public void ClearWaitLog() => _reportedWaitingForTick = false;
 
         public bool IsConnected() => true;
 
@@ -144,9 +196,7 @@ public class Replayer : ModSystem, ITicker
 
         public void AsyncSend(byte[] data, int offset, int size, SocketSendCallback callback, object state)
         {
-            // Outgoing client packets (Hello, etc.) are discarded — we're in replay mode.
-            // But we must invoke the callback or the client loop hangs waiting for confirmation.
-            callback?.Invoke(state);
+            //callback?.Invoke(state);
         }
 
         public void AsyncReceive(byte[] data, int offset, int size, SocketReceiveCallback callback, object state)
@@ -163,7 +213,15 @@ public class Replayer : ModSystem, ITicker
 
         public bool IsDataAvailable()
         {
-            return ticker.Ticks >= replayFile.Tick && replayFile.NumberOfPacketDataBytesRemaining > 0;
+            bool tickOk = ticker.Ticks >= replayFile.Tick;
+            bool bytesOk = replayFile.NumberOfPacketDataBytesRemaining > 0;
+            if (!tickOk && bytesOk && !_reportedWaitingForTick)
+            {
+                _reportedWaitingForTick = true;
+                Logger.Info($"Replay waiting for tick {replayFile.Tick}; playback tick is {ticker.Ticks}");
+            }
+
+            return tickOk && bytesOk;
         }
 
         public void SendQueuedPackets()
