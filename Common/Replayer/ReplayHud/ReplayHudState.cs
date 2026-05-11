@@ -1,4 +1,4 @@
-﻿using Reese.Core.Debug;
+﻿using Microsoft.Xna.Framework.Graphics;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud;
@@ -16,6 +16,8 @@ public class ReplayHudState : UIState
         spectateHud = null;
         infoHud = null;
         playbackHud = null;
+
+        EnsureHuds();
     }
 
     public void Rebuild()
@@ -28,7 +30,21 @@ public class ReplayHudState : UIState
     public override void Update(GameTime gameTime)
     {
         UpdateVisibleHuds();
+
+        if (ReplaySession.IsReplayPlayback)
+            Spectate.TeammateOverlay.TeammateHudOverlay.Update();
+        else
+            Spectate.TeammateOverlay.TeammateHudOverlay.Clear();
+
         base.Update(gameTime);
+    }
+
+    public override void Draw(SpriteBatch spriteBatch)
+    {
+        base.Draw(spriteBatch);
+
+        if (ReplaySession.IsReplayPlayback)
+            Spectate.TeammateOverlay.TeammateHudOverlay.Draw(spriteBatch);
     }
 
     private void UpdateVisibleHuds()
@@ -67,5 +83,7 @@ public class ReplayHudState : UIState
         spectateHud = null;
         infoHud = null;
         playbackHud = null;
+
+        Spectate.TeammateOverlay.TeammateHudOverlay.Clear();
     }
 }

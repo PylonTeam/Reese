@@ -1,27 +1,32 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
+﻿using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection.Metadata;
-using Terraria;
 using Terraria.GameContent;
-using Terraria.ModLoader;
-using Terraria.UI;
 
 namespace Reese.Core.Debug;
 
 #if DEBUG
 internal static class DebugDrawer
 {
-    private readonly record struct DebugButton(string Label, Func<bool> IsEnabled, Action Toggle);
+    // Structs
+    private readonly record struct DebugButton(string Text, string Tooltip, Func<bool> IsEnabled, Action Toggle);
+    internal readonly record struct DebugStatGroup(string Header, Color HeaderColor, Func<bool> IsEnabled, string[] Rows);
 
-    private static readonly List<(Rectangle rect, Color color)> Rectangles = [];
-    private static readonly List<(string text, Vector2 pos, Color color)> Texts = [];
-    internal static bool ShowDebugStats { get; private set; } = false;
+    // Toggles
+    internal static bool ShowDebugRecorderStats { get; private set; } = false;
+    internal static bool ShowDebugReplayerStats { get; private set; } = false;
+    internal static bool ShowDebugClientNetplayStats { get; private set; } = false;
+    internal static bool ShowDebugLocalPlayerStats { get; private set; } = false;
+    internal static bool ShowDebugHudUiStats { get; private set; } = false;
+    internal static bool ShowDebugEntityStats { get; private set; } = false;
+    internal static bool ShowDebugMiscStats { get; private set; } = false;
     internal static bool ShowChat { get; private set; } = true;
     internal static bool ShowRectangles { get; private set; } = true;
+
+    // Content
+    private static readonly List<(Rectangle rect, Color color)> Rectangles = [];
+    private static readonly List<(string text, Vector2 pos, Color color, float scale)> Texts = [];
+    
     internal static void DrawRectangle(Rectangle rect, Color? color = null, bool drawSize = false)
     {
         if (!ShowRectangles)
@@ -33,9 +38,9 @@ internal static class DebugDrawer
             DrawText($"{rect.Width}x\n{rect.Height}", new Vector2(rect.X + 2, rect.Y + 2), color ?? Color.White);
     }
 
-    internal static void DrawText(string content, Vector2 position, Color? color = null)
+    internal static void DrawText(string content, Vector2 position, Color? color = null, float scale = 0.72f)
     {
-        Texts.Add((content, position, color ?? Color.White));
+        Texts.Add((content, position, color ?? Color.White, scale));
     }
 
     internal static void DrawButtons()
@@ -43,74 +48,71 @@ internal static class DebugDrawer
         Texture2D back = Main.Assets.Request<Texture2D>("Images/UI/CharCreation/SmallPanel").Value;
         Texture2D border = Main.Assets.Request<Texture2D>("Images/UI/CharCreation/SmallPanelBorder").Value;
 
-        (string text, string tooltip, Func<bool> enabled, Action toggle)[] buttons =
+        DebugButton[] buttons =
         [
-            ("ST", "Show Debug Stats", () => ShowDebugStats, () => ShowDebugStats = !ShowDebugStats),
-            ("CH", "Show Chat", () => ShowChat, () => ShowChat = !ShowChat),
-            ("RC", "Show Debug Rectangles", () => ShowRectangles, () => ShowRectangles = !ShowRectangles)
+            new("ST1", "Debug Recorder Stats", () => ShowDebugRecorderStats, () => ShowDebugRecorderStats = !ShowDebugRecorderStats),
+            new("ST2", "Debug Replayer Stats", () => ShowDebugReplayerStats, () => ShowDebugReplayerStats = !ShowDebugReplayerStats),
+            new("ST3", "Debug Netplay", () => ShowDebugClientNetplayStats, () => ShowDebugClientNetplayStats = !ShowDebugClientNetplayStats),
+            new("ST4", "Debug Local Player", () => ShowDebugLocalPlayerStats, () => ShowDebugLocalPlayerStats = !ShowDebugLocalPlayerStats),
+            new("ST5", "Debug HUD", () => ShowDebugHudUiStats, () => ShowDebugHudUiStats = !ShowDebugHudUiStats),
+            new("ST6", "Debug Entities", () => ShowDebugEntityStats, () => ShowDebugEntityStats = !ShowDebugEntityStats),
+            new("ST7", "Debug Misc", () => ShowDebugMiscStats, () => ShowDebugMiscStats = !ShowDebugMiscStats),
+            new("CH", "Show Chat", () => ShowChat, () => ShowChat = !ShowChat),
+            new("RC", "Show Debug Rectangles", () => ShowRectangles, () => ShowRectangles = !ShowRectangles)
         ];
 
-        // Draw buttons right aligned
-        int spacing = 6;
-        int totalWidth = buttons.Length * (back.Width + spacing) - spacing;
-        float startX = Main.screenWidth - totalWidth - 20f;
-        int startY = 280;
+        const int spacing = 6;
+        const int startX = 10;
+        const int startY = 80;
+        const float textScale = 0.68f;
+
+        DrawText("Debug mode enabled!", new Vector2(startX, 52f), Color.Yellow);
 
         for (int i = 0; i < buttons.Length; i++)
         {
-            Rectangle rect = new((int)startX + i * (back.Width + spacing), startY, back.Width, back.Height);
+            DebugButton button = buttons[i];
+            Rectangle rect = new(startX + i * (back.Width + spacing), startY, back.Width, back.Height);
             bool hovered = rect.Contains(Main.MouseScreen.ToPoint());
+            bool selected = button.IsEnabled();
 
             if (hovered)
             {
                 Main.LocalPlayer.mouseInterface = true;
-                Main.instance.MouseText(buttons[i].tooltip);
+                Main.instance.MouseText(button.Tooltip);
             }
 
             if (hovered && Main.mouseLeft && Main.mouseLeftRelease)
             {
-                buttons[i].toggle();
+                button.Toggle();
                 Main.mouseLeftRelease = false;
             }
 
             Vector2 center = rect.Center.ToVector2();
-            Color stateColor = buttons[i].enabled() ? new Color(70, 145, 90) : new Color(145, 70, 70);
+            Color fillColor = selected ? new Color(70, 145, 90) : new Color(145, 70, 70);
+            Color borderColor = hovered ? Color.Yellow : selected ? Color.LimeGreen : Color.Black;
+            float opacity = selected || hovered ? 1f : 0.82f;
 
-            Main.spriteBatch.Draw(back, center, null, Color.White * (hovered ? 1f : 0.85f), 0f, back.Size() * 0.5f, 1f, SpriteEffects.None, 0f);
+            Main.spriteBatch.Draw(back, center, null, fillColor * opacity, 0f, back.Size() * 0.5f, 1f, SpriteEffects.None, 0f);
+            Main.spriteBatch.Draw(border, center, null, borderColor, 0f, border.Size() * 0.5f, 1f, SpriteEffects.None, 0f);
 
-            if (hovered)
-            {
-                Main.spriteBatch.Draw(border, center, null, Color.White, 0f, border.Size() * 0.5f, 1f, SpriteEffects.None, 0f);
-            }
-
-            Vector2 size = FontAssets.MouseText.Value.MeasureString(buttons[i].text) * 0.8f;
-            DrawText(buttons[i].text, new Vector2(rect.Center.X - size.X * 0.5f, rect.Center.Y - size.Y * 0.5f), Color.White);
+            Vector2 size = FontAssets.MouseText.Value.MeasureString(button.Text) * textScale;
+            DrawText(button.Text, new Vector2(rect.Center.X - size.X * 0.5f, rect.Center.Y - size.Y * 0.5f), Color.White, textScale);
         }
     }
 
     internal static void DrawDebugInfo()
     {
-        if (!ShowDebugStats) return;
+        Vector2 origin = new(10f, 122f);
+        float nextY = origin.Y;
 
-        string[] stats = [
-            $"World pos: {Main.LocalPlayer.position}",
-            $"Tile: {Utils.ToTileCoordinates(Main.LocalPlayer.position)}",
-            $"Screen world: {Main.screenPosition}",
-            $"Mouse world: {Main.MouseWorld}",
-            $"Mouse tile: {Utils.ToTileCoordinates(Main.MouseWorld)}",
-            $"Mouse screen: {Main.mouseX}, {Main.mouseY}",
-            $"World: {Main.worldName} (ID {Main.worldID}, seed {WorldGen.currentWorldSeed})",
-            $"Hardmode: {Main.hardMode} | Expert: {Main.expertMode} | Master: {Main.masterMode}",
-            $"Halloween: {Main.halloween}",
-            $"MetadataUpdater.IsSupported: {MetadataUpdater.IsSupported}",
-            $"Debugger.IsAttached: {Debugger.IsAttached}",
-        ];
+        foreach (DebugStatGroup group in DebugDrawerStats.BuildStats())
+        {
+            if (!group.IsEnabled())
+                continue;
 
-        // Calculate width of the longest line to right-align the column
-        float maxW = stats.Max(s => Terraria.GameContent.FontAssets.MouseText.Value.MeasureString(s).X * 0.78f);
-        Vector2 column1Pos = new(Main.screenWidth - maxW - 10f, 400f); // 10px padding from edge
-
-        DrawColumn("Debug Stats:", stats, column1Pos);
+            DrawStatGroup(group, new Vector2(origin.X, nextY));
+            nextY += GetStatGroupHeight(group) + 14f;
+        }
     }
 
     internal static void Flush(SpriteBatch sb)
@@ -123,12 +125,9 @@ internal static class DebugDrawer
                 DrawRectangle(sb, pixel, rect, color);
         }
 
-        foreach ((string text, Vector2 pos, Color color) in Texts)
-        {
-            Utils.DrawBorderString(sb, text, pos, color, 0.8f);
-        }
+        foreach ((string text, Vector2 pos, Color color, float scale) in Texts)
+            Utils.DrawBorderString(sb, text, pos, color, scale);
 
-        Rectangles.Clear();
         Rectangles.Clear();
         Texts.Clear();
     }
@@ -143,16 +142,26 @@ internal static class DebugDrawer
         sb.Draw(pixel, new Rectangle(rect.X, rect.Bottom - 1, rect.Width, 1), black);
         sb.Draw(pixel, new Rectangle(rect.Right - 1, rect.Y, 1, rect.Height), black);
     }
-
-    private static void DrawColumn(string header, IEnumerable<string> rows, Vector2 origin)
+    private static void DrawStatGroup(DebugStatGroup group, Vector2 origin)
     {
-        DrawText(header, origin, Color.Yellow);
+        const float headerScale = 0.72f;
+        const float rowScale = 0.66f;
+        const float headerGap = 19f;
+        const float rowStep = 15f;
 
-        int i = 0;
-        foreach (string row in rows)
-        {
-            DrawText(row, origin + new Vector2(0f, 22f + i++ * 18f));
-        }
+        DrawText(group.Header, origin, group.HeaderColor, headerScale);
+
+        for (int i = 0; i < group.Rows.Length; i++)
+            DrawText(group.Rows[i], origin + new Vector2(0f, headerGap + i * rowStep), Color.White, rowScale);
     }
+
+    private static float GetStatGroupHeight(DebugStatGroup group)
+    {
+        const float headerGap = 19f;
+        const float rowStep = 15f;
+
+        return headerGap + group.Rows.Length * rowStep;
+    }
+
 }
 #endif

@@ -1,4 +1,6 @@
-﻿using Reese.Core.Configs;
+﻿using Reese.Common.Replayer.ReplayHud.Spectate;
+using Reese.Common.Replayer.ReplayHud.Spectate.TeammateOverlay;
+using Reese.Core.Configs;
 using Reese.Core.Debug;
 using System.Collections.Generic;
 using Terraria.ModLoader;
@@ -17,42 +19,22 @@ public sealed class ReplayHudSystem : ModSystem
 {
     private UserInterface replayHudInterface;
     private ReplayHudState replayHudState;
-    private bool openReplayHudOnReady;
 
-    public override void OnWorldLoad()
+    public override void Load()
     {
         replayHudInterface = new UserInterface();
         replayHudState = new ReplayHudState();
-        openReplayHudOnReady = false;
     }
 
-    public override void OnWorldUnload()
+    public override void Unload()
     {
-        CloseReplayHud();
-
         replayHudInterface = null;
         replayHudState = null;
-        openReplayHudOnReady = false;
-    }
-
-    public override void PreUpdatePlayers()
-    {
-        //if (ReplaySession.IsReplayPlayback)
-            //ForceLocalReplaySpectator();
     }
 
     public void Rebuild()
     {
         replayHudState?.Rebuild();
-    }
-
-    public void RequestOpenReplayHud()
-    {
-        if (!ReplaySession.IsReplayPlayback)
-            return;
-
-        openReplayHudOnReady = true;
-        OpenReplayHud();
     }
 
     public void ToggleReplayHud()
@@ -62,27 +44,24 @@ public sealed class ReplayHudSystem : ModSystem
         if (IsReplayHudOpen())
         {
             CloseReplayHud();
-            return;
         }
-
-        RequestOpenReplayHud();
+        else
+        {
+            OpenReplayHud();
+        }
     }
 
     public void OpenReplayHud()
     {
-        if (!CanOpenReplayHud())
+        if (!ReplaySession.IsReplayPlayback)
             return;
 
-        openReplayHudOnReady = false;
-        ForceLocalReplaySpectator();
-
-        replayHudState ??= new ReplayHudState();
         replayHudInterface.SetState(replayHudState);
+        Log.Chat("Replay HUD opened.");
     }
 
     public void CloseReplayHud()
     {
-        openReplayHudOnReady = false;
         replayHudInterface?.SetState(null);
     }
 
@@ -93,45 +72,16 @@ public sealed class ReplayHudSystem : ModSystem
 
     public override void UpdateUI(GameTime gameTime)
     {
-        if (openReplayHudOnReady)
-            OpenReplayHud();
-
-        if (IsReplayHudOpen() && !CanOpenReplayHud())
-        {
-            CloseReplayHud();
-            return;
-        }
-
         replayHudInterface?.Update(gameTime);
-    }
-
-    private static bool CanOpenReplayHud()
-    {
-        return ReplaySession.IsReplayPlayback && !Main.gameMenu && Main.myPlayer is >= 0 and < Main.maxPlayers && Main.LocalPlayer?.active == true;
-    }
-
-    private static void ForceLocalReplaySpectator()
-    {
-        if (!ReplaySession.IsReplayPlayback || Main.myPlayer is < 0 or >= Main.maxPlayers)
-            return;
-
-        Player local = Main.LocalPlayer;
-
-        if (local?.active != true)
-            return;
-
-        local.ghost = true;
-        Main.playerInventory = false;
     }
 
     public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
-        //Log.Chat(Main.LocalPlayer.ghost);
+        // Debug stuff here
+        //Main.LocalPlayer.ghost = true;
 
         if (replayHudInterface?.CurrentState == null)
-        {
             return;
-        }
 
         bool configUiOpen = ConfigHelper.IsAnyConfigUIOpen();
         int mouseTextIndex = layers.FindIndex(l => l.Name == "Vanilla: Mouse Text");
@@ -144,7 +94,6 @@ public sealed class ReplayHudSystem : ModSystem
 
         layers.Insert(replayHudIndex, new LegacyGameInterfaceLayer("Reese: Replay HUD", () =>
         {
-            Log.Chat(2);
             replayHudInterface.Draw(Main.spriteBatch, Main._drawInterfaceGameTime);
             return true;
         }, InterfaceScaleType.UI));

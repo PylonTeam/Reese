@@ -281,7 +281,7 @@ public static class InventoryDrawer
                 int num8 = (int)(20f + (float)(j * 56) * Main.inventoryScale) + 0;
                 int num9 = i + j * 10;
                 new Color(100, 100, 100, 100);
-                if (Main.mouseX >= num7 && (float)Main.mouseX <= (float)num7 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num8 && (float)Main.mouseY <= (float)num8 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && PlayerHudOverlay.AcceptsMouseInput)
+                if (Main.mouseX >= num7 && (float)Main.mouseX <= (float)num7 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num8 && (float)Main.mouseY <= (float)num8 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && TeammateHudOverlay.AcceptsMouseInput)
                 {
                     if (player.inventoryChestStack[num9] && (player.inventory[num9].type == 0 || player.inventory[num9].stack == 0))
                     {
@@ -314,7 +314,7 @@ public static class InventoryDrawer
         Main.spriteBatch.Draw(TextureAssets.Extra[58].Value, vector, null, Color.White, 0f, TextureAssets.Extra[58].Value.Size() / 2f, Main.inventoryScale, SpriteEffects.None, 0f);
         Vector2 vector2 = FontAssets.MouseText.Value.MeasureString(player.statDefense.ToString());
         ChatManager.DrawColorCodedStringWithShadow(Main.spriteBatch, FontAssets.MouseText.Value, player.statDefense.ToString(), vector - vector2 * 0.5f * Main.inventoryScale, Color.White, 0f, Vector2.Zero, new Vector2(Main.inventoryScale));
-        if (Utils.CenteredRectangle(vector, TextureAssets.Extra[58].Value.Size()).Contains(new Point(Main.mouseX, Main.mouseY)) && PlayerHudOverlay.AcceptsMouseInput)
+        if (Utils.CenteredRectangle(vector, TextureAssets.Extra[58].Value.Size()).Contains(new Point(Main.mouseX, Main.mouseY)) && TeammateHudOverlay.AcceptsMouseInput)
         {
             Player.DefenseStat statDefense = player.statDefense;
             string value = statDefense.ToString() + " " + Lang.inter[10].Value;
@@ -363,7 +363,7 @@ public static class InventoryDrawer
             if (Main.EquipPage == 0)
             {
                 int num35 = 4;
-                if (Main.mouseX > Main.screenWidth - 64 - 28 && Main.mouseX < (int)((float)(Main.screenWidth - 64 - 28) + 56f * Main.inventoryScale) && Main.mouseY > num20 && Main.mouseY < (int)((float)num20 + 448f * Main.inventoryScale) && PlayerHudOverlay.AcceptsMouseInput)
+                if (Main.mouseX > Main.screenWidth - 64 - 28 && Main.mouseX < (int)((float)(Main.screenWidth - 64 - 28) + 56f * Main.inventoryScale) && Main.mouseY > num20 && Main.mouseY < (int)((float)num20 + 448f * Main.inventoryScale) && TeammateHudOverlay.AcceptsMouseInput)
                 {
                     player.mouseInterface = true;
                 }
@@ -411,7 +411,7 @@ public static class InventoryDrawer
                     }
                     Rectangle rectangle = new Rectangle(num43, num44, value3.Width, value3.Height);
                     int num45 = 0;
-                    if (num40 > 2 && rectangle.Contains(new Point(Main.mouseX, Main.mouseY)) && PlayerHudOverlay.AcceptsMouseInput)
+                    if (num40 > 2 && rectangle.Contains(new Point(Main.mouseX, Main.mouseY)) && TeammateHudOverlay.AcceptsMouseInput)
                     {
                         player.mouseInterface = true;
                         //if (Main.mouseLeft && Main.mouseLeftRelease)
@@ -425,7 +425,7 @@ public static class InventoryDrawer
                         //}
                         num45 = ((!player.hideVisibleAccessory[num40]) ? 1 : 2);
                     }
-                    else if (Main.mouseX >= num41 && (float)Main.mouseX <= (float)num41 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num42 && (float)Main.mouseY <= (float)num42 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && PlayerHudOverlay.AcceptsMouseInput)
+                    else if (Main.mouseX >= num41 && (float)Main.mouseX <= (float)num41 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num42 && (float)Main.mouseY <= (float)num42 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && TeammateHudOverlay.AcceptsMouseInput)
                     {
                         Main.armorHide = true;
                         if (flag7 || Main.mouseItem.IsAir)
@@ -449,7 +449,7 @@ public static class InventoryDrawer
                     }
                 }
                 Main.inventoryBack = color;
-                if (Main.mouseX > Main.screenWidth - 64 - 28 - 47 && Main.mouseX < (int)((float)(Main.screenWidth - 64 - 20 - 47) + 56f * Main.inventoryScale) && Main.mouseY > num20 && Main.mouseY < (int)((float)num20 + 168f * Main.inventoryScale) && PlayerHudOverlay.AcceptsMouseInput)
+                if (Main.mouseX > Main.screenWidth - 64 - 28 - 47 && Main.mouseX < (int)((float)(Main.screenWidth - 64 - 20 - 47) + 56f * Main.inventoryScale) && Main.mouseY > num20 && Main.mouseY < (int)((float)num20 + 168f * Main.inventoryScale) && TeammateHudOverlay.AcceptsMouseInput)
                 {
                     player.mouseInterface = true;
                 }
@@ -476,7 +476,7 @@ public static class InventoryDrawer
                     {
                         context3 = 11;
                     }
-                    if (Main.mouseX >= num48 && (float)Main.mouseX <= (float)num48 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num49 && (float)Main.mouseY <= (float)num49 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && PlayerHudOverlay.AcceptsMouseInput)
+                    if (Main.mouseX >= num48 && (float)Main.mouseX <= (float)num48 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num49 && (float)Main.mouseY <= (float)num49 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && TeammateHudOverlay.AcceptsMouseInput)
                     {
                         Main.armorHide = true;
                         if (!flag8)
@@ -493,7 +493,7 @@ public static class InventoryDrawer
                     ItemSlot.Draw(Main.spriteBatch, player.armor, context3, num46, new Vector2(num48, num49));
                 }
                 Main.inventoryBack = color;
-                if (Main.mouseX > Main.screenWidth - 64 - 28 - 47 && Main.mouseX < (int)((float)(Main.screenWidth - 64 - 20 - 47) + 56f * Main.inventoryScale) && Main.mouseY > num20 && Main.mouseY < (int)((float)num20 + 168f * Main.inventoryScale) && PlayerHudOverlay.AcceptsMouseInput)
+                if (Main.mouseX > Main.screenWidth - 64 - 28 - 47 && Main.mouseX < (int)((float)(Main.screenWidth - 64 - 20 - 47) + 56f * Main.inventoryScale) && Main.mouseY > num20 && Main.mouseY < (int)((float)num20 + 168f * Main.inventoryScale) && TeammateHudOverlay.AcceptsMouseInput)
                 {
                     player.mouseInterface = true;
                 }
@@ -515,7 +515,7 @@ public static class InventoryDrawer
                     {
                         num53 += num35;
                     }
-                    if (Main.mouseX >= num52 && (float)Main.mouseX <= (float)num52 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num53 && (float)Main.mouseY <= (float)num53 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && PlayerHudOverlay.AcceptsMouseInput)
+                    if (Main.mouseX >= num52 && (float)Main.mouseX <= (float)num52 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num53 && (float)Main.mouseY <= (float)num53 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && TeammateHudOverlay.AcceptsMouseInput)
                     {
                         Main.armorHide = true;
                         //if (!flag9)
@@ -622,7 +622,7 @@ public static class InventoryDrawer
                         {
                             value2 = TextureAssets.InventoryTickOff.Value;
                         }
-                        if (r2.Contains(value) && PlayerHudOverlay.AcceptsMouseInput)
+                        if (r2.Contains(value) && TeammateHudOverlay.AcceptsMouseInput)
                         {
                             Main.player[Main.myPlayer].mouseInterface = true;
                             flag3 = true;
@@ -655,7 +655,7 @@ public static class InventoryDrawer
                         }
                         r2 = new Rectangle(r2.X + r2.Width / 2, r2.Y + r2.Height / 2, r2.Width, r2.Height);
                         r2.Offset(-r2.Width / 2, -r2.Height / 2);
-                        if (r2.Contains(value) && PlayerHudOverlay.AcceptsMouseInput)
+                        if (r2.Contains(value) && TeammateHudOverlay.AcceptsMouseInput)
                         {
                             Main.player[Main.myPlayer].mouseInterface = true;
                             flag3 = true;
@@ -672,7 +672,7 @@ public static class InventoryDrawer
                             num26 = ((!Main.player[Main.myPlayer].enabledSuperCart) ? 1 : 2);
                         }
                     }
-                    if (r.Contains(value) && !flag3 && PlayerHudOverlay.AcceptsMouseInput)
+                    if (r.Contains(value) && !flag3 && TeammateHudOverlay.AcceptsMouseInput)
                     {
                         Main.armorHide = true;
                         //ItemSlot.Handle(inv, context, m);
@@ -755,7 +755,7 @@ public static class InventoryDrawer
                         (int)(TextureAssets.InventoryBack.Height() * Main.inventoryScale)
                     );
 
-                    if (rect.Contains(Main.MouseScreen.ToPoint()) && PlayerHudOverlay.AcceptsMouseInput)
+                    if (rect.Contains(Main.MouseScreen.ToPoint()) && TeammateHudOverlay.AcceptsMouseInput)
                     {
                         Main.armorHide = true;
                         HoverItemSlot(items, contexts[i], drawSlot);
@@ -806,7 +806,7 @@ public static class InventoryDrawer
                         (int)(TextureAssets.InventoryBack.Height() * Main.inventoryScale)
                     );
 
-                    if (rect.Contains(Main.MouseScreen.ToPoint()) && PlayerHudOverlay.AcceptsMouseInput)
+                    if (rect.Contains(Main.MouseScreen.ToPoint()) && TeammateHudOverlay.AcceptsMouseInput)
                     {
                         Main.armorHide = true;
                         HoverItemSlot(items, contexts[i], drawSlot);
@@ -841,7 +841,7 @@ public static class InventoryDrawer
             int num99 = (int)(85f + (float)(num97 * 56) * Main.inventoryScale + 20f);
             int slot = num97 + 50;
             new Color(100, 100, 100, 100);
-            if (Main.mouseX >= num98 && (float)Main.mouseX <= (float)num98 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num99 && (float)Main.mouseY <= (float)num99 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && PlayerHudOverlay.AcceptsMouseInput)
+            if (Main.mouseX >= num98 && (float)Main.mouseX <= (float)num98 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num99 && (float)Main.mouseY <= (float)num99 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && TeammateHudOverlay.AcceptsMouseInput)
             {
                 //ItemSlot.LeftClick(Main.player[Main.myPlayer].inventory, 1, slot);
                 //ItemSlot.RightClick(Main.player[Main.myPlayer].inventory, 1, slot);
@@ -870,7 +870,7 @@ public static class InventoryDrawer
             int num103 = (int)(85f + (float)(num101 * 56) * Main.inventoryScale + 20f);
             int slot2 = 54 + num101;
             new Color(100, 100, 100, 100);
-            if (Main.mouseX >= num102 && (float)Main.mouseX <= (float)num102 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num103 && (float)Main.mouseY <= (float)num103 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && PlayerHudOverlay.AcceptsMouseInput)
+            if (Main.mouseX >= num102 && (float)Main.mouseX <= (float)num102 + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num103 && (float)Main.mouseY <= (float)num103 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && TeammateHudOverlay.AcceptsMouseInput)
             {
                 //ItemSlot.LeftClick(Main.player[Main.myPlayer].inventory, 2, slot2);
                 //ItemSlot.RightClick(Main.player[Main.myPlayer].inventory, 2, slot2);
@@ -907,7 +907,7 @@ public static class InventoryDrawer
         DrawHeldItemSlot(player, num - 47, num2);
 
         new Color(150, 150, 150, 150);
-        if (Main.mouseX >= num && (float)Main.mouseX <= (float)num + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num2 && (float)Main.mouseY <= (float)num2 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && PlayerHudOverlay.AcceptsMouseInput)
+        if (Main.mouseX >= num && (float)Main.mouseX <= (float)num + (float)TextureAssets.InventoryBack.Width() * Main.inventoryScale && Main.mouseY >= num2 && (float)Main.mouseY <= (float)num2 + (float)TextureAssets.InventoryBack.Height() * Main.inventoryScale && TeammateHudOverlay.AcceptsMouseInput)
         {
             //ItemSlot.LeftClick(ref player.trashItem, 6);
             //if (Main.mouseLeftRelease && Main.mouseLeft)
@@ -928,7 +928,7 @@ public static class InventoryDrawer
             Main.mouseX <= x + TextureAssets.InventoryBack.Width() * Main.inventoryScale &&
             Main.mouseY >= y &&
             Main.mouseY <= y + TextureAssets.InventoryBack.Height() * Main.inventoryScale &&
-            PlayerHudOverlay.AcceptsMouseInput;
+            TeammateHudOverlay.AcceptsMouseInput;
 
         if (hovering)
             HoverItemSlot(heldItemSlot, ItemSlot.Context.InventoryItem, 0);

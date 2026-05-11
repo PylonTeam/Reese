@@ -1,8 +1,9 @@
+using Reese.Common.Replayer.ReplayHud.Spectate;
+using Reese.Core.Debug;
 using System;
 using System.IO;
 using System.Linq;
-using Reese.Common.Replayer.ReplayHud.Spectate;
-using Reese.Core.Debug;
+using System.Net.Sockets;
 using Terraria;
 using Terraria.ModLoader;
 using Terraria.Net;
@@ -10,6 +11,11 @@ using Terraria.Net.Sockets;
 
 namespace Reese.Common.Replayer;
 
+/// <summary>
+/// Terraria client connected to fake socket
+/// fake socket receives from .reese file <see cref="ReplayFile"/>
+/// fake socket ignores outgoing packets
+/// </summary>
 [Autoload(Side = ModSide.Client)]
 public class Replayer : ModSystem, ITicker
 {
@@ -21,6 +27,7 @@ public class Replayer : ModSystem, ITicker
     public static bool IsPlaybackSocketActive => CurrentReplaySocket is { IsClosed: false };
 
     private static string PendingReplayPath;
+    public static string PendingReplayPathPublic => PendingReplayPath;
     private static ReplaySocket CurrentReplaySocket;
 
     public override void Load()

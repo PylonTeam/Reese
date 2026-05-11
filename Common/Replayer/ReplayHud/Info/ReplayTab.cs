@@ -69,12 +69,12 @@ internal sealed class ReplayTab : TabPage
 
         private static Texture2D GetProjectileIcon()
         {
-            return TextureAssets.Projectile[ProjectileID.WoodenArrowFriendly].Value;
+            return Ass.Icon_Arrow.Value;
         }
 
         private static Texture2D GetItemIcon()
         {
-            return TextureAssets.Item[ItemID.GoldCoin].Value;
+            return Ass.Icon_Chest.Value;
         }
     }
 

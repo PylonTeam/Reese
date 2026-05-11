@@ -52,7 +52,7 @@ internal class GhostInventoryControlSystem : ModSystem
         if (target?.active == true)
         {
             Log.Chat("Toggle spectated player's inventory for " + target.name);
-            PlayerHudOverlay.Toggle(target.whoAmI);
+            TeammateHudOverlay.Toggle(target.whoAmI);
             return;
         }
 

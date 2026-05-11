@@ -7,16 +7,19 @@ namespace Reese.Common.Replayer.ReplayHud.Spectate;
 [Autoload(Side = ModSide.Client)]
 public class ReplayTargetSpectateSystem : ModSystem
 {
+    private const int FullSyncIntervalTicks = 15;
+
     private static int target = -1;
     private static int npcTarget = -1;
     private static int previewTarget = -1;
     private static int cameraTarget = -1;
+    private static int netSyncTicks;
 
     private static bool autoSpectatedFirstPlayer;
 
     public static bool HasLockedTarget()
     {
-        return ReplayMode.IsInReplayMode(Main.LocalPlayer) && (CanTarget(target) || CanTargetNPC(npcTarget));
+        return ReplayMode.IsInPlayerMode(Main.LocalPlayer) && (CanTarget(target) || CanTargetNPC(npcTarget));
     }
 
     private static bool CanTarget(int playerId)
@@ -25,7 +28,7 @@ public class ReplayTargetSpectateSystem : ModSystem
             playerId < Main.maxPlayers &&
             playerId != Main.myPlayer &&
             Main.player[playerId].active &&
-            (ReplayMode.IsInPlayerMode(Main.player[playerId]) || ReplayMode.IsInReplayMode(Main.player[playerId]) || Main.player[playerId].ghost);
+            (ReplayMode.IsInPlayerMode(Main.player[playerId]) || ReplayMode.IsInPlayerMode(Main.player[playerId]) || Main.player[playerId].ghost);
     }
 
     private static bool CanTargetNPC(int npcId)
@@ -37,6 +40,7 @@ public class ReplayTargetSpectateSystem : ModSystem
     {
         target = CanTarget(slot) ? slot : -1;
         npcTarget = -1;
+        netSyncTicks = 0;
 
         if (CanTarget(target))
             SnapLocalPlayerTo(Main.player[target].Center, Main.player[target].direction, forceFullSync: true);
@@ -47,6 +51,7 @@ public class ReplayTargetSpectateSystem : ModSystem
         npcTarget = CanTargetNPC(slot) ? slot : -1;
         target = -1;
         previewTarget = -1;
+        netSyncTicks = 0;
 
         if (CanTargetNPC(npcTarget))
             SnapLocalPlayerTo(Main.npc[npcTarget].Center, GetNPCDirection(Main.npc[npcTarget]), forceFullSync: true);
@@ -98,6 +103,7 @@ public class ReplayTargetSpectateSystem : ModSystem
 
         target = -1;
         npcTarget = -1;
+        netSyncTicks = 0;
 
         if (CanTarget(previewTarget))
             return;
@@ -106,7 +112,7 @@ public class ReplayTargetSpectateSystem : ModSystem
 
         Player local = Main.LocalPlayer;
         if (moveCameraToLocal && local?.active == true)
-            CameraFadeEffect.SetScreenPosition(ClampScreenPosition(local.Center - new Vector2(Main.screenWidth, Main.screenHeight) * 0.5f), allowFade: true);
+            SpectateCameraFade.SetScreenPosition(ClampScreenPosition(local.Center - new Vector2(Main.screenWidth, Main.screenHeight) * 0.5f), allowFade: true);
     }
 
     public static bool IsTargeting(Player player)
@@ -126,7 +132,7 @@ public class ReplayTargetSpectateSystem : ModSystem
 
     public static Player GetPlayerTarget()
     {
-        if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
+        if (!ReplayMode.IsInPlayerMode(Main.LocalPlayer))
             return null;
 
         if (CanTarget(previewTarget))
@@ -140,12 +146,12 @@ public class ReplayTargetSpectateSystem : ModSystem
 
     public static Player GetLockedPlayerTarget()
     {
-        return ReplayMode.IsInReplayMode(Main.LocalPlayer) && CanTarget(target) ? Main.player[target] : null;
+        return ReplayMode.IsInPlayerMode(Main.LocalPlayer) && CanTarget(target) ? Main.player[target] : null;
     }
 
     public static NPC GetLockedNPCTarget()
     {
-        return ReplayMode.IsInReplayMode(Main.LocalPlayer) && CanTargetNPC(npcTarget) ? Main.npc[npcTarget] : null;
+        return ReplayMode.IsInPlayerMode(Main.LocalPlayer) && CanTargetNPC(npcTarget) ? Main.npc[npcTarget] : null;
     }
 
     public static string GetLockedTargetStatusText()
@@ -171,7 +177,7 @@ public class ReplayTargetSpectateSystem : ModSystem
         cameraTarget = nextCameraTarget;
 
         Vector2 screenPosition = ClampScreenPosition(center - new Vector2(Main.screenWidth, Main.screenHeight) * 0.5f);
-        CameraFadeEffect.SetScreenPosition(screenPosition, targetChanged);
+        SpectateCameraFade.SetScreenPosition(screenPosition, targetChanged);
     }
 
     public override void PostUpdatePlayers()
@@ -195,6 +201,8 @@ public class ReplayTargetSpectateSystem : ModSystem
             SnapLocalPlayerTo(npc.Center, GetNPCDirection(npc), forceFullSync: false);
             return;
         }
+
+        netSyncTicks = 0;
     }
 
     private static bool ShouldCancelFollowFromMovementInput()
@@ -219,6 +227,23 @@ public class ReplayTargetSpectateSystem : ModSystem
         local.direction = normalizedDirection;
         local.ghostDir = normalizedDirection;
         local.fallStart = (int)(local.position.Y / 16f);
+
+        SyncLocalPlayerPosition(forceFullSync);
+    }
+
+    private static void SyncLocalPlayerPosition(bool forceFullSync)
+    {
+        if (Main.netMode != NetmodeID.MultiplayerClient)
+            return;
+
+        Player local = Main.LocalPlayer;
+        NetMessage.SendData(MessageID.PlayerControls, -1, -1, null, local.whoAmI);
+
+        if (!forceFullSync && ++netSyncTicks < FullSyncIntervalTicks)
+            return;
+
+        netSyncTicks = 0;
+        NetMessage.SendData(MessageID.SyncPlayer, -1, -1, null, local.whoAmI);
     }
 
     private static int GetNPCDirection(NPC npc)
@@ -273,7 +298,7 @@ public class ReplayTargetSpectateSystem : ModSystem
         if (autoSpectatedFirstPlayer || target != -1 || npcTarget != -1)
             return;
 
-        if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
+        if (!ReplayMode.IsInPlayerMode(Main.LocalPlayer))
             return;
 
         for (int i = 0; i < Main.maxPlayers; i++)

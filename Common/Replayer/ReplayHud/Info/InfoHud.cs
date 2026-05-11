@@ -37,7 +37,7 @@ internal sealed class InfoHud : UIElement
     public InfoHud()
     {
         HAlign = 1f;
-        SetPanelLeft(PlayerHudOverlay.IsAnyOpen);
+        SetPanelLeft(TeammateHudOverlay.IsAnyOpen);
         Top.Set(TopOffset, 0f);
         Width.Set(PanelWidth, 0f);
 
@@ -91,7 +91,7 @@ internal sealed class InfoHud : UIElement
 
     private void UpdatePanelPosition()
     {
-        bool shouldShift = PlayerHudOverlay.IsAnyOpen;
+        bool shouldShift = TeammateHudOverlay.IsAnyOpen;
 
         if (shouldShift == isShiftedForPlayerHud)
             return;

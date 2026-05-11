@@ -36,8 +36,8 @@ public class ClientConfig : ModConfig
 
     [Header("Replaying")]
 
-    [BackgroundColor(150, 150, 150, 150)]
-    [DefaultValue(false)] public bool ShowWelcomeMessageOnEnterWorld;
+    [BackgroundColor(200, 60, 60, 230)]
+    [DefaultValue(true)] public bool ShowWelcomeMessageOnEnterWorld;
 
     [BackgroundColor(200, 60, 60, 230)]
     [DefaultValue(true)]

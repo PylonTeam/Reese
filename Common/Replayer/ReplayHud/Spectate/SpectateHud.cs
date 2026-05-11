@@ -161,9 +161,6 @@ internal sealed class SpectateHud : UIPanel
             playerCard.Left.Set(cardsStart + i * (cardWidth + cardGap), 0f);
             playerCard.OnLeftClick += (evt, element) =>
             {
-                if (evt.Target != playerCard)
-                    return;
-
                 ReplayTargetSpectateSystem.TogglePlayerTarget(playerIndex);
                 UpdateTarget();
                 UpdateStatusText();
@@ -341,10 +338,10 @@ internal sealed class SpectateHud : UIPanel
     {
         int direction = 0;
 
-        if (JustPressed(Keys.Left))
+        if (KeyboardHelper.Pressed(Keys.Left))
             direction = -1;
 
-        if (JustPressed(Keys.Right))
+        if (KeyboardHelper.Pressed(Keys.Right))
             direction = 1;
 
         if (direction != 0)
@@ -420,10 +417,6 @@ internal sealed class SpectateHud : UIPanel
         visibleTargetStart = Math.Clamp(visibleTargetStart, 0, maxVisibleTargetStart);
     }
 
-    private static bool JustPressed(Keys key)
-    {
-        return Main.keyState.IsKeyDown(key) && !Main.oldKeyState.IsKeyDown(key);
-    }
     #endregion
 
     #region Rebuild if player list changes

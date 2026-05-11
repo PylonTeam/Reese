@@ -6,7 +6,7 @@ using Terraria.GameInput;
 
 namespace Reese.Common.Replayer.ReplayHud.Spectate.TeammateOverlay;
 
-internal static class PlayerHudOverlay
+internal static class TeammateHudOverlay
 {
     private static int playerIndex = -1;
     private static bool releaseInventory = true;
@@ -115,10 +115,10 @@ internal static class PlayerHudOverlay
                 Vector2 inventoryPosition = new(20f, 20f);
                 InventoryDrawer.DrawInventory(sb, inventoryPosition, player, viewport);
                 DrawInventoryBuffs(sb, player, viewport, inventoryPosition);
-
+                Log.Chat("inv open");
                 return;
             }
-
+            Log.Chat("inv closed");
             InventoryDrawer.ClearOwnedHover();
             DrawHotbarHud(sb, player);
             DrawResourceAndBuffHud(sb, player);
@@ -127,16 +127,6 @@ internal static class PlayerHudOverlay
         {
             acceptingOverlayHover = false;
         }
-    }
-
-    public static void DrawInventoryHud(SpriteBatch sb, Player player)
-    {
-        DrawPlayerHud(sb, player, inventoryOpen: true);
-    }
-
-    public static void DrawCompactHud(SpriteBatch sb, Player player)
-    {
-        DrawPlayerHud(sb, player, inventoryOpen: false);
     }
 
     public static void DrawHotbarHud(SpriteBatch sb, Player player)

@@ -13,6 +13,8 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
 {
     public override void OnEnterWorld()
     {
+        Log.Chat($"OnEnterWorld: IsReplayPlayback={ReplaySession.IsReplayPlayback}, RecordClientIndex={ReplaySession.RecordClientIndex}, myPlayer={Main.myPlayer}, localActive={Main.LocalPlayer?.active}, ghost={Main.LocalPlayer?.ghost}, PendingReplayPath={Replayer.PendingReplayPathPublic}");
+
         if (!ReplaySession.IsReplayPlayback)
             return;
 

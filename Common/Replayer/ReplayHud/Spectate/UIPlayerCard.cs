@@ -193,8 +193,8 @@ internal sealed class UIPlayerCard : UIPanel
                 Ass.Icon_InventoryOpen,
                 "View inventory",
                 "Close inventory",
-                PlayerHudOverlay.Toggle,
-                PlayerHudOverlay.IsOpen)
+                TeammateHudOverlay.Toggle,
+                TeammateHudOverlay.IsOpen)
             ];
     }
 

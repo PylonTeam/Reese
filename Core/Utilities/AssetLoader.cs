@@ -16,8 +16,10 @@ namespace Reese.Core.Utilities;
 public static class Ass
 {
     // Replay tool assets
+    public static Asset<Texture2D> Icon_Arrow;
     public static Asset<Texture2D> Icon_Camera;
     public static Asset<Texture2D> Icon_CameraSmall;
+    public static Asset<Texture2D> Icon_Chest;
     public static Asset<Texture2D> Icon_NextFrame;
     public static Asset<Texture2D> Icon_Pause;
     public static Asset<Texture2D> Icon_Play;

@@ -29,23 +29,23 @@ Mods: {
 					Tooltip: Fade to black when switching camera target
 				}
 
+				ShowWelcomeMessageOnEnterWorld: {
+					Label: Show Welcome Message On Enter World
+					Tooltip: ""
+				}
+
+				replayHudPosition: {
+					Label: Replay Hud Position
+					Tooltip: ""
+				}
+
+				replayHudSize: {
+					Label: Replay Hud Size
+					Tooltip: ""
+				}
+
 				ShowDebugMessages: {
 					Label: Show Debug Messages
-					Tooltip: ""
-				}
-
-				replayHUDPosition: {
-					Label: Replay HUD Position
-					Tooltip: ""
-				}
-
-				replayHUDSize: {
-					Label: Replay HUD Size
-					Tooltip: ""
-				}
-
-				IsRecordingEnabled: {
-					Label: Is Recording Enabled
 					Tooltip: ""
 				}
 
@@ -54,23 +54,8 @@ Mods: {
 					Tooltip: ""
 				}
 
-				ShowWelcomeMessageOnEnterWorld: {
-					Label: Show Welcome Message On Enter World
-					Tooltip: ""
-				}
-
 				ShowDebugDrawer: {
 					Label: Show Debug Drawer
-					Tooltip: ""
-				}
-
-				replayHudPosition: {
-					Label: replay Hud Position
-					Tooltip: ""
-				}
-
-				replayHudSize: {
-					Label: replay Hud Size
 					Tooltip: ""
 				}
 			}
