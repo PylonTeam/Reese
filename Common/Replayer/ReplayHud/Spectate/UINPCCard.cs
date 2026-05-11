@@ -32,7 +32,7 @@ internal sealed class UINPCCard : UIPanel
             if (evt.Target != this)
                 return;
 
-            ReplayTargetSpectateSystem.ToggleNPCTarget(NPCIndex);
+            SpectatorTargetSystem.ToggleNPCTarget(NPCIndex);
         };
 
         AddActionButtons(GetNPCCardActions());
@@ -40,7 +40,7 @@ internal sealed class UINPCCard : UIPanel
 
     protected override void DrawSelf(SpriteBatch sb)
     {
-        bool isSelected = IsValidNPC(NPCIndex) && ReplayTargetSpectateSystem.IsLockedTargeting(Main.npc[NPCIndex]);
+        bool isSelected = IsValidNPC(NPCIndex) && SpectatorTargetSystem.IsLockedTargeting(Main.npc[NPCIndex]);
 
         if (isSelected)
         {
@@ -165,8 +165,8 @@ internal sealed class UINPCCard : UIPanel
                 Ass.Icon_Eye,
                 "Spectate NPC",
                 "Stop spectating",
-                ReplayTargetSpectateSystem.ToggleNPCTarget,
-                static npcIndex => IsValidNPC(npcIndex) && ReplayTargetSpectateSystem.IsLockedTargeting(Main.npc[npcIndex]))
+                SpectatorTargetSystem.ToggleNPCTarget,
+                static npcIndex => IsValidNPC(npcIndex) && SpectatorTargetSystem.IsLockedTargeting(Main.npc[npcIndex]))
         ];
     }
 

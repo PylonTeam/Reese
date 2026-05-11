@@ -38,7 +38,7 @@ internal static class DebugDrawer
             DrawText($"{rect.Width}x\n{rect.Height}", new Vector2(rect.X + 2, rect.Y + 2), color ?? Color.White);
     }
 
-    internal static void DrawText(string content, Vector2 position, Color? color = null, float scale = 0.72f)
+    internal static void DrawText(string content, Vector2 position, Color? color = null, float scale = 0.8f)
     {
         Texts.Add((content, position, color ?? Color.White, scale));
     }
@@ -66,7 +66,7 @@ internal static class DebugDrawer
         const int startY = 80;
         const float textScale = 0.68f;
 
-        DrawText("Debug mode enabled!", new Vector2(startX, 52f), Color.Yellow);
+        DrawText("Debug mode enabled!", new Vector2(startX, 54f), Color.Yellow);
 
         for (int i = 0; i < buttons.Length; i++)
         {

@@ -55,7 +55,7 @@
 //            return;
 
 //        Player local = Main.LocalPlayer;
-//        if (local?.active != true || !SpectatorModeSystem.IsInSpectateMode(local))
+//        if (local?.active != true || !SpectatorTargetSystem.IsInSpectateMode(local))
 //            return;
 
 //        UpdateMovementMemory();

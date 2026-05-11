@@ -5,30 +5,31 @@ using Terraria.ID;
 namespace Reese.Common.Replayer.ReplayHud.Spectate;
 
 [Autoload(Side = ModSide.Client)]
-public class ReplayTargetSpectateSystem : ModSystem
+public class SpectatorTargetSystem : ModSystem
 {
-    private const int FullSyncIntervalTicks = 15;
-
     private static int target = -1;
     private static int npcTarget = -1;
     private static int previewTarget = -1;
     private static int cameraTarget = -1;
-    private static int netSyncTicks;
 
     private static bool autoSpectatedFirstPlayer;
 
     public static bool HasLockedTarget()
     {
-        return ReplayMode.IsInPlayerMode(Main.LocalPlayer) && (CanTarget(target) || CanTargetNPC(npcTarget));
+        return ReplayMode.IsInReplayMode(Main.LocalPlayer) && (CanTarget(target) || CanTargetNPC(npcTarget));
     }
 
     private static bool CanTarget(int playerId)
     {
-        return playerId >= 0 &&
-            playerId < Main.maxPlayers &&
-            playerId != Main.myPlayer &&
-            Main.player[playerId].active &&
-            (ReplayMode.IsInPlayerMode(Main.player[playerId]) || ReplayMode.IsInPlayerMode(Main.player[playerId]) || Main.player[playerId].ghost);
+        if (playerId < 0 || playerId >= Main.maxPlayers || playerId == Main.myPlayer)
+            return false;
+
+        Player p = Main.player[playerId];
+        bool inPlayerMode = ReplayMode.IsInPlayerMode(p);
+        bool isGhost = p.ghost;
+        bool result = p.active && (inPlayerMode || isGhost);
+
+        return result;
     }
 
     private static bool CanTargetNPC(int npcId)
@@ -40,10 +41,9 @@ public class ReplayTargetSpectateSystem : ModSystem
     {
         target = CanTarget(slot) ? slot : -1;
         npcTarget = -1;
-        netSyncTicks = 0;
 
         if (CanTarget(target))
-            SnapLocalPlayerTo(Main.player[target].Center, Main.player[target].direction, forceFullSync: true);
+            SnapLocalPlayerTo(Main.player[target].Center, Main.player[target].direction);
     }
 
     public static void SetNPCTarget(int slot)
@@ -51,10 +51,9 @@ public class ReplayTargetSpectateSystem : ModSystem
         npcTarget = CanTargetNPC(slot) ? slot : -1;
         target = -1;
         previewTarget = -1;
-        netSyncTicks = 0;
 
         if (CanTargetNPC(npcTarget))
-            SnapLocalPlayerTo(Main.npc[npcTarget].Center, GetNPCDirection(Main.npc[npcTarget]), forceFullSync: true);
+            SnapLocalPlayerTo(Main.npc[npcTarget].Center, GetNPCDirection(Main.npc[npcTarget]));
     }
 
     public static void TogglePlayerTarget(int slot)
@@ -103,7 +102,6 @@ public class ReplayTargetSpectateSystem : ModSystem
 
         target = -1;
         npcTarget = -1;
-        netSyncTicks = 0;
 
         if (CanTarget(previewTarget))
             return;
@@ -132,7 +130,7 @@ public class ReplayTargetSpectateSystem : ModSystem
 
     public static Player GetPlayerTarget()
     {
-        if (!ReplayMode.IsInPlayerMode(Main.LocalPlayer))
+        if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
             return null;
 
         if (CanTarget(previewTarget))
@@ -146,12 +144,14 @@ public class ReplayTargetSpectateSystem : ModSystem
 
     public static Player GetLockedPlayerTarget()
     {
-        return ReplayMode.IsInPlayerMode(Main.LocalPlayer) && CanTarget(target) ? Main.player[target] : null;
+        bool inReplayMode = ReplayMode.IsInReplayMode(Main.LocalPlayer);
+        bool canTarget = CanTarget(target);
+        return inReplayMode && canTarget ? Main.player[target] : null;
     }
 
     public static NPC GetLockedNPCTarget()
     {
-        return ReplayMode.IsInPlayerMode(Main.LocalPlayer) && CanTargetNPC(npcTarget) ? Main.npc[npcTarget] : null;
+        return ReplayMode.IsInReplayMode(Main.LocalPlayer) && CanTargetNPC(npcTarget) ? Main.npc[npcTarget] : null;
     }
 
     public static string GetLockedTargetStatusText()
@@ -192,17 +192,15 @@ public class ReplayTargetSpectateSystem : ModSystem
 
         if (GetLockedPlayerTarget() is Player player)
         {
-            SnapLocalPlayerTo(player.Center, player.direction, forceFullSync: false);
+            SnapLocalPlayerTo(player.Center, player.direction);
             return;
         }
 
         if (GetLockedNPCTarget() is NPC npc)
         {
-            SnapLocalPlayerTo(npc.Center, GetNPCDirection(npc), forceFullSync: false);
+            SnapLocalPlayerTo(npc.Center, GetNPCDirection(npc));
             return;
         }
-
-        netSyncTicks = 0;
     }
 
     private static bool ShouldCancelFollowFromMovementInput()
@@ -214,7 +212,7 @@ public class ReplayTargetSpectateSystem : ModSystem
         return local?.active == true && (local.controlLeft || local.controlRight || local.controlUp || local.controlDown);
     }
 
-    private static void SnapLocalPlayerTo(Vector2 center, int direction, bool forceFullSync)
+    private static void SnapLocalPlayerTo(Vector2 center, int direction)
     {
         Player local = Main.LocalPlayer;
         if (local?.active != true)
@@ -227,23 +225,6 @@ public class ReplayTargetSpectateSystem : ModSystem
         local.direction = normalizedDirection;
         local.ghostDir = normalizedDirection;
         local.fallStart = (int)(local.position.Y / 16f);
-
-        SyncLocalPlayerPosition(forceFullSync);
-    }
-
-    private static void SyncLocalPlayerPosition(bool forceFullSync)
-    {
-        if (Main.netMode != NetmodeID.MultiplayerClient)
-            return;
-
-        Player local = Main.LocalPlayer;
-        NetMessage.SendData(MessageID.PlayerControls, -1, -1, null, local.whoAmI);
-
-        if (!forceFullSync && ++netSyncTicks < FullSyncIntervalTicks)
-            return;
-
-        netSyncTicks = 0;
-        NetMessage.SendData(MessageID.SyncPlayer, -1, -1, null, local.whoAmI);
     }
 
     private static int GetNPCDirection(NPC npc)
@@ -298,7 +279,7 @@ public class ReplayTargetSpectateSystem : ModSystem
         if (autoSpectatedFirstPlayer || target != -1 || npcTarget != -1)
             return;
 
-        if (!ReplayMode.IsInPlayerMode(Main.LocalPlayer))
+        if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
             return;
 
         for (int i = 0; i < Main.maxPlayers; i++)

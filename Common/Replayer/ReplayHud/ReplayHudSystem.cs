@@ -43,15 +43,15 @@ public sealed class ReplayHudSystem : ModSystem
 
         if (IsReplayHudOpen())
         {
-            CloseReplayHud();
+            CloseFullHud();
         }
         else
         {
-            OpenReplayHud();
+            OpenFullHud();
         }
     }
 
-    public void OpenReplayHud()
+    public void OpenFullHud()
     {
         if (!ReplaySession.IsReplayPlayback)
             return;
@@ -60,9 +60,14 @@ public sealed class ReplayHudSystem : ModSystem
         Log.Chat("Replay HUD opened.");
     }
 
-    public void CloseReplayHud()
+    public void CloseFullHud()
     {
         replayHudInterface?.SetState(null);
+    }
+
+    public void ClosePlaybackHud()
+    {
+        replayHudState?.ClosePlaybackHud();
     }
 
     public bool IsReplayHudOpen()

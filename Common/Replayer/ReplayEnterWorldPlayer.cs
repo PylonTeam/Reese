@@ -13,7 +13,10 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
 {
     public override void OnEnterWorld()
     {
-        Log.Chat($"OnEnterWorld: IsReplayPlayback={ReplaySession.IsReplayPlayback}, RecordClientIndex={ReplaySession.RecordClientIndex}, myPlayer={Main.myPlayer}, localActive={Main.LocalPlayer?.active}, ghost={Main.LocalPlayer?.ghost}, PendingReplayPath={Replayer.PendingReplayPathPublic}");
+#if DEBUG
+        //string debug = $"OnEnterWorld: IsReplayPlayback={ReplaySession.IsReplayPlayback}, RecordClientIndex={ReplaySession.RecordClientIndex}, myPlayer={Main.myPlayer}, localActive={Main.LocalPlayer?.active}, ghost={Main.LocalPlayer?.ghost}, PendingReplayPath={Replayer.PendingReplayPathPublic}";
+        //ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{debug}"), Main.OurFavoriteColor, Player.whoAmI);
+#endif
 
         if (!ReplaySession.IsReplayPlayback)
             return;
@@ -33,7 +36,8 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
         string bigCameraItemTag = $"[i:{ModContent.ItemType<Icon_Camera>()}]";
 
         // Send the message
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{bigCameraItemTag} Welcome to your Reese replay! Now playing: '[c/FFFFFF:{fileName}]'"), Main.OurFavoriteColor, Player.whoAmI);
+        //ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{bigCameraItemTag} Welcome to your Reese replay! Now playing: '[c/FFFFFF:{fileName}]'"), Main.OurFavoriteColor, Player.whoAmI);
+        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{bigCameraItemTag} Welcome to your Reese replay!"), Main.OurFavoriteColor, Player.whoAmI);
         ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Here's a short guide:"), reeseColor, Player.whoAmI);
         ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Top HUD: spectate players"), reeseColor, Player.whoAmI);
         ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Bottom HUD: replay playback controls"), reeseColor, Player.whoAmI);

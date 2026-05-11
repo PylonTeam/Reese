@@ -33,7 +33,7 @@
 //            playerId < Main.maxPlayers &&
 //            playerId != Main.myPlayer &&
 //            Main.player[playerId].active &&
-//            (SpectatorModeSystem.IsInPlayerMode(Main.player[playerId]) || SpectatorModeSystem.IsInSpectateMode(Main.player[playerId]) || Main.player[playerId].ghost);
+//            (SpectatorTargetSystem.IsInPlayerMode(Main.player[playerId]) || SpectatorTargetSystem.IsInSpectateMode(Main.player[playerId]) || Main.player[playerId].ghost);
 //    }
 
 //    private static bool CanTargetNPC(int npcId)
@@ -151,7 +151,7 @@
 
 //    public static Player GetPlayerTarget()
 //    {
-//        if (!SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer))
+//        if (!SpectatorTargetSystem.IsInSpectateMode(Main.LocalPlayer))
 //            return null;
 
 //        if (CanTarget(previewTarget))
@@ -165,7 +165,7 @@
 
 //    public static Player GetLockedPlayerTarget()
 //    {
-//        if (!SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer) || !CanTarget(target))
+//        if (!SpectatorTargetSystem.IsInSpectateMode(Main.LocalPlayer) || !CanTarget(target))
 //            return null;
 
 //        return Main.player[target];
@@ -173,7 +173,7 @@
 
 //    public static NPC GetLockedNPCTarget()
 //    {
-//        if (!SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer) || !CanTargetNPC(npcTarget))
+//        if (!SpectatorTargetSystem.IsInSpectateMode(Main.LocalPlayer) || !CanTargetNPC(npcTarget))
 //            return null;
 
 //        return Main.npc[npcTarget];

@@ -9,7 +9,7 @@
 //{
 //    public override void EditSpawnRate(Player player, ref int spawnRate, ref int maxSpawns)
 //    {
-//        if (!SpectatorModeSystem.IsInSpectateMode(player))
+//        if (!SpectatorTargetSystem.IsInSpectateMode(player))
 //            return;
 
 //        spawnRate = int.MaxValue;

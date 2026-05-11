@@ -42,7 +42,7 @@ internal class GhostMovement : ModSystem
 
         bool moving = HasMovementInput(local) || IsRightClickTeleporting();
         if (moving)
-            ReplayTargetSpectateSystem.ClearTarget(moveCameraToLocal: false);
+            SpectatorTargetSystem.ClearTarget(moveCameraToLocal: false);
 
         local.Ghost();
 

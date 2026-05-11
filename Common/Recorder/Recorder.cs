@@ -229,6 +229,7 @@ public class Recorder : ModSystem, ITicker
         }
 
         ReplaySession.End("recording stopped");
+        DebugRecorderDiagnostics.Stop("recording stopped");
     }
 
     private static bool IsRecordingEnabledForThisInstance()

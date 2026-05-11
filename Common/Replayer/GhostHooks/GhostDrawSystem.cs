@@ -52,7 +52,7 @@ internal sealed class GhostDrawSystem : ModSystem
         if (drawPlayer == null || !drawPlayer.active || !drawPlayer.ghost)
             return true;
 
-        if (drawPlayer.whoAmI == Main.myPlayer && ReplayTargetSpectateSystem.HasLockedTarget())
+        if (drawPlayer.whoAmI == Main.myPlayer && SpectatorTargetSystem.HasLockedTarget())
             return false;
 
         return true;

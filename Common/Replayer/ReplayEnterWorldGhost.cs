@@ -108,7 +108,7 @@ internal class ReplayEnterWorldGhost : ModSystem
         fileData.SetAsActive();
 
         // Open replay hud, this is the only place where we open it!
-        ModContent.GetInstance<ReplayHudSystem>().OpenReplayHud();
+        ModContent.GetInstance<ReplayHudSystem>().OpenFullHud();
     }
 
     public override void OnWorldUnload()

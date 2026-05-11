@@ -47,6 +47,7 @@ public class Replayer : ModSystem, ITicker
 
         try
         {
+            ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
             SetReplayLoadingStatus("Opening replay");
             PendingReplayPath = replayPath;
 
@@ -55,6 +56,7 @@ public class Replayer : ModSystem, ITicker
             ActiveDurationTicks = replayFile.Metadata.DurationTicks;
 
             ReplaySession.BeginPlayback(replayPath);
+            DebugReplayerDiagnostics.Start(ActiveDurationTicks);
 
             SetReplayLoadingStatus("Starting replay client loop");
             Netplay.SetRemoteIP("127.0.0.1");
@@ -199,6 +201,7 @@ public class Replayer : ModSystem, ITicker
         if (!ReplaySession.IsReplayPlayback)
             return;
 
+        DebugReplayerDiagnostics.Stop(reason);
         MarkReplayEnded();
         Netplay.Disconnect = true;
         ReplaySession.End(reason);
@@ -281,6 +284,7 @@ public class Replayer : ModSystem, ITicker
 
             _closed = true;
             Log.Info("Closing replay socket");
+            DebugReplayerDiagnostics.Stop("playback socket closed");
             replayFile.Dispose();
             if (ReferenceEquals(CurrentReplaySocket, this))
                 CurrentReplaySocket = null;
@@ -408,6 +412,7 @@ public class Replayer : ModSystem, ITicker
                 return;
 
             _closed = true;
+            DebugReplayerDiagnostics.Stop(reason);
             Log.Info("Replay finished");
             replayFile.Dispose();
             if (ReferenceEquals(CurrentReplaySocket, this))

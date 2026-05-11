@@ -115,10 +115,8 @@ internal static class TeammateHudOverlay
                 Vector2 inventoryPosition = new(20f, 20f);
                 InventoryDrawer.DrawInventory(sb, inventoryPosition, player, viewport);
                 DrawInventoryBuffs(sb, player, viewport, inventoryPosition);
-                Log.Chat("inv open");
                 return;
             }
-            Log.Chat("inv closed");
             InventoryDrawer.ClearOwnedHover();
             DrawHotbarHud(sb, player);
             DrawResourceAndBuffHud(sb, player);
@@ -186,7 +184,7 @@ internal static class TeammateHudOverlay
             return Main.player[playerIndex];
         }
 
-        Player lockedTarget = ReplayTargetSpectateSystem.GetLockedPlayerTarget();
+        Player lockedTarget = SpectatorTargetSystem.GetLockedPlayerTarget();
         if (lockedTarget?.active == true)
         {
             inventoryOpen = false;

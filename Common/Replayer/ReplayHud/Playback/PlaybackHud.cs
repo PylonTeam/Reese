@@ -26,7 +26,7 @@ public sealed class PlaybackHud : DraggablePanel
 
     protected override void OnClosePanelLeftClick()
     {
-        //ModContent.GetInstance<ReplayUISystem>().CloseAllReplayUI();
+        ModContent.GetInstance<ReplayHudSystem>().ClosePlaybackHud();
     }
 
     protected override void OnRefreshPanelLeftClick()

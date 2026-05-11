@@ -18,5 +18,6 @@ internal enum SpectatorTab
 {
     NPCs,
     World,
-    Replay
+    Replay,
+    Players
 }

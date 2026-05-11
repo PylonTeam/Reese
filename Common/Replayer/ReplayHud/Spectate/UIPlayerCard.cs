@@ -37,7 +37,7 @@ internal sealed class UIPlayerCard : UIPanel
         bool isSelected = PlayerIndex >= 0 &&
             PlayerIndex < Main.maxPlayers &&
             Main.player[PlayerIndex]?.active == true &&
-            ReplayTargetSpectateSystem.IsLockedTargeting(Main.player[PlayerIndex]);
+            SpectatorTargetSystem.IsLockedTargeting(Main.player[PlayerIndex]);
 
         if (isSelected)
         {
@@ -185,8 +185,8 @@ internal sealed class UIPlayerCard : UIPanel
                 Ass.Icon_Eye,
                 "Follow player",
                 "Stop following",
-                ReplayTargetSpectateSystem.TogglePlayerTarget,
-                static playerIndex => Main.player[playerIndex]?.active == true && ReplayTargetSpectateSystem.IsLockedTargeting(Main.player[playerIndex])),
+                SpectatorTargetSystem.TogglePlayerTarget,
+                static playerIndex => Main.player[playerIndex]?.active == true && SpectatorTargetSystem.IsLockedTargeting(Main.player[playerIndex])),
 
             new PlayerCardAction(
                 Ass.Icon_InventoryClosed,

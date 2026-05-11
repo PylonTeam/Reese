@@ -47,7 +47,7 @@ internal class GhostInventoryControlSystem : ModSystem
 
     private static void ToggleSpectatedPlayerInventory()
     {
-        Player target = ReplayTargetSpectateSystem.GetPlayerTarget();
+        Player target = SpectatorTargetSystem.GetPlayerTarget();
 
         if (target?.active == true)
         {
@@ -67,7 +67,7 @@ internal class GhostInventoryControlSystem : ModSystem
             return;
         }
 
-        //if (SpectatorModeSystem.IsInSpectateMode(Main.LocalPlayer) || Main.LocalPlayer.ghost)
+        //if (SpectatorTargetSystem.IsInSpectateMode(Main.LocalPlayer) || Main.LocalPlayer.ghost)
         //{
         //    CloseOwnInventory();
         //    return;

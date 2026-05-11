@@ -29,9 +29,8 @@ internal sealed class InfoHud : UIElement
     public UIPanel ContentPanel;
 
     private readonly List<ITab> tabs = [];
-    private readonly List<SpectatorTabButton> tabButtons = [];
     private ITab currentTab;
-    private UIPanel tabPanel;
+    private SpectatorTabBar tabBar;
     private bool isShiftedForPlayerHud;
 
     public InfoHud()
@@ -52,11 +51,9 @@ internal sealed class InfoHud : UIElement
     public void Rebuild()
     {
         RemoveAllChildren();
-        tabButtons.Clear();
-
         TitlePanel = null;
         ContentPanel = null;
-        tabPanel = null;
+        tabBar = null;
 
         Height.Set(PanelHeight, 0f);
 
@@ -64,7 +61,7 @@ internal sealed class InfoHud : UIElement
         Append(TitlePanel);
 
         BuildTabPanel();
-        Append(tabPanel);
+        Append(tabBar);
 
         ContentPanel = new UIPanel
         {
@@ -125,24 +122,11 @@ internal sealed class InfoHud : UIElement
 
     private void BuildTabPanel()
     {
-        tabPanel = new UIPanel();
-        tabPanel.Top.Set(HeaderHeight, 0f);
-        tabPanel.Width.Set(0f, 1f);
-        tabPanel.Height.Set(TabHeight, 0f);
-        tabPanel.SetPadding(0f);
-        tabPanel.BackgroundColor = new Color(20, 20, 60) * 0.85f;
-        tabPanel.BorderColor = Color.Black;
-
-        for (int i = 0; i < tabs.Count; i++)
-        {
-            ITab capturedTab = tabs[i];
-            SpectatorTabButton button = new(capturedTab.HeaderText, capturedTab.TooltipText, capturedTab.Icon, capturedTab.IconScale, capturedTab.IconOffset, () => currentTab == capturedTab, () => ShowTab(capturedTab.Tab));
-            button.Left.Set(0f, i / (float)tabs.Count);
-            button.Width.Set(0f, 1f / tabs.Count);
-
-            tabPanel.Append(button);
-            tabButtons.Add(button);
-        }
+        tabBar = new SpectatorTabBar();
+        tabBar.Top.Set(HeaderHeight, 0f);
+        tabBar.Width.Set(0f, 1f);
+        tabBar.Height.Set(TabHeight, 0f);
+        tabBar.BuildTabs(tabs, () => currentTab, ShowTab, 1f);
     }
 
     private void ShowTab(SpectatorTab tab)
@@ -163,8 +147,7 @@ internal sealed class InfoHud : UIElement
         ContentPanel.Append(element);
         currentTab.Refresh();
 
-        foreach (SpectatorTabButton button in tabButtons)
-            button.Recalculate();
+        tabBar?.RefreshButtons();
 
         Recalculate();
     }
@@ -180,51 +163,4 @@ internal sealed class InfoHud : UIElement
         return null;
     }
 
-    private sealed class SpectatorTabButton : UIPanel
-    {
-        private readonly Func<bool> isSelected;
-        private readonly string hoverText;
-
-        public SpectatorTabButton(string headerText, string tooltipText, Asset<Texture2D> icon, float iconScale, Vector2 iconOffset, Func<bool> isSelected, Action onClick)
-        {
-            this.isSelected = isSelected;
-            hoverText = tooltipText;
-
-            Height.Set(0f, 1f);
-            VAlign = 0.5f;
-            SetPadding(0f);
-
-            OnLeftClick += (_, _) => onClick();
-
-            Append(new UIImage(icon.Value)
-            {
-                Left = new StyleDimension(6f + iconOffset.X, 0f),
-                Top = new StyleDimension(-5f + iconOffset.Y, 0f),
-                VAlign = 0.5f,
-                Width = new StyleDimension(20f, 0f),
-                Height = new StyleDimension(20f, 0f),
-                ImageScale = iconScale
-            });
-
-            Append(new UIText(headerText, textScale: 0.85f)
-            {
-                Left = new StyleDimension(38f, 0f),
-                VAlign = 0.5f
-            });
-        }
-
-        public override void Update(GameTime gameTime)
-        {
-            base.Update(gameTime);
-
-            BackgroundColor = isSelected() ? new Color(83, 97, 168) : new Color(63, 82, 151) * 0.85f;
-            BorderColor = IsMouseHovering ? Color.Yellow : isSelected() ? Color.White : Color.Black;
-
-            if (IsMouseHovering)
-            {
-                Main.LocalPlayer.mouseInterface = true;
-                Main.instance.MouseText(hoverText);
-            }
-        }
-    }
 }

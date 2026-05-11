@@ -1,9 +1,16 @@
-﻿using Microsoft.Xna.Framework.Input;
+﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
 using Reese.Core.Configs;
 using Reese.Core.Debug;
+using Reese.Core.Utilities;
+using ReLogic.Content;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
+using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
@@ -16,6 +23,13 @@ namespace Reese.Common.Replayer.ReplayHud.Spectate;
 /// </summary>
 internal sealed class SpectateHud : UIPanel
 {
+    private const float HeaderHeight = 32f;
+    private const float TabHeight = 36f;
+    private const float StatusTextScale = 0.85f;
+    private const float StatusPanelMinHeight = 28f;
+    private const float StatusPanelPadding = 6f;
+    private const float ContentGap = 4f;
+
     private const int MinShownPlayerCards = 1;
     private const int MaxShownPlayerCards = 3;
     private static int requestedShownPlayerCards = 1;
@@ -31,6 +45,14 @@ internal sealed class SpectateHud : UIPanel
     private int lockedNpc = -1; // currently locked spectated NPC index, -1 means no locked NPC target
     private int hovered = -1; // currently hovered spectated player index, -1 means no hovered target
     private UIText statusText; // UI element for displaying the current status like "Spectating: PlayerName" or "Free camera" or "Auto-director"
+    private string statusTextRaw = string.Empty;
+
+    private readonly List<ITab> tabs = [];
+    private ITab currentTab;
+    private SpectatorTabBar tabBar;
+    private UIPanel headerPanel;
+    private UIPanel contentPanel;
+    private UIPanel statusPanel;
 
     // Reflection
     private static readonly FieldInfo elementsField = typeof(UIElement).GetField("Elements", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -38,13 +60,18 @@ internal sealed class SpectateHud : UIPanel
     public SpectateHud()
     {
         Width.Set(GetPanelWidth(), 0f);
-        Height.Set(GetPanelHeight(), 0f);
+        Height.Set(0f, 0f);
         HAlign = 0.5f;
         //VAlign = 1f;
         //Top.Set(-25, 0f); // bottom padding
         ApplyTopOrBottomPosition(this, GetScale());
         //BackgroundColor = new Color(33, 43, 79) * 0.3f;
         BackgroundColor = new Color(73, 94, 171)*0.3f;
+
+        tabs.Add(new PlayersTab());
+        tabs.Add(new NPCsTab());
+        currentTab = tabs[0];
+
         Rebuild();
     }
 
@@ -52,22 +79,28 @@ internal sealed class SpectateHud : UIPanel
     {
         RemoveAllChildren();
 
-        // Universal scale
         float scale = GetScale();
-        //Log.Chat("scale: " + scale);
+        float outerPadding = GetOuterPadding(scale);
+        float headerHeight = GetHeaderHeight(scale);
+        float tabHeight = GetTabHeight(scale);
+        float playerPanelPadding = GetPlayerPanelPadding(scale);
+        float navButtonWidth = GetNavButtonWidth(scale);
+        float navButtonGap = GetNavButtonGap(scale);
+        float cardGap = GetCardGap(scale);
+        float cardWidth = UIPlayerCard.CardWidth * scale;
+        float cardHeight = UIPlayerCard.CardHeight * scale;
 
-        SetPadding(10f*scale);
+        SetPadding(outerPadding);
         Width.Set(GetPanelWidth(), 0f);
-        Height.Set(GetPanelHeight(), 0f);
-        //Top.Set(-25f * GetScale(), 0f); // bottom padding
-        ApplyTopOrBottomPosition(this, GetScale());
+        ApplyTopOrBottomPosition(this, scale);
 
-        //BackgroundColor = new Color(73, 94, 171)*0.8f;
         BackgroundColor = new Color(22, 28, 48) * 0.85f;
         BorderColor = Color.Black;
 
+        currentTab ??= tabs.Count > 0 ? tabs[0] : null;
+
         // Target filtering
-        List<int> targets = ReplayTargetSpectateSystem.GetTargets(Main.myPlayer);
+        List<int> targets = SpectatorTargetSystem.GetTargets(Main.myPlayer);
 
         for (int i = targets.Count - 1; i >= 0; i--)
         {
@@ -92,45 +125,112 @@ internal sealed class SpectateHud : UIPanel
 
         // Update the number of visible targets based on the number of player cards to show
         visibleTargetStart = Math.Clamp(visibleTargetStart, 0, Math.Max(0, targets.Count - shownPlayerCards));
-        int visibleTargets = Math.Min(targets.Count - visibleTargetStart, shownPlayerCards);
+        int visibleTargets = Math.Min(Math.Max(0, targets.Count - visibleTargetStart), shownPlayerCards);
 
         // Layout
-        float topRowHeight = GetNamePanelHeight(scale);
-        float topRowPadding = 4f * scale;
-        float rowGap = 4f * scale;
-        float playerPanelPadding = 4f * scale;
-        float navButtonWidth = 24f * scale;
-        float navButtonGap = 8f * scale;
-        float cardGap = 6f * scale;
-        float cardWidth = UIPlayerCard.CardWidth * scale;
-        float cardHeight = UIPlayerCard.CardHeight * scale;
         float shownCardsWidth = shownPlayerCards * cardWidth + Math.Max(0, shownPlayerCards - 1) * cardGap;
         float visibleCardsWidth = visibleTargets * cardWidth + Math.Max(0, visibleTargets - 1) * cardGap;
         float cardsStart = navButtonWidth + navButtonGap + Math.Max(0f, shownCardsWidth - visibleCardsWidth) * 0.5f;
 
-        // Add top row panel
-        UIPanel topRow = new();
-        topRow.SetPadding(topRowPadding);
-        topRow.Width.Set(0f, 1f);
-        topRow.Height.Set(topRowHeight, 0f);
-        topRow.BackgroundColor = new Color(35, 54, 96) * 0.85f;
-        topRow.BorderColor = Color.Black;
-        Append(topRow);
+        headerPanel = BuildHeaderPanel(headerHeight, scale);
+        Append(headerPanel);
 
-        // Update status text
-        statusText = new UIText("") { HAlign = 0.5f, VAlign = 0.5f };
-        topRow.Append(statusText);
+        tabBar = new SpectatorTabBar();
+        tabBar.Top.Set(headerHeight, 0f);
+        tabBar.Width.Set(0f, 1f);
+        tabBar.Height.Set(tabHeight, 0f);
+        tabBar.BuildTabs(tabs, () => currentTab, ShowTab, scale);
+        Append(tabBar);
+
+        contentPanel = new UIPanel();
+        contentPanel.SetPadding(playerPanelPadding);
+        contentPanel.Top.Set(headerHeight + tabHeight, 0f);
+        contentPanel.Width.Set(0f, 1f);
+        contentPanel.Height.Set(GetContentHeight(scale), 0f);
+        contentPanel.BackgroundColor = UICommon.DefaultUIBlueMouseOver * 0.3f;
+        contentPanel.BorderColor = Color.Black;
+        Append(contentPanel);
+
+        BuildContent(targets, visibleTargets, scale, playerPanelPadding, navButtonWidth, cardGap, cardWidth, cardHeight, cardsStart);
+
+        statusPanel = new UIPanel();
+        statusPanel.SetPadding(GetStatusPanelPadding(scale));
+        statusPanel.Width.Set(0f, 1f);
+        statusPanel.BackgroundColor = new Color(35, 54, 96) * 0.85f;
+        statusPanel.BorderColor = Color.Black;
+        Append(statusPanel);
+
+        statusText = new UIText("", textScale: GetStatusTextScale(scale))
+        {
+            HAlign = 0.5f,
+            VAlign = 0.5f,
+            TextColor = Color.White
+        };
+        statusPanel.Append(statusText);
+        statusTextRaw = string.Empty;
         UpdateStatusText();
 
-        // Add player panel
-        UIPanel playersPanel = new();
-        playersPanel.SetPadding(playerPanelPadding);
-        playersPanel.Top.Set(topRowHeight + rowGap, 0f);
-        playersPanel.Width.Set(0f, 1f);
-        playersPanel.Height.Set(cardHeight + playerPanelPadding * 2f, 0f);
-        playersPanel.BackgroundColor = UICommon.DefaultUIBlueMouseOver * 0.3f;
-        playersPanel.BorderColor = Color.Black;
-        Append(playersPanel);
+        Recalculate();
+    }
+
+    private void ShowTab(SpectatorTab tab)
+    {
+        ITab nextTab = GetTab(tab);
+
+        if (nextTab == null || currentTab == nextTab)
+            return;
+
+        currentTab = nextTab;
+        Rebuild();
+    }
+
+    private ITab GetTab(SpectatorTab tab)
+    {
+        foreach (ITab candidate in tabs)
+        {
+            if (candidate.Tab == tab)
+                return candidate;
+        }
+
+        return null;
+    }
+
+    private static UIPanel BuildHeaderPanel(float height, float scale)
+    {
+        UIPanel panel = new();
+        panel.Height.Set(height, 0f);
+        panel.Width.Set(0f, 1f);
+        panel.SetPadding(0f);
+        panel.BackgroundColor = new Color(63, 82, 151);
+        panel.BorderColor = Color.Black;
+
+        panel.Append(new UIText("Spectate Info", large: false, textScale: 1f * scale)
+        {
+            HAlign = 0.5f,
+            VAlign = 0.5f
+        });
+
+        return panel;
+    }
+
+    private void BuildContent(
+        List<int> targets,
+        int visibleTargets,
+        float scale,
+        float playerPanelPadding,
+        float navButtonWidth,
+        float cardGap,
+        float cardWidth,
+        float cardHeight,
+        float cardsStart)
+    {
+        if (contentPanel == null)
+            return;
+
+        contentPanel.RemoveAllChildren();
+
+        if (currentTab?.Tab != SpectatorTab.Players)
+            return;
 
         if (targets.Count == 0)
         {
@@ -141,15 +241,12 @@ internal sealed class SpectateHud : UIPanel
                 TextColor = Color.LightGray
             };
 
-            playersPanel.Append(noPlayersText);
-            Recalculate();
+            contentPanel.Append(noPlayersText);
             return;
         }
 
-        // Add previous button
-        AddPrevButton(playersPanel, playerPanelPadding, navButtonWidth, cardHeight, scale);
+        AddPrevButton(contentPanel, playerPanelPadding, navButtonWidth, cardHeight, scale);
 
-        // Add player cards
         for (int i = 0; i < visibleTargets; i++)
         {
             int targetIndex = visibleTargetStart + i;
@@ -161,17 +258,14 @@ internal sealed class SpectateHud : UIPanel
             playerCard.Left.Set(cardsStart + i * (cardWidth + cardGap), 0f);
             playerCard.OnLeftClick += (evt, element) =>
             {
-                ReplayTargetSpectateSystem.TogglePlayerTarget(playerIndex);
+                SpectatorTargetSystem.TogglePlayerTarget(playerIndex);
                 UpdateTarget();
                 UpdateStatusText();
-            }; 
-            playersPanel.Append(playerCard);
+            };
+            contentPanel.Append(playerCard);
         }
 
-        // Add next button
-        AddNextButton(playersPanel, playerPanelPadding, navButtonWidth, cardHeight, scale);
-
-        Recalculate();
+        AddNextButton(contentPanel, playerPanelPadding, navButtonWidth, cardHeight, scale);
     }
 
     public override void Update(GameTime gameTime)
@@ -180,17 +274,25 @@ internal sealed class SpectateHud : UIPanel
 
         RebuildIfNeeded();
         RebuildIfCardCountChanged();
-        HandleTargetNavigationKeys(gameTime);
 
-        int nextHover = GetHoveredSlot();
-
-        if (nextHover != hovered)
+        if (currentTab?.Tab == SpectatorTab.Players)
         {
-            if (hovered >= 0)
-                EndHover();
+            HandleTargetNavigationKeys(gameTime);
 
-            if (nextHover >= 0)
-                BeginHover(nextHover);
+            int nextHover = GetHoveredSlot();
+
+            if (nextHover != hovered)
+            {
+                if (hovered >= 0)
+                    EndHover();
+
+                if (nextHover >= 0)
+                    BeginHover(nextHover);
+            }
+        }
+        else if (hovered >= 0)
+        {
+            EndHover();
         }
 
         if (IsMouseHovering)
@@ -202,10 +304,10 @@ internal sealed class SpectateHud : UIPanel
         int oldLocked = locked;
         int oldLockedNpc = lockedNpc;
 
-        Player target = ReplayTargetSpectateSystem.GetLockedPlayerTarget();
+        Player target = SpectatorTargetSystem.GetLockedPlayerTarget();
         locked = target?.active == true ? target.whoAmI : -1;
 
-        NPC npcTarget = ReplayTargetSpectateSystem.GetLockedNPCTarget();
+        NPC npcTarget = SpectatorTargetSystem.GetLockedNPCTarget();
         lockedNpc = npcTarget?.active == true ? npcTarget.whoAmI : -1;
 
         if (locked != oldLocked || lockedNpc != oldLockedNpc)
@@ -214,18 +316,10 @@ internal sealed class SpectateHud : UIPanel
 
     private int GetHoveredSlot()
     {
-        if (!ContainsPoint(Main.MouseScreen))
+        if (!ContainsPoint(Main.MouseScreen) || contentPanel == null)
             return -1;
 
-        for (int i = 0; i < Elements.Count; i++)
-        {
-            int playerIndex = GetHoveredSlot(Elements[i]);
-
-            if (playerIndex >= 0)
-                return playerIndex;
-        }
-
-        return -1;
+        return GetHoveredSlot(contentPanel);
     }
 
     private static int GetHoveredSlot(UIElement element)
@@ -253,14 +347,14 @@ internal sealed class SpectateHud : UIPanel
             return;
 
         hovered = playerIndex;
-        ReplayTargetSpectateSystem.SetPreviewTarget(playerIndex);
+        SpectatorTargetSystem.SetPreviewTarget(playerIndex);
         UpdateStatusText();
     }
 
     private void EndHover()
     {
         hovered = -1;
-        ReplayTargetSpectateSystem.ClearPreviewTarget();
+        SpectatorTargetSystem.ClearPreviewTarget();
         UpdateStatusText();
     }
 
@@ -285,12 +379,12 @@ internal sealed class SpectateHud : UIPanel
 
     private void UpdateStatusText()
     {
-        statusText?.SetText(GetStatusText());
+        SetStatusTextInternal(GetStatusText());
     }
 
     internal void SetStatusText(string text)
     {
-        statusText?.SetText(text);
+        SetStatusTextInternal(text);
     }
 
     internal void ResetStatusText()
@@ -298,16 +392,47 @@ internal sealed class SpectateHud : UIPanel
         UpdateStatusText();
     }
 
+    private void SetStatusTextInternal(string text)
+    {
+        if (statusText == null || statusPanel == null)
+            return;
+
+        text ??= string.Empty;
+
+        if (statusTextRaw == text)
+            return;
+
+        statusTextRaw = text;
+
+        float scale = GetScale();
+        string wrappedText = WrapStatusText(text, GetStatusTextMaxWidth(scale), GetStatusTextScale(scale), out int lineCount);
+        statusText.SetText(wrappedText, GetStatusTextScale(scale), false);
+        UpdateStatusPanelLayout(scale, lineCount);
+    }
+
+    private void UpdateStatusPanelLayout(float scale, int lineCount)
+    {
+        float lineHeight = FontAssets.MouseText.Value.LineSpacing * GetStatusTextScale(scale);
+        float textHeight = Math.Max(lineHeight, lineCount * lineHeight);
+        float padding = GetStatusPanelPadding(scale);
+        float statusHeight = Math.Max(textHeight + padding * 2f, StatusPanelMinHeight * scale);
+
+        statusPanel.Height.Set(statusHeight, 0f);
+        statusPanel.Top.Set(GetHeaderHeight(scale) + GetTabHeight(scale) + GetContentHeight(scale) + GetContentGap(scale), 0f);
+        Height.Set(GetPanelHeight(statusHeight, scale), 0f);
+        Recalculate();
+    }
+
     private static bool IsTargetValid(int playerIndex)
     {
-        return playerIndex >= 0 && ReplayTargetSpectateSystem.GetTargets(Main.myPlayer).Contains(playerIndex);
+        return playerIndex >= 0 && SpectatorTargetSystem.GetTargets(Main.myPlayer).Contains(playerIndex);
     }
 
     public static int ShownPlayerCardCount => lastShownPlayerCards;
 
     public static void ChangeShownPlayerCards(int direction)
     {
-        int targetCount = ReplayTargetSpectateSystem.GetTargets(Main.myPlayer).Count;
+        int targetCount = SpectatorTargetSystem.GetTargets(Main.myPlayer).Count;
         int maxShownPlayerCards = Math.Min(MaxShownPlayerCards, targetCount);
         int next = lastShownPlayerCards + direction;
 
@@ -369,11 +494,11 @@ internal sealed class SpectateHud : UIPanel
 
     private void NavigateTarget(int direction)
     {
-        List<int> targets = ReplayTargetSpectateSystem.GetTargets(Main.myPlayer);
+        List<int> targets = SpectatorTargetSystem.GetTargets(Main.myPlayer);
 
         if (targets.Count == 0)
         {
-            ReplayTargetSpectateSystem.ClearTarget();
+            SpectatorTargetSystem.ClearTarget();
             UpdateTarget();
             UpdateStatusText();
             return;
@@ -391,7 +516,7 @@ internal sealed class SpectateHud : UIPanel
 
         int playerIndex = targets[nextIndex];
 
-        ReplayTargetSpectateSystem.SetPlayerTarget(playerIndex);
+        SpectatorTargetSystem.SetPlayerTarget(playerIndex);
         locked = playerIndex;
         lockedNpc = -1;
 
@@ -504,10 +629,27 @@ internal sealed class SpectateHud : UIPanel
         return scale;
     }
 
-    private static float GetNamePanelHeight(float scale)
-    {
-        return 38f * scale;
-    }
+    private static float GetHeaderHeight(float scale) => HeaderHeight * scale;
+
+    private static float GetTabHeight(float scale) => TabHeight * scale;
+
+    private static float GetOuterPadding(float scale) => 10f * scale;
+
+    private static float GetContentGap(float scale) => ContentGap * scale;
+
+    private static float GetPlayerPanelPadding(float scale) => 4f * scale;
+
+    private static float GetNavButtonWidth(float scale) => 24f * scale;
+
+    private static float GetNavButtonGap(float scale) => 8f * scale;
+
+    private static float GetCardGap(float scale) => 6f * scale;
+
+    private static float GetStatusPanelPadding(float scale) => StatusPanelPadding * scale;
+
+    private static float GetStatusTextScale(float scale) => StatusTextScale * scale;
+
+    private static float GetContentHeight(float scale) => UIPlayerCard.CardHeight * scale + GetPlayerPanelPadding(scale) * 2f;
 
     private static int GetShownPlayerCardsForTargetCount(int targetCount)
     {
@@ -520,30 +662,75 @@ internal sealed class SpectateHud : UIPanel
         return Math.Clamp(desired, MinShownPlayerCards, maxShownPlayerCards);
     }
 
-    private static int GetPanelHeight()
+    private static float GetPanelHeight(float statusPanelHeight, float scale)
     {
-        float scale = GetScale();
+        float outerPadding = GetOuterPadding(scale);
+        float contentHeight = GetContentHeight(scale);
+        float headerHeight = GetHeaderHeight(scale);
+        float tabHeight = GetTabHeight(scale);
+        float rowGap = GetContentGap(scale);
 
-        float outerPadding = 10f * scale;
-        float topRowHeight = GetNamePanelHeight(scale);
-        float rowGap = 4f * scale;
-        float playerPanelPadding = 4f * scale;
-        float cardHeight = UIPlayerCard.CardHeight * scale;
-
-        return (int)(outerPadding * 2f + topRowHeight + rowGap + cardHeight + playerPanelPadding * 2f);
+        return outerPadding * 2f + headerHeight + tabHeight + contentHeight + rowGap + statusPanelHeight;
     }
 
     private int GetPanelWidth()
     {
         float scale = GetScale();
-        float outerPadding = 10f * scale;
-        float playerPanelPadding = 4f * scale;
-        float navButtonWidth = 24f * scale;
-        float navButtonGap = 8f * scale;
-        float cardGap = 6f * scale;
+        float outerPadding = GetOuterPadding(scale);
+        float playerPanelPadding = GetPlayerPanelPadding(scale);
+        float navButtonWidth = GetNavButtonWidth(scale);
+        float navButtonGap = GetNavButtonGap(scale);
+        float cardGap = GetCardGap(scale);
         float cardWidth = UIPlayerCard.CardWidth * scale;
 
         return (int)(outerPadding * 2f + playerPanelPadding * 2f + shownPlayerCards * cardWidth + Math.Max(0, shownPlayerCards - 1) * cardGap + navButtonWidth * 2f + navButtonGap * 2f);
+    }
+
+    private float GetStatusTextMaxWidth(float scale)
+    {
+        float outerPadding = GetOuterPadding(scale);
+        float statusPadding = GetStatusPanelPadding(scale);
+        float width = GetPanelWidth() - outerPadding * 2f - statusPadding * 2f;
+        return Math.Max(40f * scale, width);
+    }
+
+    private static string WrapStatusText(string text, float maxWidth, float textScale, out int lineCount)
+    {
+        lineCount = 1;
+
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        if (maxWidth <= 0f)
+            return text;
+
+        var font = FontAssets.MouseText.Value;
+        string[] words = text.Split(' ');
+        StringBuilder builder = new();
+        float lineWidth = 0f;
+        int lines = 1;
+
+        for (int i = 0; i < words.Length; i++)
+        {
+            string word = words[i];
+            string token = lineWidth == 0f ? word : " " + word;
+            float tokenWidth = font.MeasureString(token).X * textScale;
+
+            if (lineWidth > 0f && lineWidth + tokenWidth > maxWidth)
+            {
+                builder.Append('\n');
+                lines++;
+                lineWidth = 0f;
+                token = word;
+                tokenWidth = font.MeasureString(token).X * textScale;
+            }
+
+            builder.Append(token);
+            lineWidth += tokenWidth;
+        }
+
+        lineCount = Math.Max(1, lines);
+        return builder.ToString();
     }
 
     private void AddPrevButton(UIPanel playersPanel, float playerPanelPadding, float navButtonWidth, float cardHeight, float scale)
@@ -558,7 +745,7 @@ internal sealed class SpectateHud : UIPanel
         prevButton.OnMouseOver += (evt, element) =>
         {
             prevButton.BorderColor = Color.Yellow;
-            statusText?.SetText("Go to previous player");
+            SetStatusText("Go to previous player");
         };
         prevButton.OnMouseOut += (evt, element) =>
         {
@@ -583,7 +770,7 @@ internal sealed class SpectateHud : UIPanel
         nextButton.OnMouseOver += (evt, element) =>
         {
             nextButton.BorderColor = Color.Yellow;
-            statusText?.SetText("Go to next player");
+            SetStatusText("Go to next player");
         };
         nextButton.OnMouseOut += (evt, element) =>
         {
@@ -594,5 +781,33 @@ internal sealed class SpectateHud : UIPanel
         playersPanel.Append(nextButton);
     }
     #endregion
+
+    private sealed class PlayersTab : ITab
+    {
+        public SpectatorTab Tab => SpectatorTab.Players;
+        public string HeaderText => "Players";
+        public string TooltipText => "Spectate players";
+        public Asset<Texture2D> Icon => Ass.Icon_Player;
+        public float IconScale => 1f;
+        public Vector2 IconOffset => new(0f, -2f);
+
+        public void Refresh()
+        {
+        }
+    }
+
+    private sealed class NPCsTab : ITab
+    {
+        public SpectatorTab Tab => SpectatorTab.NPCs;
+        public string HeaderText => "NPCs";
+        public string TooltipText => "Spectate NPCs";
+        public Asset<Texture2D> Icon => Ass.Icon_NPC;
+        public float IconScale => 1f;
+        public Vector2 IconOffset => new(0f, -2f);
+
+        public void Refresh()
+        {
+        }
+    }
 
 }

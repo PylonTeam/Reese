@@ -86,4 +86,9 @@ public class ReplayHudState : UIState
 
         Spectate.TeammateOverlay.TeammateHudOverlay.Clear();
     }
+
+    public void ClosePlaybackHud()
+    {
+        playbackHud?.Remove();
+    }
 }
