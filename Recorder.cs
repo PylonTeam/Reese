@@ -229,14 +229,13 @@ public class Recorder : ModSystem, ITicker
         }
 
         ReplaySession.End("recording stopped");
-        DebugRecorderDiagnostics.Stop("recording stopped");
     }
 
     private static bool IsRecordingEnabledForThisInstance()
     {
         // todo: this may be modified in the future
         // currently it will only be stored on dedicated servers, but we may want to allow local singleplayer recording at some point, so let's keep the logic flexible
-        return Main.dedServ; 
+        return Main.dedServ;
     }
 
     private static void WriteBaseline(RemoteClient recordClient, string recordClientName)

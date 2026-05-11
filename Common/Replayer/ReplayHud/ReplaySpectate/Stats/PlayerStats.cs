@@ -66,10 +66,10 @@ internal static class PlayerStats
         player => $"{Math.Round(Vector2.Distance(Main.LocalPlayer.Center, player.Center) / 16f)} tiles");
 
     //public static readonly PlayerStatDefinition SessionTime = new(
-        //"SessionTime",
-        //"Session",
-        //Ass.Icon_Time,
-        //player => SessionTracker.GetSessionDuration(player.whoAmI));
+    //"SessionTime",
+    //"Session",
+    //Ass.Icon_Time,
+    //player => SessionTracker.GetSessionDuration(player.whoAmI));
 
     //public static readonly PlayerStatDefinition Ping = new(
     //    "Ping",
@@ -78,6 +78,18 @@ internal static class PlayerStats
     //    player => $"{GetPlayerPingMs(player)} ms");
 
     #region Main menu stats
+    public static PlayerStatSnapshot BuildMainMenuDateStat(string dateText)
+    {
+        dateText = string.IsNullOrWhiteSpace(dateText) ? "Error" : dateText.Trim();
+        return new PlayerStatSnapshot("Created", dateText, $"Date created: {dateText}", Ass.Icon_Watch, null);
+    }
+
+    public static PlayerStatSnapshot BuildMainMenuLengthStat(string lengthText)
+    {
+        lengthText = string.IsNullOrWhiteSpace(lengthText) ? "Error" : lengthText.Trim();
+        return new PlayerStatSnapshot("Length", lengthText, $"Length: {lengthText}", Ass.Icon_Watch, null);
+    }
+
     public static PlayerStatSnapshot BuildMainMenuWorldNameStat(string worldName)
     {
         worldName = string.IsNullOrWhiteSpace(worldName) ? "-" : worldName.Trim();

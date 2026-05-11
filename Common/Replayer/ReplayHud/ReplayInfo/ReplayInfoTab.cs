@@ -45,7 +45,7 @@ internal sealed class ReplayInfoTab : TabPage
             ];
         }
 
-        private static ReplayMetadata Metadata => Replayer.ActiveMetadata;
+        //private static ReplayMetadata Metadata => Replayer.ActiveMetadata;
 
         private static string GetFileText()
         {
@@ -65,24 +65,26 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static string GetRecordedText()
         {
-            string created = Metadata?.CreatedUtc;
+            //string created = Metadata?.CreatedUtc;
 
-            if (DateTime.TryParse(created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date))
-                return date.ToLocalTime().ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
+            //if (DateTime.TryParse(created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date))
+            //    return date.ToLocalTime().ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
 
             return "-";
         }
 
         private static string GetPlaybackText()
         {
-            uint currentTick = Replayer.CurrentTick;
-            uint durationTicks = GetDurationTicks();
-            int tickRate = GetTickRate();
+            return "";
 
-            if (durationTicks == 0)
-                return FormatDuration(currentTick, tickRate);
+            //uint currentTick = Replayer.CurrentTick;
+            //uint durationTicks = GetDurationTicks();
+            //int tickRate = GetTickRate();
 
-            return $"{FormatDuration(currentTick, tickRate)} / {FormatDuration(durationTicks, tickRate)}";
+            //if (durationTicks == 0)
+            //    return FormatDuration(currentTick, tickRate);
+
+            //return $"{FormatDuration(currentTick, tickRate)} / {FormatDuration(durationTicks, tickRate)}";
         }
 
         private static string GetLengthText()
@@ -93,17 +95,20 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static string GetWorldText()
         {
-            return EmptyToDash(Metadata?.WorldName);
+            return "-";
+            //return EmptyToDash(Metadata?.WorldName);
         }
 
         private static uint GetDurationTicks()
         {
-            return Metadata?.DurationTicks > 0 ? Metadata.DurationTicks : Replayer.ActiveDurationTicks;
+            return uint.MaxValue;
+            //return Metadata?.DurationTicks > 0 ? Metadata.DurationTicks : Replayer.ActiveDurationTicks;
         }
 
         private static int GetTickRate()
         {
-            return Math.Max(1, Metadata?.TickRate ?? 60);
+            return -1;
+            //return Math.Max(1, Metadata?.TickRate ?? 60);
         }
 
         private static string FormatDuration(uint ticks, int tickRate)
@@ -232,18 +237,20 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static IReadOnlyList<ModEntry> GetModEntries()
         {
-            string[] modNames = Replayer.ActiveMetadata?.ModNames ?? [];
-            List<ModEntry> entries = [];
+            return [new ModEntry()];
 
-            foreach (string modName in modNames)
-            {
-                if (string.IsNullOrWhiteSpace(modName))
-                    continue;
+            //string[] modNames = Replayer.ActiveMetadata?.ModNames ?? [];
+            //List<ModEntry> entries = [];
 
-                entries.Add(CreateModEntry(modName));
-            }
+            //foreach (string modName in modNames)
+            //{
+            //    if (string.IsNullOrWhiteSpace(modName))
+            //        continue;
 
-            return entries;
+            //    entries.Add(CreateModEntry(modName));
+            //}
+
+            //return entries;
         }
 
         private static ModEntry CreateModEntry(string modName)

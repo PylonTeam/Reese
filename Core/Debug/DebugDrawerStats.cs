@@ -33,35 +33,35 @@ internal static class DebugDrawerStats
     {
         List<string> rows = [];
 
-        rows.Add($"Active: {DebugRecorderDiagnostics.IsActive}");
-        rows.Add($"File: {GetFileNameOrNone(ReplaySession.CurrentPath)}");
-        rows.Add($"Age: {FormatTimeSpan(DebugRecorderDiagnostics.SessionAge)}");
+        //rows.Add($"Active: {DebugRecorderDiagnostics.IsActive}");
+        //rows.Add($"File: {GetFileNameOrNone(ReplaySession.CurrentPath)}");
+        //rows.Add($"Age: {FormatTimeSpan(DebugRecorderDiagnostics.SessionAge)}");
 
-        rows.Add($"Tick: {DebugRecorderDiagnostics.CurrentTick}");
-        rows.Add($"Last write tick: {DebugRecorderDiagnostics.LastWriteTick}");
-        rows.Add($"Last delta: {DebugRecorderDiagnostics.LastTickDelta}");
+        //rows.Add($"Tick: {DebugRecorderDiagnostics.CurrentTick}");
+        //rows.Add($"Last write tick: {DebugRecorderDiagnostics.LastWriteTick}");
+        //rows.Add($"Last delta: {DebugRecorderDiagnostics.LastTickDelta}");
 
-        rows.Add($"Blocks written: {DebugRecorderDiagnostics.BlocksWritten}");
-        rows.Add($"Packets written: {DebugRecorderDiagnostics.PacketsWritten}");
-        rows.Add($"Packet bytes: {DebugRecorderDiagnostics.PacketBytesWritten}");
-        rows.Add($"File bytes: {DebugRecorderDiagnostics.FileBytesWritten}");
+        //rows.Add($"Blocks written: {DebugRecorderDiagnostics.BlocksWritten}");
+        //rows.Add($"Packets written: {DebugRecorderDiagnostics.PacketsWritten}");
+        //rows.Add($"Packet bytes: {DebugRecorderDiagnostics.PacketBytesWritten}");
+        //rows.Add($"File bytes: {DebugRecorderDiagnostics.FileBytesWritten}");
 
-        rows.Add($"Bytes/sec: {DebugRecorderDiagnostics.BytesPerSecond:0.##}");
-        rows.Add($"Packets/sec: {DebugRecorderDiagnostics.PacketsPerSecond:0.##}");
-        rows.Add($"Blocks/sec: {DebugRecorderDiagnostics.BlocksPerSecond:0.##}");
+        //rows.Add($"Bytes/sec: {DebugRecorderDiagnostics.BytesPerSecond:0.##}");
+        //rows.Add($"Packets/sec: {DebugRecorderDiagnostics.PacketsPerSecond:0.##}");
+        //rows.Add($"Blocks/sec: {DebugRecorderDiagnostics.BlocksPerSecond:0.##}");
 
-        rows.Add($"Baseline block: {DebugRecorderDiagnostics.BaselineBlockBytes}");
-        rows.Add($"Last block: {DebugRecorderDiagnostics.LastBlockBytes}");
-        rows.Add($"Max block: {DebugRecorderDiagnostics.MaxBlockBytes}");
-        rows.Add($"Zero-delta blocks: {DebugRecorderDiagnostics.ZeroDeltaBlocks}");
+        //rows.Add($"Baseline block: {DebugRecorderDiagnostics.BaselineBlockBytes}");
+        //rows.Add($"Last block: {DebugRecorderDiagnostics.LastBlockBytes}");
+        //rows.Add($"Max block: {DebugRecorderDiagnostics.MaxBlockBytes}");
+        //rows.Add($"Zero-delta blocks: {DebugRecorderDiagnostics.ZeroDeltaBlocks}");
 
-        rows.Add($"Malformed packets: {DebugRecorderDiagnostics.MalformedPacketData}");
-        rows.Add($"Trailing bytes: {DebugRecorderDiagnostics.TrailingPacketBytes}");
-        rows.Add($"Top packet IDs: {DebugRecorderDiagnostics.GetTopMessages()}");
+        //rows.Add($"Malformed packets: {DebugRecorderDiagnostics.MalformedPacketData}");
+        //rows.Add($"Trailing bytes: {DebugRecorderDiagnostics.TrailingPacketBytes}");
+        //rows.Add($"Top packet IDs: {DebugRecorderDiagnostics.GetTopMessages()}");
 
-        rows.Add($"Last event: {DebugRecorderDiagnostics.LastEvent}");
-        rows.Add($"Last warning: {DebugRecorderDiagnostics.LastWarning}");
-        rows.Add($"Last error: {DebugRecorderDiagnostics.LastError}");
+        //rows.Add($"Last event: {DebugRecorderDiagnostics.LastEvent}");
+        //rows.Add($"Last warning: {DebugRecorderDiagnostics.LastWarning}");
+        //rows.Add($"Last error: {DebugRecorderDiagnostics.LastError}");
 
         groups.Add(new DebugDrawer.DebugStatGroup("Debug Recorder Stats", new Color(255, 120, 120), () => DebugDrawer.ShowDebugRecorderStats, [.. rows]));
     }
@@ -70,38 +70,38 @@ internal static class DebugDrawerStats
     {
         List<string> rows = [];
 
-        rows.Add($"Active: {DebugReplayerDiagnostics.IsActive}");
-        rows.Add($"Socket active: {Replayer.IsPlaybackSocketActive}");
-        rows.Add($"File: {GetFileNameOrNone(ReplaySession.CurrentPath)}");
-        rows.Add($"Age: {FormatTimeSpan(DebugReplayerDiagnostics.SessionAge)}");
+        //rows.Add($"Active: {DebugReplayerDiagnostics.IsActive}");
+        //rows.Add($"Socket active: {Replayer.IsPlaybackSocketActive}");
+        //rows.Add($"File: {GetFileNameOrNone(ReplaySession.CurrentPath)}");
+        //rows.Add($"Age: {FormatTimeSpan(DebugReplayerDiagnostics.SessionAge)}");
 
-        rows.Add($"Tick: {DebugReplayerDiagnostics.CurrentTick} / {DebugReplayerDiagnostics.DurationTicks} ({DebugReplayerDiagnostics.Progress * 100f:0.##}%)");
-        rows.Add($"Time: {FormatTicks(DebugReplayerDiagnostics.CurrentTick)} / {FormatTicks(DebugReplayerDiagnostics.DurationTicks)}");
-        rows.Add($"Ticks/sec: {DebugReplayerDiagnostics.TicksPerSecond:0.##}");
+        //rows.Add($"Tick: {DebugReplayerDiagnostics.CurrentTick} / {DebugReplayerDiagnostics.DurationTicks} ({DebugReplayerDiagnostics.Progress * 100f:0.##}%)");
+        //rows.Add($"Time: {FormatTicks(DebugReplayerDiagnostics.CurrentTick)} / {FormatTicks(DebugReplayerDiagnostics.DurationTicks)}");
+        //rows.Add($"Ticks/sec: {DebugReplayerDiagnostics.TicksPerSecond:0.##}");
 
-        rows.Add($"Waiting: {DebugReplayerDiagnostics.WaitingForTick}");
-        rows.Add($"Waiting for tick: {DebugReplayerDiagnostics.WaitingForReplayTick}");
-        rows.Add($"Reached EOF: {DebugReplayerDiagnostics.ReachedEof}");
+        //rows.Add($"Waiting: {DebugReplayerDiagnostics.WaitingForTick}");
+        //rows.Add($"Waiting for tick: {DebugReplayerDiagnostics.WaitingForReplayTick}");
+        //rows.Add($"Reached EOF: {DebugReplayerDiagnostics.ReachedEof}");
 
-        rows.Add($"Receive calls: {DebugReplayerDiagnostics.ReceiveCalls}");
-        rows.Add($"Zero-byte receives: {DebugReplayerDiagnostics.ZeroByteReceives}");
-        rows.Add($"Incoming packets: {DebugReplayerDiagnostics.IncomingPackets}");
-        rows.Add($"Incoming bytes: {DebugReplayerDiagnostics.IncomingPacketBytes}");
-        rows.Add($"Incoming malformed: {DebugReplayerDiagnostics.IncomingMalformedPacketData}");
-        rows.Add($"Top incoming IDs: {DebugReplayerDiagnostics.GetTopIncomingMessages()}");
+        //rows.Add($"Receive calls: {DebugReplayerDiagnostics.ReceiveCalls}");
+        //rows.Add($"Zero-byte receives: {DebugReplayerDiagnostics.ZeroByteReceives}");
+        //rows.Add($"Incoming packets: {DebugReplayerDiagnostics.IncomingPackets}");
+        //rows.Add($"Incoming bytes: {DebugReplayerDiagnostics.IncomingPacketBytes}");
+        //rows.Add($"Incoming malformed: {DebugReplayerDiagnostics.IncomingMalformedPacketData}");
+        //rows.Add($"Top incoming IDs: {DebugReplayerDiagnostics.GetTopIncomingMessages()}");
 
-        rows.Add($"Ignored outgoing packets: {DebugReplayerDiagnostics.IgnoredOutgoingPackets}");
-        rows.Add($"Ignored outgoing malformed: {DebugReplayerDiagnostics.IgnoredOutgoingMalformedPacketData}");
-        rows.Add($"Last ignored outgoing: {DebugReplayerDiagnostics.LastIgnoredOutgoingSummary}");
-        rows.Add($"Top ignored outgoing IDs: {DebugReplayerDiagnostics.GetTopIgnoredOutgoingMessages()}");
+        //rows.Add($"Ignored outgoing packets: {DebugReplayerDiagnostics.IgnoredOutgoingPackets}");
+        //rows.Add($"Ignored outgoing malformed: {DebugReplayerDiagnostics.IgnoredOutgoingMalformedPacketData}");
+        //rows.Add($"Last ignored outgoing: {DebugReplayerDiagnostics.LastIgnoredOutgoingSummary}");
+        //rows.Add($"Top ignored outgoing IDs: {DebugReplayerDiagnostics.GetTopIgnoredOutgoingMessages()}");
 
-        rows.Add($"Seek count: {DebugReplayerDiagnostics.SeekCount}");
-        rows.Add($"Last seek target: {DebugReplayerDiagnostics.LastSeekTargetTick}");
-        rows.Add($"Reset-to-start count: {DebugReplayerDiagnostics.ResetToStartCount}");
+        //rows.Add($"Seek count: {DebugReplayerDiagnostics.SeekCount}");
+        //rows.Add($"Last seek target: {DebugReplayerDiagnostics.LastSeekTargetTick}");
+        //rows.Add($"Reset-to-start count: {DebugReplayerDiagnostics.ResetToStartCount}");
 
-        rows.Add($"Last event: {DebugReplayerDiagnostics.LastEvent}");
-        rows.Add($"Last warning: {DebugReplayerDiagnostics.LastWarning}");
-        rows.Add($"Last error: {DebugReplayerDiagnostics.LastError}");
+        //rows.Add($"Last event: {DebugReplayerDiagnostics.LastEvent}");
+        //rows.Add($"Last warning: {DebugReplayerDiagnostics.LastWarning}");
+        //rows.Add($"Last error: {DebugReplayerDiagnostics.LastError}");
 
         groups.Add(new DebugDrawer.DebugStatGroup("Debug Replayer Stats", new Color(120, 220, 255), () => DebugDrawer.ShowDebugReplayerStats, [.. rows]));
     }
@@ -213,11 +213,12 @@ internal static class DebugDrawerStats
 
     private static string GetReplayProgressText()
     {
-        if (Replayer.ActiveDurationTicks == 0)
-            return "0%";
+        return "null";
+        //if (Replayer.ActiveDurationTicks == 0)
+        //    return "0%";
 
-        float progress = Replayer.CurrentTick / (float)Replayer.ActiveDurationTicks;
-        return $"{progress * 100f:0.##}%";
+        //float progress = Replayer.CurrentTick / (float)Replayer.ActiveDurationTicks;
+        //return $"{progress * 100f:0.##}%";
     }
 
     private static string FormatTicks(uint ticks)
@@ -228,15 +229,17 @@ internal static class DebugDrawerStats
 
     private static string GetReplayMetadataText()
     {
-        ReplayMetadata metadata = Replayer.ActiveMetadata;
+        return "null";
 
-        if (metadata == null)
-            return "<none>";
+        //ReplayMetadata metadata = Replayer.ActiveMetadata;
 
-        string player = string.IsNullOrWhiteSpace(metadata.PlayerName) ? "?" : metadata.PlayerName;
-        string world = string.IsNullOrWhiteSpace(metadata.WorldName) ? "?" : metadata.WorldName;
+        //if (metadata == null)
+        //    return "<none>";
 
-        return $"player={player}, world={world}, duration={metadata.DurationTicks} ticks";
+        //string player = string.IsNullOrWhiteSpace(metadata.PlayerName) ? "?" : metadata.PlayerName;
+        //string world = string.IsNullOrWhiteSpace(metadata.WorldName) ? "?" : metadata.WorldName;
+
+        //return $"player={player}, world={world}, duration={metadata.DurationTicks} ticks";
     }
 
     private static string GetConnectionText()

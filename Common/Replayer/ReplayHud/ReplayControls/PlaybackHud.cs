@@ -74,7 +74,7 @@ public sealed class PlaybackHud : DraggablePanel
             if (!ModContent.GetInstance<ClientConfig>().IsSeekbarEnabled)
                 return;
 
-            Replayer.SeekToTick((uint)Math.Round(ratio * GetDurationTicks()));
+            //Replayer.SeekToTick((uint)Math.Round(ratio * GetDurationTicks()));
         };
         ContentPanel.Append(positionSlider);
 
@@ -90,7 +90,7 @@ public sealed class PlaybackHud : DraggablePanel
             CreateTransportButton(Ass.Icon_NextFrame, "Next Frame", StepOneFrame),
             CreateTransportButton(Ass.Icon_Play, "Play", Resume),
             CreateTransportButton(Ass.Icon_Pause, "Pause", Pause),
-            CreateTransportButton(Ass.Icon_Stop, "Stop Replay", () => Replayer.StopPlayback()),
+            //CreateTransportButton(Ass.Icon_Stop, "Stop Replay", () => Replayer.StopPlayback()),
             CreateTransportButton(Ass.Icon_SpeedUp, "Go to end", GoToEnd)
         ];
 
@@ -242,13 +242,13 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void GoToStart()
     {
-        Replayer.SeekToStart();
+        //Replayer.SeekToStart();
         RefreshVisualState();
     }
 
     private void GoToEnd()
     {
-        Replayer.SeekToEnd();
+        //Replayer.SeekToEnd();
         RefreshVisualState();
     }
 
@@ -256,35 +256,36 @@ public sealed class PlaybackHud : DraggablePanel
     {
         positionSlider.AllowsInput = ModContent.GetInstance<ClientConfig>().IsSeekbarEnabled;
 
-        uint durationTicks = GetDurationTicks();
-        uint currentTick = Math.Min(Replayer.CurrentTick, durationTicks);
-        float speed = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
-        bool paused = speed <= 0f;
+        //uint durationTicks = GetDurationTicks();
+        //uint currentTick = Math.Min(Replayer.CurrentTick, durationTicks);
+        //float speed = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
+        //bool paused = speed <= 0f;
 
-        positionSlider.SetRatio(currentTick / (float)durationTicks);
-        positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
-        speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
-        transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Tick: {currentTick}");
+        //positionSlider.SetRatio(currentTick / (float)durationTicks);
+        //positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
+        //speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
+        //transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Tick: {currentTick}");
 
-        for (int i = 0; i < speedButtons.Length; i++)
-        {
-            bool selected = Math.Abs(speed - SpeedPresets[i]) < 0.001f;
-            bool hovered = speedButtons[i].IsMouseHovering;
+        //for (int i = 0; i < speedButtons.Length; i++)
+        //{
+        //    bool selected = Math.Abs(speed - SpeedPresets[i]) < 0.001f;
+        //    bool hovered = speedButtons[i].IsMouseHovering;
 
-            speedButtons[i].BackgroundColor = selected ? new Color(73, 94, 171) : hovered ? new Color(61, 78, 141) : new Color(44, 57, 105);
-            speedButtons[i].BorderColor = selected || hovered ? Color.Yellow : Color.Black;
-        }
+        //    speedButtons[i].BackgroundColor = selected ? new Color(73, 94, 171) : hovered ? new Color(61, 78, 141) : new Color(44, 57, 105);
+        //    speedButtons[i].BorderColor = selected || hovered ? Color.Yellow : Color.Black;
+        //}
 
-        for (int i = 0; i < transportButtons.Length; i++)
-            transportButtons[i].SetSelected(false);
+        //for (int i = 0; i < transportButtons.Length; i++)
+        //    transportButtons[i].SetSelected(false);
 
-        transportButtons[2].SetSelected(!paused);
-        transportButtons[3].SetSelected(paused);
+        //transportButtons[2].SetSelected(!paused);
+        //transportButtons[3].SetSelected(paused);
     }
 
     private static uint GetDurationTicks()
     {
-        return Math.Max(1u, Replayer.ActiveDurationTicks);
+        return uint.MaxValue;
+        //return Math.Max(1u, Replayer.ActiveDurationTicks);
     }
 
     private static string FormatSpeedButton(float speed)

@@ -2,6 +2,7 @@ using Reese.Common.MainMenu.UI;
 using Reese.Common.Replayer;
 using Reese.Core.Debug;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Terraria.GameContent.UI.Elements;
@@ -49,8 +50,10 @@ internal sealed class ReplayBrowser : UIElement
 
             Main.LoadPlayers();
             var player = Main.PlayerList.FirstOrDefault();
+
             if (player == null)
             {
+                Log.Chat("Could not enter replay: no player found.");
                 Main.menuMode = 0;
                 return;
             }
@@ -60,7 +63,7 @@ internal sealed class ReplayBrowser : UIElement
 
             if (!File.Exists(demoPath))
             {
-                Log.Error("Error: No file demo found at: " + demoPath);
+                Log.Error("Error: No replay file found at: " + demoPath);
                 Main.menuMode = 0;
                 return;
             }
@@ -71,12 +74,19 @@ internal sealed class ReplayBrowser : UIElement
             try
             {
                 Replayer.Replayer.BeginPlayback(demoPath);
+                ReplaySession.BeginPlayback(demoPath);
+
+                Netplay.SetRemoteIP("10.2.3.4");
+                Main.autoPass = true;
+                Netplay.StartTcpClient();
+                Main.menuMode = 10;
             }
             catch (Exception e)
             {
-                Log.Error("Failed to start replay: " + e);
+                Log.Error("[ReplayBrowser] Failed to start replay: " + e);
                 Main.statusText = "Failed to start replay";
                 ReplaySession.End("playback launch failed");
+                Main.menuMode = 0;
             }
         });
     }
@@ -413,15 +423,24 @@ internal sealed class ReplayBrowserPanel : UIElement
             .OrderByDescending(File.GetLastWriteTime)
             .ToArray();
 
-        ReplayListEntry[] entries = new ReplayListEntry[files.Length];
+        List<ReplayListEntry> entries = [];
 
-        for (int i = 0; i < files.Length; i++)
-            entries[i] = ReplayListEntry.FromFile(files[i]);
+        foreach (string file in files)
+        {
+            try
+            {
+                entries.Add(ReplayListEntry.FromFile(file));
+            }
+            catch (Exception e)
+            {
+                Log.Warn($"Failed to build replay list entry for {Path.GetFileName(file)}: {e}");
+            }
+        }
 
         watch.Stop();
 
-        Log.Info($"Replay metadata load finished: entries={entries.Length}, ms={watch.ElapsedMilliseconds}");
-        return entries;
+        Log.Info($"Replay metadata load finished: entries={entries.Count}/{files.Length}, ms={watch.ElapsedMilliseconds}");
+        return [.. entries];
     }
 
     private ReplayListEntry[] SortEntries(ReplayListEntry[] entries)

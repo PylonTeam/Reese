@@ -24,8 +24,7 @@ internal sealed class ReplayListItem : UIPanel
 
     public ReplayListItem(ReplayListEntry entry, Action onEntryChanged, Action<string> onFavoriteToggled)
     {
-        var constructorWatch = System.Diagnostics.Stopwatch.StartNew();
-        ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(entry.FullPath);
+        ReplayDisplayInfo info = entry.Info;
         isFavorite = entry.IsFavorite;
 
         // Layout
@@ -50,7 +49,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // World Name
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuWorldNameStat(info.WorldName), 0.9f, iconScale: 1.25f)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuWorldNameStat(entry.WorldName), 0.9f, iconScale: 1.25f)
         {
             Left = { Pixels = ReplayBrowserLayout.PreviewColumnWidth + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
@@ -68,7 +67,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // Length
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(entry.Duration), 0.9f, drawIcon: false, centerText: true)
+        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(entry.DurationText), 0.9f, drawIcon: false, centerText: true)
         {
             Left = { Pixels = ReplayBrowserLayout.DurationLeft + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
@@ -146,11 +145,6 @@ internal sealed class ReplayListItem : UIPanel
 
             ReplayItemActions.Play(entry.FullPath);
         };
-
-        constructorWatch.Stop();
-
-        if (constructorWatch.ElapsedMilliseconds >= 20)
-            Log.Debug($"Replay row slow: {info.FileName} took {constructorWatch.ElapsedMilliseconds} ms");
     }
 
     private sealed class ReplayPreviewImageElement : UIElement

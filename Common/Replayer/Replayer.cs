@@ -1,9 +1,8 @@
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
-using Reese.Core.Debug;
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Sockets;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
+using Reese.Core.Debug;
 using Terraria;
 using Terraria.ModLoader;
 using Terraria.Net;
@@ -11,11 +10,6 @@ using Terraria.Net.Sockets;
 
 namespace Reese.Common.Replayer;
 
-/// <summary>
-/// Terraria client connected to fake socket
-/// fake socket receives from .reese file <see cref="ReplayFile"/>
-/// fake socket ignores outgoing packets
-/// </summary>
 [Autoload(Side = ModSide.Client)]
 public class Replayer : ModSystem, ITicker
 {
@@ -27,7 +21,6 @@ public class Replayer : ModSystem, ITicker
     public static bool IsPlaybackSocketActive => CurrentReplaySocket is { IsClosed: false };
 
     private static string PendingReplayPath;
-    public static string PendingReplayPathPublic => PendingReplayPath;
     private static ReplaySocket CurrentReplaySocket;
 
     public override void Load()
@@ -47,7 +40,6 @@ public class Replayer : ModSystem, ITicker
 
         try
         {
-            ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
             SetReplayLoadingStatus("Opening replay");
             PendingReplayPath = replayPath;
 
@@ -56,7 +48,6 @@ public class Replayer : ModSystem, ITicker
             ActiveDurationTicks = replayFile.Metadata.DurationTicks;
 
             ReplaySession.BeginPlayback(replayPath);
-            DebugReplayerDiagnostics.Start(ActiveDurationTicks);
 
             SetReplayLoadingStatus("Starting replay client loop");
             Netplay.SetRemoteIP("127.0.0.1");
@@ -122,7 +113,7 @@ public class Replayer : ModSystem, ITicker
 
         Ticks++;
         //if ((Ticks % 60) == 0)
-            //Log.Info("Client replay tick: " + Ticks);
+        //Log.Info("Client replay tick: " + Ticks);
     }
 
     public static uint CurrentTick => ModContent.GetInstance<Replayer>().Ticks;
@@ -201,7 +192,6 @@ public class Replayer : ModSystem, ITicker
         if (!ReplaySession.IsReplayPlayback)
             return;
 
-        DebugReplayerDiagnostics.Stop(reason);
         MarkReplayEnded();
         Netplay.Disconnect = true;
         ReplaySession.End(reason);
@@ -284,7 +274,6 @@ public class Replayer : ModSystem, ITicker
 
             _closed = true;
             Log.Info("Closing replay socket");
-            DebugReplayerDiagnostics.Stop("playback socket closed");
             replayFile.Dispose();
             if (ReferenceEquals(CurrentReplaySocket, this))
                 CurrentReplaySocket = null;
@@ -412,7 +401,6 @@ public class Replayer : ModSystem, ITicker
                 return;
 
             _closed = true;
-            DebugReplayerDiagnostics.Stop(reason);
             Log.Info("Replay finished");
             replayFile.Dispose();
             if (ReferenceEquals(CurrentReplaySocket, this))

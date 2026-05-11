@@ -1,4 +1,3 @@
-using Reese.Common.Replayer;
 using Reese.Core.Debug;
 using System;
 using System.Globalization;
@@ -15,60 +14,35 @@ public sealed class ReplayDisplayInfo
     public uint DurationTicks { get; init; }
     public DateTime Date { get; init; }
     public long FileSizeBytes { get; init; }
-    //public string PreviewImagePath { get; init; }
+    public bool FileExists { get; init; }
+    public bool HasMetadata { get; init; }
 
-    public string DurationText => FormatDurationText(Duration);
-    public string FileSizeText => FormatFileSizeText(FileSizeBytes);
+    public string DurationText => HasMetadata ? FormatDurationText(Duration) : "Error";
+    public string FileSizeText => FileExists ? FormatFileSizeText(FileSizeBytes) : "Error";
+    public string DateText => FileExists && Date != DateTime.MinValue ? Date.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) : "Error";
 
     public static ReplayDisplayInfo FromFile(string path)
     {
-        string fileName = Path.GetFileName(path);
-        long fileSizeBytes = File.Exists(path) ? new FileInfo(path).Length : 0;
-        DateTime date = File.Exists(path) ? File.GetLastWriteTime(path) : DateTime.MinValue;
+        bool fileExists = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
+        string fileName = string.IsNullOrWhiteSpace(path) ? "Error" : Path.GetFileName(path);
+        long fileSizeBytes = fileExists ? new FileInfo(path).Length : 0;
+        DateTime date = fileExists ? File.GetLastWriteTime(path) : DateTime.MinValue;
 
-        try
+        if (!fileExists)
+            Log.Warn($"Replay file missing: {path}");
+
+        return new ReplayDisplayInfo
         {
-            using ReplayFile replayFile = ReplayFile.Read(ReplayFile.OpenReadShared(path));
-            ReplayMetadata metadata = replayFile.Metadata ?? new ReplayMetadata();
-
-            if (DateTime.TryParse(metadata.CreatedUtc, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime createdUtc))
-                date = createdUtc.ToLocalTime();
-
-            int tickRate = metadata.TickRate > 0 ? metadata.TickRate : 60;
-
-            return new ReplayDisplayInfo
-            {
-                FullPath = path,
-                FileName = fileName,
-                WorldName = EmptyToDash(metadata.WorldName),
-                Duration = BuildDuration(metadata.DurationTicks, tickRate),
-                DurationTicks = metadata.DurationTicks,
-                Date = date,
-                FileSizeBytes = fileSizeBytes,
-                //PreviewImagePath = ReplayImages.GetPreviewPath(path)
-            };
-        }
-        catch (Exception e)
-        {
-            Log.Warn($"Failed to read replay metadata for {fileName}: {e.Message}");
-
-            return new ReplayDisplayInfo
-            {
-                FullPath = path,
-                FileName = fileName,
-                WorldName = "-",
-                Duration = TimeSpan.Zero,
-                DurationTicks = 0,
-                Date = date,
-                FileSizeBytes = fileSizeBytes,
-                //PreviewImagePath = ReplayImages.GetPreviewPath(path)
-            };
-        }
-    }
-
-    private static TimeSpan BuildDuration(uint ticks, int tickRate)
-    {
-        return ticks == 0 || tickRate <= 0 ? TimeSpan.Zero : TimeSpan.FromSeconds(ticks / (double)tickRate);
+            FullPath = path ?? string.Empty,
+            FileName = EmptyToError(fileName),
+            WorldName = "Error",
+            Duration = TimeSpan.Zero,
+            DurationTicks = 0,
+            Date = date,
+            FileSizeBytes = fileSizeBytes,
+            FileExists = fileExists,
+            HasMetadata = false
+        };
     }
 
     private static string FormatDurationText(TimeSpan duration)
@@ -82,8 +56,8 @@ public sealed class ReplayDisplayInfo
         return kilobytes.ToString("N0", CultureInfo.InvariantCulture).Replace(",", " ") + " KB";
     }
 
-    private static string EmptyToDash(string value)
+    private static string EmptyToError(string value)
     {
-        return string.IsNullOrWhiteSpace(value) ? "-" : value.Trim();
+        return string.IsNullOrWhiteSpace(value) ? "Error" : value.Trim();
     }
 }
