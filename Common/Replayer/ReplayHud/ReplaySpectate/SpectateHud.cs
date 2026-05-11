@@ -1,10 +1,6 @@
-﻿using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Microsoft.Xna.Framework.Input;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
+﻿using Microsoft.Xna.Framework.Input;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
-using Reese.Core.Debug;
-using Reese.Core.Utilities;
+using Reese.Core.Configs;
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
@@ -90,8 +86,8 @@ internal sealed class SpectateHud : UIElement
         float playerPanelPadding = GetPlayerPanelPadding();
         float navButtonWidth = GetNavButtonWidth();
         float cardGap = GetCardGap();
-        float cardWidth = UIPlayerCard.CardWidth;
-        float cardHeight = UIPlayerCard.CardHeight;
+        float cardWidth = GetCardWidth();
+        float cardHeight = GetCardHeight();
 
         currentTab ??= tabs.Count > 0 ? tabs[0] : null;
 
@@ -119,7 +115,7 @@ internal sealed class SpectateHud : UIElement
         if (!userChangedShownPlayerCards)
             requestedShownPlayerCards = shownPlayerCards;
 
-        int activeCards = currentTab?.Tab == SpectatorTab.NPCs ? shownNpcCards : shownPlayerCards;
+        int activeCards = currentTab?.Tab == SpectatorTab.NPCs ? MaxShownPlayerCards : shownPlayerCards;
         panelWidth = GetPanelWidth(activeCards, cardWidth);
         Width.Set(panelWidth, 0f);
         Height.Set(GetPanelHeight(), 0f);
@@ -141,7 +137,7 @@ internal sealed class SpectateHud : UIElement
         tabBar.Top.Set(headerHeight, 0f);
         tabBar.Width.Set(0f, 1f);
         tabBar.Height.Set(tabHeight, 0f);
-        tabBar.BuildTabs(tabs, () => currentTab, ShowTab, 1f);
+        tabBar.BuildTabs(tabs, () => currentTab, ShowTab, GetScale());
         Append(tabBar);
 
         contentPanel = new UIPanel();
@@ -202,6 +198,8 @@ internal sealed class SpectateHud : UIElement
 
     private static UIPanel BuildHeaderPanel(float height)
     {
+        float scale = GetScale();
+
         UIPanel panel = new();
         panel.Height.Set(height, 0f);
         panel.Width.Set(0f, 1f);
@@ -209,7 +207,7 @@ internal sealed class SpectateHud : UIElement
         panel.BackgroundColor = new Color(63, 82, 151);
         panel.BorderColor = Color.Black;
 
-        panel.Append(new UIText("Spectate", large: false, textScale: 1f)
+        panel.Append(new UIText("Spectate", large: false, textScale: 1f * scale)
         {
             HAlign = 0.5f,
             VAlign = 0.5f
@@ -218,13 +216,14 @@ internal sealed class SpectateHud : UIElement
         UIPanel closePanel = new()
         {
             Height = new StyleDimension(0f, 1f),
-            Width = new StyleDimension(40f, 0f),
+            Width = new StyleDimension(40f * scale, 0f),
             HAlign = 1f,
             VAlign = 0.5f,
             BackgroundColor = panel.BackgroundColor
         };
+
         closePanel.SetPadding(0f);
-        closePanel.Append(new UIText("X", large: true, textScale: 0.55f) { HAlign = 0.5f, VAlign = 0.5f });
+        closePanel.Append(new UIText("X", large: true, textScale: 0.55f * scale) { HAlign = 0.5f, VAlign = 0.5f });
         panel.Append(closePanel);
 
         return panel;
@@ -269,7 +268,8 @@ internal sealed class SpectateHud : UIElement
                 int targetIndex = visibleTargetStart + i;
                 int playerIndex = playerTargets[targetIndex];
 
-                UIPlayerCard playerCard = new(playerIndex, i, this);
+                float scale = GetScale();
+                UIPlayerCard playerCard = new(playerIndex, i, this, scale);
                 playerCard.Width.Set(cardWidth, 0f);
                 playerCard.Height.Set(cardHeight, 0f);
                 playerCard.Left.Set(cardsStart + i * (cardWidth + cardGap), 0f);
@@ -477,8 +477,9 @@ internal sealed class SpectateHud : UIElement
     {
         float padding = GetStatusPanelPadding();
         float maxTextWidth = panelWidth - padding * 2f;
-        float maxTextHeight = StatusPanelHeight - padding * 2f;
-        float fittedScale = FitTextScale(wrappedText, StatusTextScale, maxTextWidth, maxTextHeight);
+        float maxTextHeight = GetStatusPanelHeight() - padding * 2f;
+        float fittedScale = FitTextScale(wrappedText, GetStatusTextScale(), maxTextWidth, maxTextHeight);
+
         statusText.SetText(wrappedText, fittedScale, false);
     }
 
@@ -764,42 +765,63 @@ internal sealed class SpectateHud : UIElement
     #endregion
 
     #region Layout Helpers
-    private static float GetHeaderHeight() => HeaderHeight;
+    private static float GetScale()
+    {
+        ClientConfig clientConfig = ModContent.GetInstance<ClientConfig>();
 
-    private static float GetTabHeight() => TabHeight;
+        return clientConfig.replayHudSize switch
+        {
+            ClientConfig.ReplayHudSize.Small => 0.7f,
+            ClientConfig.ReplayHudSize.Medium => 0.9f,
+            ClientConfig.ReplayHudSize.Large => 1.1f,
+            _ => 1f
+        };
+    }
 
-    private static float GetPlayerPanelPadding() => 4f;
+    private static float GetHeaderHeight() => HeaderHeight * GetScale();
 
-    private static float GetNavButtonWidth() => 24f;
+    private static float GetTabHeight() => TabHeight * GetScale();
 
-    private static float GetCardGap() => 6f;
+    private static float GetPlayerPanelPadding() => 4f * GetScale();
 
-    private static float GetStatusPanelPadding() => StatusPanelPadding;
+    private static float GetNavButtonWidth() => 24f * GetScale();
 
-    private static float GetStatusTextScale() => StatusTextScale;
+    private static float GetCardGap() => 6f * GetScale();
+
+    private static float GetContentGap() => ContentGap * GetScale();
+
+    private static float GetStatusPanelHeight() => StatusPanelHeight * GetScale();
+
+    private static float GetStatusPanelPadding() => StatusPanelPadding * GetScale();
+
+    private static float GetStatusTextScale() => StatusTextScale * GetScale();
+
+    private static float GetCardWidth() => UIPlayerCard.CardWidth * GetScale();
+
+    private static float GetCardHeight() => UIPlayerCard.CardHeight * GetScale();
 
     private static float GetContentHeight()
     {
-        return UIPlayerCard.CardHeight + GetPlayerPanelPadding() * 2f;
+        return GetCardHeight() + GetPlayerPanelPadding() * 2f;
     }
 
     private static float GetPanelHeight()
     {
-        return GetHeaderHeight() + GetTabHeight() + GetContentHeight() + ContentGap + StatusPanelHeight;
+        return GetHeaderHeight() + GetTabHeight() + GetContentHeight() + GetContentGap() + GetStatusPanelHeight();
     }
 
     private static float GetPanelWidth(int shownCards, float cardWidth)
     {
         float cardsWidth = shownCards * cardWidth + Math.Max(0, shownCards - 1) * GetCardGap();
-        float contentWidth = GetNavButtonWidth() * 2f + NavButtonGap * 2f + cardsWidth;
+        float contentWidth = GetNavButtonWidth() * 2f + NavButtonGap * GetScale() * 2f + cardsWidth;
         return contentWidth + GetPlayerPanelPadding() * 2f;
     }
 
     private float GetStatusTextMaxWidth()
     {
         float statusPadding = GetStatusPanelPadding();
-        float width = (panelWidth > 0f ? panelWidth : GetPanelWidth(MaxShownPlayerCards, UIPlayerCard.CardWidth)) - statusPadding * 2f;
-        return Math.Max(40f, width * 1.35f);
+        float width = (panelWidth > 0f ? panelWidth : GetPanelWidth(MaxShownPlayerCards, GetCardWidth())) - statusPadding * 2f;
+        return Math.Max(40f * GetScale(), width * 1.35f);
     }
 
     private static float FitTextScale(string text, float baseScale, float maxWidth, float maxHeight)
@@ -818,7 +840,7 @@ internal sealed class SpectateHud : UIElement
         float heightScale = totalHeight <= 0f ? baseScale : maxHeight / totalHeight;
         float fitted = Math.Min(baseScale, Math.Min(widthScale, heightScale));
 
-        return Math.Max(0.6f, fitted);
+        return Math.Max(baseScale * 0.6f, fitted);
     }
 
     private static string WrapStatusText(string text, float maxWidth, float textScale, out int lineCount)
@@ -862,10 +884,13 @@ internal sealed class SpectateHud : UIElement
 
     private void AddPrevButton(UIPanel playersPanel, float playerPanelPadding, float navButtonWidth, float cardHeight, Action onClick, string hoverText)
     {
+        float scale = GetScale();
+        float buttonHeight = 30f * scale;
+
         UIAutoScaleTextTextPanel<string> prevButton = new("<");
         prevButton.SetPadding(0f);
-        prevButton.Top.Set(playerPanelPadding + cardHeight * 0.5f - 15f, 0f);
-        prevButton.Height.Set(30f, 0f);
+        prevButton.Top.Set(playerPanelPadding + cardHeight * 0.5f - buttonHeight * 0.5f, 0f);
+        prevButton.Height.Set(buttonHeight, 0f);
         prevButton.Width.Set(navButtonWidth, 0f);
         prevButton.BackgroundColor = new Color(55, 48, 92) * 0.9f;
         prevButton.BorderColor = Color.Black;
@@ -886,11 +911,14 @@ internal sealed class SpectateHud : UIElement
 
     private void AddNextButton(UIPanel playersPanel, float playerPanelPadding, float navButtonWidth, float cardHeight, Action onClick, string hoverText)
     {
+        float scale = GetScale();
+        float buttonHeight = 30f * scale;
+
         UIAutoScaleTextTextPanel<string> nextButton = new(">");
         nextButton.SetPadding(0f);
         nextButton.HAlign = 1f;
-        nextButton.Top.Set(playerPanelPadding + cardHeight * 0.5f - 15f, 0f);
-        nextButton.Height.Set(30f, 0f);
+        nextButton.Top.Set(playerPanelPadding + cardHeight * 0.5f - buttonHeight * 0.5f, 0f);
+        nextButton.Height.Set(buttonHeight, 0f);
         nextButton.Width.Set(navButtonWidth, 0f);
         nextButton.BackgroundColor = new Color(55, 48, 92) * 0.9f;
         nextButton.BorderColor = Color.Black;
@@ -916,8 +944,8 @@ internal sealed class SpectateHud : UIElement
         public string HeaderText => $"Players ({GetPlayerTargetCount()})";
         public string TooltipText => "Spectate players";
         public Asset<Texture2D> Icon => Ass.Icon_Player;
-        public float IconScale => 1f;
-        public Vector2 IconOffset => new(0f, -2f);
+        public float IconScale => 1.2f;
+        public Vector2 IconOffset => new(0f, 1f);
 
         public void Refresh()
         {

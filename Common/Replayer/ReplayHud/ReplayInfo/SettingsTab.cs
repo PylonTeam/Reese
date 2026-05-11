@@ -19,7 +19,7 @@ internal sealed class SettingsTab : TabPage
 
     public override float IconScale => 1.25f;
 
-    public override Vector2 IconOffset => new Vector2(4, 4);
+    public override Vector2 IconOffset => new Vector2(4, 5);
 
     protected override void Populate(UIList list)
     {

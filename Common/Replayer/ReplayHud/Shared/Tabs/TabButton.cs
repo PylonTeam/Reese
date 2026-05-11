@@ -46,9 +46,11 @@ internal sealed class TabButton : UIPanel
             ImageScale = iconScale * scale
         });
 
+        float extraLeft = headerText == "Settings" ? -5f : 0f;
+
         Append(new UIText(headerText, textScale: 0.85f * scale)
         {
-            Left = new StyleDimension(38f * scale, 0f),
+            Left = new StyleDimension((38f + extraLeft) * scale, 0f),
             VAlign = 0.5f
         });
     }

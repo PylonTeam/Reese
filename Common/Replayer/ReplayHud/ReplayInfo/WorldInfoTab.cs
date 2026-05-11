@@ -32,7 +32,7 @@ internal sealed class WorldInfoTab : TabPage
     private sealed class WorldInfo : InfoSection
     {
         public override string HeaderText => "World";
-        public override float Height => 316f;
+        public override float Height => 286f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
@@ -42,7 +42,7 @@ internal sealed class WorldInfoTab : TabPage
                 new("Size:", GetWorldSizeText, GetWorldSizeIcon, iconScale: 1.3f),
                 new("Difficulty:", GetDifficultyText, GetWorldDifficultyIcon, GetDifficultyColor, iconScale: 1.3f),
                 new("Evil:", GetEvilText, GetWorldEvilIcon, GetEvilColor, iconScale: 1.2f),
-                new("Seed:", GetSeedText, GetWorldSeedIcon, iconScale: 1.3f),
+                //new("Seed:", GetSeedText, GetWorldSeedIcon, iconScale: 1.3f),
                 new("Time:", GetTimeText, GetTimeIcon, iconScale: 0.65f),
                 new("Weather:", GetWeatherText, GetWeatherIcon, iconScale: 0.68f),
                 new("Moon:", GetMoonText, GetMoonIcon, iconScale: 0.75f)

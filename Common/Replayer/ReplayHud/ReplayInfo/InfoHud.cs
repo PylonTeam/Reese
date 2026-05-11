@@ -33,8 +33,8 @@ internal sealed class InfoHud : UIElement
         Top.Set(TopOffset, 0f);
         Width.Set(PanelWidth, 0f);
 
-        tabs.Add(new SettingsTab());
         tabs.Add(new ReplayInfoTab());
+        tabs.Add(new SettingsTab());
         tabs.Add(new WorldInfoTab());
         currentTab = tabs[0];
 

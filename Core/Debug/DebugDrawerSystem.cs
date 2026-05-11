@@ -1,4 +1,5 @@
-﻿using Reese.Core.Configs;
+﻿using Microsoft.Xna.Framework.Input;
+using Reese.Core.Configs;
 using System.Collections.Generic;
 using Terraria.UI;
 
@@ -28,6 +29,16 @@ internal sealed class DebugDrawerSystem : ModSystem
 
     public override void UpdateUI(GameTime gameTime)
     {
+#if DEBUG
+        if (KeyboardHelper.Pressed(Keys.NumPad0))
+        {
+            if (Main.LocalPlayer.ghost)
+                Main.LocalPlayer.ghost = false;
+            else
+                Main.LocalPlayer.ghost = true;
+        }
+#endif
+
         debugInterface?.Update(gameTime);
     }
 

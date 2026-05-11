@@ -173,7 +173,7 @@ internal static class TeammateHudOverlay
         const float slotSize = 52f;
         const int inventoryRows = 5;
 
-        Vector2 position = new(inventoryPosition.X, inventoryPosition.Y + inventoryRows * slotSize + 14f);
+        Vector2 position = new(inventoryPosition.X, inventoryPosition.Y + inventoryRows * slotSize - 14f);
         BuffDrawer.DrawBuffs(spriteBatch, position, player, viewport);
     }
 

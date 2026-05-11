@@ -144,15 +144,77 @@ internal static class DebugDrawer
     }
     private static void DrawStatGroup(DebugStatGroup group, Vector2 origin)
     {
-        const float headerScale = 0.72f;
-        const float rowScale = 0.66f;
-        const float headerGap = 19f;
+        const float headerScale = 1.0f;
+        const float rowScale = 0.8f;
+        const float headerGap = 22f;
         const float rowStep = 15f;
+        const float columnGap = 8f;
 
         DrawText(group.Header, origin, group.HeaderColor, headerScale);
 
+        float labelColumnWidth = GetLabelColumnWidth(group.Rows, rowScale);
+        float valueX = origin.X + labelColumnWidth + columnGap;
+
         for (int i = 0; i < group.Rows.Length; i++)
-            DrawText(group.Rows[i], origin + new Vector2(0f, headerGap + i * rowStep), Color.White, rowScale);
+        {
+            string row = group.Rows[i];
+            string label = GetStatLabel(row);
+            string value = GetStatValue(row);
+
+            Vector2 rowPosition = origin + new Vector2(0f, headerGap + i * rowStep);
+
+            if (string.IsNullOrEmpty(value))
+            {
+                DrawText(row, rowPosition, Color.White, rowScale);
+                continue;
+            }
+
+            DrawText(label, rowPosition, Color.LightGray, rowScale);
+            DrawText(value, new Vector2(valueX, rowPosition.Y), Color.White, rowScale);
+        }
+    }
+
+    private static float GetLabelColumnWidth(string[] rows, float scale)
+    {
+        float width = 0f;
+
+        foreach (string row in rows)
+        {
+            string label = GetStatLabel(row);
+
+            if (string.IsNullOrEmpty(label))
+                continue;
+
+            width = Math.Max(width, FontAssets.MouseText.Value.MeasureString(label).X * scale);
+        }
+
+        return width;
+    }
+
+    private static string GetStatLabel(string row)
+    {
+        if (string.IsNullOrEmpty(row))
+            return string.Empty;
+
+        int separator = row.IndexOf(':');
+
+        if (separator < 0)
+            return string.Empty;
+
+        return row[..(separator + 1)];
+    }
+
+    private static string GetStatValue(string row)
+    {
+        if (string.IsNullOrEmpty(row))
+            return string.Empty;
+
+        int separator = row.IndexOf(':');
+
+        if (separator < 0 || separator >= row.Length - 1)
+            return string.Empty;
+
+        return row[(separator + 1)..].TrimStart();
     }
 
     private static float GetStatGroupHeight(DebugStatGroup group)

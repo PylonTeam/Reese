@@ -336,10 +336,17 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private void ApplyCurrentFilter()
     {
+        ApplyCurrentFilter(refreshFlags: true);
+    }
+
+    private void ApplyCurrentFilter(bool refreshFlags)
+    {
         if (list == null)
             return;
 
-        RefreshCachedFlags();
+        if (refreshFlags)
+            RefreshCachedFlags();
+
         list.Clear();
 
         bool hasAnyReplays = cachedEntries.Length > 0;
@@ -362,9 +369,34 @@ internal sealed class ReplayBrowserPanel : UIElement
 
         ReplayListEntry[] sortedEntries = SortEntries(entries);
         foreach (ReplayListEntry entry in sortedEntries)
-            list.Add(new ReplayListItem(entry, () => Refresh(showLoading: false)));
+            list.Add(new ReplayListItem(entry, () => Refresh(showLoading: false), HandleFavoriteToggled));
 
         list.Recalculate();
+    }
+
+    private void HandleFavoriteToggled(string fullPath)
+    {
+        if (!TryUpdateCachedFavorite(fullPath))
+        {
+            Refresh(showLoading: false);
+            return;
+        }
+
+        ApplyCurrentFilter(refreshFlags: false);
+    }
+
+    private bool TryUpdateCachedFavorite(string fullPath)
+    {
+        for (int i = 0; i < cachedEntries.Length; i++)
+        {
+            if (!string.Equals(cachedEntries[i].FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            cachedEntries[i] = cachedEntries[i].WithCurrentFlags();
+            return true;
+        }
+
+        return false;
     }
 
     private void RefreshCachedFlags()

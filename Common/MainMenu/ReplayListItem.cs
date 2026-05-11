@@ -22,7 +22,7 @@ internal sealed class ReplayListItem : UIPanel
     private readonly ActionHoverLabel actionHoverLabel;
     private readonly bool isFavorite;
 
-    public ReplayListItem(ReplayListEntry entry, Action onDeleted)
+    public ReplayListItem(ReplayListEntry entry, Action onEntryChanged, Action<string> onFavoriteToggled)
     {
         var constructorWatch = System.Diagnostics.Stopwatch.StartNew();
         ReplayDisplayInfo info = ReplayDisplayInfo.FromFile(entry.FullPath);
@@ -103,9 +103,9 @@ internal sealed class ReplayListItem : UIPanel
         ReplayActionDefinition[] actions =
         [
             new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayItemActions.Play(entry.FullPath)),
-            new(favoriteTexture, isFavorite ? "Unfavorite" : "Favorite", () => ReplayItemActions.Favorite(entry.FullPath, onDeleted)),
-            //new(Main.Assets.Request<Texture2D>("Images/UI/ButtonSeed"), "Upload image", () => ReplayItemActions.ChoosePreviewImage(entry.FullPath, onDeleted)),
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayItemActions.Rename(entry.FullPath, onDeleted)),
+            new(favoriteTexture, isFavorite ? "Unfavorite" : "Favorite", () => ReplayItemActions.Favorite(entry.FullPath, () => onFavoriteToggled?.Invoke(entry.FullPath))),
+            //new(Main.Assets.Request<Texture2D>("Images/UI/ButtonSeed"), "Upload image", () => ReplayItemActions.ChoosePreviewImage(entry.FullPath, onEntryChanged)),
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayItemActions.Rename(entry.FullPath, onEntryChanged)),
         ];
 
         actionHoverLabel = new ActionHoverLabel();
@@ -130,7 +130,7 @@ internal sealed class ReplayListItem : UIPanel
         Append(deleteHoverLabel);
 
         UIImageButton deleteButton = CreateVanillaImageButton(
-            new ReplayActionDefinition(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", () => ReplayItemActions.Delete(entry.FullPath, onDeleted)),
+            new ReplayActionDefinition(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", () => ReplayItemActions.Delete(entry.FullPath, onEntryChanged)),
             deleteHoverLabel,
             deleteLeft,
             buttonTop,
