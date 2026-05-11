@@ -1,9 +1,8 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplaySpectate.Drawers;
+using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
+using Reese.Common.Replayer.ReplayHud.Spectate.Stats;
 using Reese.Core.Debug;
-using Reese.Core.Stats;
-using Reese.UI;
 using ReLogic.Content;
 using System;
 using System.IO;
@@ -173,7 +172,8 @@ internal sealed class ReplayListItem : UIPanel
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
             Rectangle area = GetDimensions().ToRectangle();
-            Texture2D texture = ReplayImages.GetTexture(info.PreviewImagePath) ?? fallbackIcon.Value;
+            //Texture2D texture = ReplayImages.GetTexture(info.PreviewImagePath) ?? fallbackIcon.Value;
+            Texture2D texture = fallbackIcon.Value;
             DrawTextureFit(spriteBatch, texture, new Rectangle(area.X, area.Y, area.Width, area.Height));
         }
 

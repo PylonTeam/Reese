@@ -26,7 +26,7 @@ internal static class ReplayItemActions
                     File.Delete(path);
 
                 ReplayFavorites.Delete(path);
-                ReplayImages.DeletePreview(path);
+                //ReplayImages.DeletePreview(path);
 
                 onDeleted?.Invoke();
             }
@@ -63,7 +63,7 @@ internal static class ReplayItemActions
             File.Move(path, destination);
 
             ReplayFavorites.Move(path, destination);
-            ReplayImages.MovePreview(path, destination);
+            //ReplayImages.MovePreview(path, destination);
 
             onRenamed?.Invoke();
         }
@@ -95,20 +95,20 @@ internal static class ReplayItemActions
         return name.Trim();
     }
 
-    public static void ChoosePreviewImage(string path, Action onChanged = null)
-    {
-        SoundEngine.PlaySound(SoundID.MenuOpen);
+    //public static void ChoosePreviewImage(string path, Action onChanged = null)
+    //{
+    //    SoundEngine.PlaySound(SoundID.MenuOpen);
 
-        try
-        {
-            if (ReplayImages.ChooseAndSavePreview(path))
-                onChanged?.Invoke();
-        }
-        catch (Exception e)
-        {
-            Log.Error($"Failed to set replay preview image '{path}': {e}");
-        }
-    }
+    //    try
+    //    {
+    //        if (ReplayImages.ChooseAndSavePreview(path))
+    //            onChanged?.Invoke();
+    //    }
+    //    catch (Exception e)
+    //    {
+    //        Log.Error($"Failed to set replay preview image '{path}': {e}");
+    //    }
+    //}
 
     public static void Favorite(string path, Action onChanged = null)
     {

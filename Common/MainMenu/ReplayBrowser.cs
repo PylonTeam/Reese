@@ -1,6 +1,6 @@
+using Reese.Common.MainMenu.UI;
 using Reese.Common.Replayer;
 using Reese.Core.Debug;
-using Reese.UI;
 using System;
 using System.Globalization;
 using System.IO;
@@ -224,7 +224,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         openFolderButton.Height.Set(headerButtonSize, 0f);
         openFolderButton.OnLeftClick += (_, _) =>
         {
-            string dir = ReeseReplayPaths.GetFolder();
+            string dir = ReplayPaths.GetFolder();
             Utils.TryCreatingDirectory(dir);
             try { Utils.OpenFolder(dir); } catch { }
         };
@@ -296,7 +296,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         if (showLoading)
             OnRefreshStarted?.Invoke();
 
-        string dir = ReeseReplayPaths.GetFolder();
+        string dir = ReplayPaths.GetFolder();
         Utils.TryCreatingDirectory(dir);
 
         System.Threading.Tasks.Task.Run(() => LoadReplayEntries(dir)).ContinueWith(task =>

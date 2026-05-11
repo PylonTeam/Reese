@@ -58,6 +58,21 @@ Mods: {
 					Label: Show Welcome Message On Enter World
 					Tooltip: ""
 				}
+
+				ShowDebugDrawer: {
+					Label: Show Debug Drawer
+					Tooltip: ""
+				}
+
+				replayHudPosition: {
+					Label: replay Hud Position
+					Tooltip: ""
+				}
+
+				replayHudSize: {
+					Label: replay Hud Size
+					Tooltip: ""
+				}
 			}
 
 			ReplayHUDPosition: {
@@ -89,6 +104,39 @@ Mods: {
 
 				Big: {
 					Label: Big
+					Tooltip: ""
+				}
+			}
+
+			ReplayHudPosition: {
+				Tooltip: ""
+
+				Top: {
+					Label: Top
+					Tooltip: ""
+				}
+
+				Bottom: {
+					Label: Bottom
+					Tooltip: ""
+				}
+			}
+
+			ReplayHudSize: {
+				Tooltip: ""
+
+				Small: {
+					Label: Small
+					Tooltip: ""
+				}
+
+				Medium: {
+					Label: Medium
+					Tooltip: ""
+				}
+
+				Large: {
+					Label: Large
 					Tooltip: ""
 				}
 			}

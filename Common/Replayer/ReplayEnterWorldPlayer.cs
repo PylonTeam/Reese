@@ -1,10 +1,9 @@
-using Reese.Common.Replayer.ReplaySpectate;
-using Reese.Common.Replayer.ReplaySpectate.UI;
 using Reese.Content;
 using Reese.Core.Configs;
 using Reese.Core.Debug;
 using System.IO;
 using Terraria.Chat;
+using Terraria.ID;
 using Terraria.Localization;
 
 namespace Reese.Common.Replayer;
@@ -17,32 +16,28 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
         if (!ReplaySession.IsReplayPlayback)
             return;
 
-        SpectatorModeSystem.ForceLocalReplaySpectator();
+        string fileName = string.IsNullOrWhiteSpace(ReplaySession.CurrentPath)
+            ? "Unknown replay"
+            : Path.GetFileName(ReplaySession.CurrentPath);
+
+        Log.Chat("Replay started: " + fileName);
 
         if (!ModContent.GetInstance<ClientConfig>().ShowWelcomeMessageOnEnterWorld)
             return;
 
-        string fileName = string.IsNullOrWhiteSpace(ReplaySession.CurrentPath)
-            ? "Unknown replay"
-            : Path.GetFileName(ReplaySession.CurrentPath);
         Color reeseColor = Color.CornflowerBlue;
 
-        int iconItemType = ModContent.ItemType<Icon_CameraSmall>();
-        string cameraItemTag = $"[i:{iconItemType}]";
-
-        int iconItemType2 = ModContent.ItemType<Icon_Camera>();
-        string cameraItemTag2 = $"[i:{iconItemType2}]";
+        string smallCameraItemTag = $"[i:{ModContent.ItemType<Icon_CameraSmall>()}]";
+        string bigCameraItemTag = $"[i:{ModContent.ItemType<Icon_Camera>()}]";
 
         // Send the message
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{cameraItemTag2} Welcome to your Reese replay! Now playing: '[c/FFFFFF:{fileName}]'"), Main.OurFavoriteColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{cameraItemTag} Here's a short guide:"), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{cameraItemTag} Top HUD: spectate players"), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{cameraItemTag} Bottom HUD: replay playback controls"), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{cameraItemTag} Right side HUD: replay settings, info, and spectator options"), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{cameraItemTag} Right click as a ghost to teleport."), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{cameraItemTag} Enjoy!"), Main.OurFavoriteColor, Player.whoAmI);
-
-        Log.Chat("Replay started: " + fileName);
-        ModContent.GetInstance<ReplayUISystem>().ToggleReplayControls();
+        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{bigCameraItemTag} Welcome to your Reese replay! Now playing: '[c/FFFFFF:{fileName}]'"), Main.OurFavoriteColor, Player.whoAmI);
+        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Here's a short guide:"), reeseColor, Player.whoAmI);
+        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Top HUD: spectate players"), reeseColor, Player.whoAmI);
+        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Bottom HUD: replay playback controls"), reeseColor, Player.whoAmI);
+        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Right side HUD: replay settings, info, and spectator options"), reeseColor, Player.whoAmI);
+        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} As a ghost you can right click to teleport around the world."), reeseColor, Player.whoAmI);
+        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} To toggle the entire replay HUD, assign a keybind in controls."), reeseColor, Player.whoAmI);
+        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Enjoy!"), Main.OurFavoriteColor, Player.whoAmI);
     }
 }

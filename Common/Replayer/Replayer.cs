@@ -1,7 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
-using Reese.Common.Replayer.ReplaySpectate;
+using Reese.Common.Replayer.ReplayHud.Spectate;
 using Reese.Core.Debug;
 using Terraria;
 using Terraria.ModLoader;
@@ -177,7 +177,7 @@ public class Replayer : ModSystem, ITicker
             return;
 
         SeekToTick(duration);
-        ModContent.GetInstance<TimeScaleSystem>().SetTimeScale(0f);
+        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(0f);
         SetReplayStatus("Seeking replay...", "Seeking to replay end");
     }
 
@@ -221,7 +221,7 @@ public class Replayer : ModSystem, ITicker
 
     private static void MarkReplayEnded()
     {
-        ModContent.GetInstance<TimeScaleSystem>().SetTimeScale(1f);
+        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
         SetReplayStatus(ReplayEndedStatusText, "Replay ended");
 
         if (Netplay.Connection != null)
@@ -233,7 +233,7 @@ public class Replayer : ModSystem, ITicker
 
     private static void PauseAtReplayEnd()
     {
-        ModContent.GetInstance<TimeScaleSystem>().SetTimeScale(0f);
+        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(0f);
         SetReplayStatus(ReplayEndedStatusText, "Replay reached EOF and paused at final frame");
 
         if (Netplay.Connection != null)

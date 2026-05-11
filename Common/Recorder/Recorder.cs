@@ -82,7 +82,7 @@ public class Recorder : ModSystem, ITicker
         const string RecordClientName = "Recording";
         Player snapshotPlayer = FindSnapshotPlayer(playerName);
 
-        var dir = ReeseReplayPaths.GetFolder();
+        var dir = ReplayPaths.GetFolder();
         Directory.CreateDirectory(dir);
         const string ReplayFilePrefix = "Reese";
         var filePath = Path.Combine(dir, $"{ReplayFilePrefix}_{GetNextReplayNumber(dir, ReplayFilePrefix):0000}.reese");
@@ -199,7 +199,7 @@ public class Recorder : ModSystem, ITicker
         {
             try
             {
-                var recordBinPath = ReeseReplayPaths.GetFile();
+                var recordBinPath = ReplayPaths.GetFile();
 
                 if (!string.IsNullOrWhiteSpace(_lastReplayPath) && File.Exists(_lastReplayPath))
                 {

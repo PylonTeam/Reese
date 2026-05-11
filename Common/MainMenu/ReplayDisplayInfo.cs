@@ -16,7 +16,7 @@ public sealed class ReplayDisplayInfo
     public uint DurationTicks { get; init; }
     public DateTime Date { get; init; }
     public long FileSizeBytes { get; init; }
-    public string PreviewImagePath { get; init; }
+    //public string PreviewImagePath { get; init; }
 
     public string DurationText => FormatDurationText(Duration);
     public string FileSizeText => FormatFileSizeText(FileSizeBytes);
@@ -47,7 +47,7 @@ public sealed class ReplayDisplayInfo
                 DurationTicks = metadata.DurationTicks,
                 Date = date,
                 FileSizeBytes = fileSizeBytes,
-                PreviewImagePath = ReplayImages.GetPreviewPath(path)
+                //PreviewImagePath = ReplayImages.GetPreviewPath(path)
             };
         }
         catch (Exception e)
@@ -64,7 +64,7 @@ public sealed class ReplayDisplayInfo
                 DurationTicks = 0,
                 Date = date,
                 FileSizeBytes = fileSizeBytes,
-                PreviewImagePath = ReplayImages.GetPreviewPath(path)
+                //PreviewImagePath = ReplayImages.GetPreviewPath(path)
             };
         }
     }
