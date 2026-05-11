@@ -1,10 +1,5 @@
-using Microsoft.Xna.Framework;
-using Microsoft.Xna.Framework.Graphics;
-using Reese.Core.Utilities;
 using System;
-using Terraria;
 using Terraria.Audio;
-using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.ModLoader.UI;
@@ -14,18 +9,24 @@ namespace Reese.Common.MainMenu.UI;
 
 internal sealed class UISortableTableColumn : UIElement
 {
-    private const int Edge = 3;
-    private const float HeightPixels = 28f;
+    private enum SortDirection
+    {
+        None,
+        Ascending,
+        Descending
+    }
 
     private readonly string text;
     private readonly UIText label;
+
+    private SortDirection sortDirection;
 
     public UISortableTableColumn(string text, float width)
     {
         this.text = text;
 
         Width.Set(width, 0f);
-        Height.Set(HeightPixels, 0f);
+        Height.Set(28f, 0f);
 
         label = new UIText(text, 0.85f)
         {
@@ -46,51 +47,28 @@ internal sealed class UISortableTableColumn : UIElement
         return column;
     }
 
-    public static UIElement CreateLeftTextCell(string value, float left, float width, string tooltip = null)
-    {
-        UIElement cell = new()
-        {
-            Left = { Pixels = left },
-            Width = { Pixels = width },
-            Height = { Percent = 1f }
-        };
-
-        UIText label = new(value, 0.98f)
-        {
-            Left = { Pixels = 14f },
-            VAlign = 0.5f,
-            TextOriginX = 0f,
-            TextOriginY = 0.5f,
-            TextColor = new Color(230, 235, 255),
-            IgnoresMouseInteraction = true
-        };
-        cell.Append(label);
-
-        if (!string.IsNullOrWhiteSpace(tooltip))
-        {
-            cell.OnUpdate += _ =>
-            {
-                if (cell.IsMouseHovering)
-                    UICommon.TooltipMouseText(tooltip);
-            };
-        }
-
-        return cell;
-    }
-
     public void SetSortState(bool active, bool ascending)
     {
-        //label.SetText(active ? $"{text} {(ascending ? "(ascending)" : "(descending)")}" : text);
+        sortDirection = !active ? SortDirection.None : ascending ? SortDirection.Ascending : SortDirection.Descending;
+
         label.SetText(text);
+        label.Left.Set(active ? -6f : 0f, 0f);
+        label.Recalculate();
     }
 
     protected override void DrawSelf(SpriteBatch spriteBatch)
     {
         Rectangle bounds = GetDimensions().ToRectangle();
+
         DrawNineSlice(spriteBatch, Ass.ButtonTableColumn.Value, bounds, Color.White);
 
-        if (IsMouseHovering)
+        if (sortDirection != SortDirection.None)
+            DrawNineSlice(spriteBatch, Ass.ButtonTableColumn_Selected.Value, bounds, Color.White);
+        else if (IsMouseHovering)
             DrawNineSlice(spriteBatch, Ass.ButtonTableColumn_Border.Value, bounds, Color.White);
+
+        if (sortDirection != SortDirection.None)
+            DrawSortArrow(spriteBatch, bounds);
     }
 
     public override void MouseOver(UIMouseEvent evt)
@@ -99,24 +77,47 @@ internal sealed class UISortableTableColumn : UIElement
         SoundEngine.PlaySound(SoundID.MenuTick);
     }
 
+    private void DrawSortArrow(SpriteBatch spriteBatch, Rectangle bounds)
+    {
+        Texture2D texture = (sortDirection == SortDirection.Ascending ? Ass.Icon_ArrowUp : Ass.Icon_ArrowDown).Value;
+
+        const int arrowRightPadding = 12;
+        const int arrowMaxSize = 12;
+
+        float scale = Math.Min(1f, Math.Min((float)arrowMaxSize / texture.Width, (float)arrowMaxSize / texture.Height));
+        int width = Math.Max(1, (int)Math.Round(texture.Width * scale));
+        int height = Math.Max(1, (int)Math.Round(texture.Height * scale));
+
+        Rectangle target = new(
+            bounds.Right - arrowRightPadding - width,
+            bounds.Y + (bounds.Height - height) / 2,
+            width,
+            height
+        );
+
+        spriteBatch.Draw(texture, target, Color.White);
+    }
+
     private static void DrawNineSlice(SpriteBatch spriteBatch, Texture2D texture, Rectangle target, Color color)
     {
+        const int edge = 3;
+
         int sourceWidth = texture.Width;
         int sourceHeight = texture.Height;
-        int middleSourceWidth = sourceWidth - Edge * 2;
-        int middleSourceHeight = sourceHeight - Edge * 2;
-        int middleTargetWidth = Math.Max(0, target.Width - Edge * 2);
-        int middleTargetHeight = Math.Max(0, target.Height - Edge * 2);
+        int middleSourceWidth = sourceWidth - edge * 2;
+        int middleSourceHeight = sourceHeight - edge * 2;
+        int middleTargetWidth = Math.Max(0, target.Width - edge * 2);
+        int middleTargetHeight = Math.Max(0, target.Height - edge * 2);
 
-        spriteBatch.Draw(texture, new Rectangle(target.X, target.Y, Edge, Edge), new Rectangle(0, 0, Edge, Edge), color);
-        spriteBatch.Draw(texture, new Rectangle(target.Right - Edge, target.Y, Edge, Edge), new Rectangle(sourceWidth - Edge, 0, Edge, Edge), color);
-        spriteBatch.Draw(texture, new Rectangle(target.X, target.Bottom - Edge, Edge, Edge), new Rectangle(0, sourceHeight - Edge, Edge, Edge), color);
-        spriteBatch.Draw(texture, new Rectangle(target.Right - Edge, target.Bottom - Edge, Edge, Edge), new Rectangle(sourceWidth - Edge, sourceHeight - Edge, Edge, Edge), color);
+        spriteBatch.Draw(texture, new Rectangle(target.X, target.Y, edge, edge), new Rectangle(0, 0, edge, edge), color);
+        spriteBatch.Draw(texture, new Rectangle(target.Right - edge, target.Y, edge, edge), new Rectangle(sourceWidth - edge, 0, edge, edge), color);
+        spriteBatch.Draw(texture, new Rectangle(target.X, target.Bottom - edge, edge, edge), new Rectangle(0, sourceHeight - edge, edge, edge), color);
+        spriteBatch.Draw(texture, new Rectangle(target.Right - edge, target.Bottom - edge, edge, edge), new Rectangle(sourceWidth - edge, sourceHeight - edge, edge, edge), color);
 
-        spriteBatch.Draw(texture, new Rectangle(target.X + Edge, target.Y, middleTargetWidth, Edge), new Rectangle(Edge, 0, middleSourceWidth, Edge), color);
-        spriteBatch.Draw(texture, new Rectangle(target.X + Edge, target.Bottom - Edge, middleTargetWidth, Edge), new Rectangle(Edge, sourceHeight - Edge, middleSourceWidth, Edge), color);
-        spriteBatch.Draw(texture, new Rectangle(target.X, target.Y + Edge, Edge, middleTargetHeight), new Rectangle(0, Edge, Edge, middleSourceHeight), color);
-        spriteBatch.Draw(texture, new Rectangle(target.Right - Edge, target.Y + Edge, Edge, middleTargetHeight), new Rectangle(sourceWidth - Edge, Edge, Edge, middleSourceHeight), color);
-        spriteBatch.Draw(texture, new Rectangle(target.X + Edge, target.Y + Edge, middleTargetWidth, middleTargetHeight), new Rectangle(Edge, Edge, middleSourceWidth, middleSourceHeight), color);
+        spriteBatch.Draw(texture, new Rectangle(target.X + edge, target.Y, middleTargetWidth, edge), new Rectangle(edge, 0, middleSourceWidth, edge), color);
+        spriteBatch.Draw(texture, new Rectangle(target.X + edge, target.Bottom - edge, middleTargetWidth, edge), new Rectangle(edge, sourceHeight - edge, middleSourceWidth, edge), color);
+        spriteBatch.Draw(texture, new Rectangle(target.X, target.Y + edge, edge, middleTargetHeight), new Rectangle(0, edge, edge, middleSourceHeight), color);
+        spriteBatch.Draw(texture, new Rectangle(target.Right - edge, target.Y + edge, edge, middleTargetHeight), new Rectangle(sourceWidth - edge, edge, edge, middleSourceHeight), color);
+        spriteBatch.Draw(texture, new Rectangle(target.X + edge, target.Y + edge, middleTargetWidth, middleTargetHeight), new Rectangle(edge, edge, middleSourceWidth, middleSourceHeight), color);
     }
 }

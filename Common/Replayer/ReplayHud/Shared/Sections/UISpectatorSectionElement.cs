@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud.Info;
-using Reese.Common.Replayer.ReplayHud.Spectate.Stats;
+using Reese.Common.Replayer.ReplayHud.ReplayInfo;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
 using System;
 using System.Collections.Generic;
 using Terraria.GameContent;

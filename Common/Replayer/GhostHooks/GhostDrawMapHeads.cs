@@ -1,5 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud.Shared.Settings;
+using Reese.Common.Replayer.ReplayHud;
 using Reese.Core.Utilities;
 using Terraria.DataStructures;
 using Terraria.Graphics;
@@ -41,7 +41,7 @@ internal sealed class GhostMapHeadLayer : ModMapLayer
         if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
             return;
 
-        if (ReplaySession.IsReplayPlayback && !SpectatorDrawSettings.IsDrawGhostsOn)
+        if (ReplaySession.IsReplayPlayback && !ReplayClientSettings.IsDrawGhostsOn)
             return;
 
         Texture2D ghostRight = Ass.GhostRight.Value;

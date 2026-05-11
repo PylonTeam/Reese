@@ -1,5 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud.Spectate;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using System;
 using Terraria.GameContent;
 using Terraria.Graphics;

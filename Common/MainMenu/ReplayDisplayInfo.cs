@@ -11,7 +11,6 @@ public sealed class ReplayDisplayInfo
     public string FullPath { get; init; }
     public string FileName { get; init; }
     public string WorldName { get; init; }
-    public string PlayerName { get; init; }
     public TimeSpan Duration { get; init; }
     public uint DurationTicks { get; init; }
     public DateTime Date { get; init; }
@@ -42,7 +41,6 @@ public sealed class ReplayDisplayInfo
                 FullPath = path,
                 FileName = fileName,
                 WorldName = EmptyToDash(metadata.WorldName),
-                PlayerName = EmptyToDash(metadata.PlayerName),
                 Duration = BuildDuration(metadata.DurationTicks, tickRate),
                 DurationTicks = metadata.DurationTicks,
                 Date = date,
@@ -59,7 +57,6 @@ public sealed class ReplayDisplayInfo
                 FullPath = path,
                 FileName = fileName,
                 WorldName = "-",
-                PlayerName = "-",
                 Duration = TimeSpan.Zero,
                 DurationTicks = 0,
                 Date = date,

@@ -30,7 +30,7 @@ internal sealed class InfoHud : UIElement
 
     private readonly List<ITab> tabs = [];
     private ITab currentTab;
-    private SpectatorTabBar tabBar;
+    private TabBar tabBar;
     private bool isShiftedForPlayerHud;
 
     public InfoHud()
@@ -122,7 +122,7 @@ internal sealed class InfoHud : UIElement
 
     private void BuildTabPanel()
     {
-        tabBar = new SpectatorTabBar();
+        tabBar = new TabBar();
         tabBar.Top.Set(HeaderHeight, 0f);
         tabBar.Width.Set(0f, 1f);
         tabBar.Height.Set(TabHeight, 0f);

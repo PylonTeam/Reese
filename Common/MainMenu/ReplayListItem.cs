@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
-using Reese.Common.Replayer.ReplayHud.Spectate.Stats;
 using Reese.Core.Debug;
 using ReLogic.Content;
 using System;

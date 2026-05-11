@@ -1,9 +1,4 @@
-﻿using Reese.Common.Replayer.ReplayHud.Spectate;
-using Reese.Common.Replayer.ReplayHud.Spectate.TeammateOverlay;
-using Reese.Core.Configs;
-using Reese.Core.Debug;
-using System.Collections.Generic;
-using Terraria.ModLoader;
+﻿using System.Collections.Generic;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud;

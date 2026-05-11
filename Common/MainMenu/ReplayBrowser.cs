@@ -2,7 +2,6 @@ using Reese.Common.MainMenu.UI;
 using Reese.Common.Replayer;
 using Reese.Core.Debug;
 using System;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using Terraria.GameContent.UI.Elements;
@@ -87,6 +86,7 @@ internal sealed class ReplayBrowserPanel : UIElement
 {
     private enum SortColumn
     {
+        None, // (hidden, date, sort by newest entry)
         Name,
         Date,
         Duration,
@@ -95,7 +95,7 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private UIList list;
     private Searchbox searchBox;
-    private SortColumn sortColumn = SortColumn.Date;
+    private SortColumn sortColumn = SortColumn.None;
     private bool sortAscending;
 
     public event Action OnRefreshStarted;
@@ -134,7 +134,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         tableHeader.Height.Set(ReplayBrowserLayout.TableColumnHeight, 0f);
         container.Append(tableHeader);
 
-        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Replay", 0f, ReplayBrowserLayout.NameColumnWidth);
+        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Name", 0f, ReplayBrowserLayout.NameColumnWidth);
         UISortableTableColumn dateColumn = UISortableTableColumn.AppendHeader(tableHeader, "Date", ReplayBrowserLayout.NameColumnWidth, ReplayBrowserLayout.DateColumnWidth);
         UISortableTableColumn durationColumn = UISortableTableColumn.AppendHeader(tableHeader, "Length", ReplayBrowserLayout.NameColumnWidth + ReplayBrowserLayout.DateColumnWidth, ReplayBrowserLayout.DurationColumnWidth);
         UISortableTableColumn sizeColumn = UISortableTableColumn.AppendHeader(tableHeader, "Size", ReplayBrowserLayout.SizeLeft, ReplayBrowserLayout.SizeColumnWidth);
@@ -159,6 +159,13 @@ internal sealed class ReplayBrowserPanel : UIElement
 
             RefreshColumnStates();
             ApplyCurrentFilter();
+        }
+
+        void ClearSort()
+        {
+            sortColumn = SortColumn.None;
+            sortAscending = false;
+            RefreshColumnStates();
         }
 
         nameColumn.OnLeftClick += (_, _) => SortBy(SortColumn.Name);
@@ -251,7 +258,11 @@ internal sealed class ReplayBrowserPanel : UIElement
         };
         refreshButton.Width.Set(headerButtonSize, 0f);
         refreshButton.Height.Set(headerButtonSize, 0f);
-        refreshButton.OnLeftClick += (_, _) => Refresh();
+        refreshButton.OnLeftClick += (_, _) =>
+        {
+            ClearSort();
+            Refresh();
+        };
         buttonStrip.Append(refreshButton);
 
         searchBox = new("Type to search")
@@ -394,9 +405,10 @@ internal sealed class ReplayBrowserPanel : UIElement
             SortColumn.Size => sortAscending
                 ? entries.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.SizeBytes)
                 : entries.OrderByDescending(x => x.IsFavorite).ThenByDescending(x => x.SizeBytes),
-            _ => sortAscending
+            SortColumn.Date => sortAscending
                 ? entries.OrderByDescending(x => x.IsFavorite).ThenBy(x => x.Date)
-                : entries.OrderByDescending(x => x.IsFavorite).ThenByDescending(x => x.Date)
+                : entries.OrderByDescending(x => x.IsFavorite).ThenByDescending(x => x.Date),
+            _ => entries.OrderByDescending(x => x.IsFavorite).ThenByDescending(x => x.Date)
         };
 
         return sorted.ToArray();

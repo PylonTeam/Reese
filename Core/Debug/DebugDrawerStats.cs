@@ -1,13 +1,10 @@
 ﻿using Reese.Common.Replayer;
 using Reese.Common.Replayer.ReplayHud;
-using Reese.Common.Replayer.ReplayHud.Spectate;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using Terraria;
 using Terraria.ID;
-using Terraria.ModLoader;
 
 namespace Reese.Core.Debug;
 

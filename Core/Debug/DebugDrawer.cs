@@ -63,10 +63,10 @@ internal static class DebugDrawer
 
         const int spacing = 6;
         const int startX = 10;
-        const int startY = 80;
+        const int startY = 85;
         const float textScale = 0.68f;
 
-        DrawText("Debug mode enabled!", new Vector2(startX, 54f), Color.Yellow);
+        DrawText("Debug mode enabled!", new Vector2(startX, 64f), Color.Yellow);
 
         for (int i = 0; i < buttons.Length; i++)
         {

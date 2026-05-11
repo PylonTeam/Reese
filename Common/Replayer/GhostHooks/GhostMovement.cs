@@ -1,8 +1,8 @@
 using Microsoft.Xna.Framework.Input;
 using System;
 using Terraria.ID;
-using Reese.Common.Replayer.ReplayHud.Shared.Settings;
-using Reese.Common.Replayer.ReplayHud.Spectate;
+using Reese.Common.Replayer.ReplayHud;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
 namespace Reese.Common.Replayer.GhostHooks;
 
@@ -124,7 +124,7 @@ internal class GhostMovement : ModSystem
 
     private static bool IsRightClickTeleporting()
     {
-        return SpectatorClientSettings.RightClickTeleport && Main.mouseRight;
+        return ReplayClientSettings.RightClickTeleport && Main.mouseRight;
     }
 
     private static bool HasMovementInput(Player player)

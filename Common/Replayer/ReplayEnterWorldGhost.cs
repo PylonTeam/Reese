@@ -1,5 +1,4 @@
-﻿using FullSerializer;
-using Mono.Cecil.Cil;
+﻿using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using Reese.Common.Replayer.ReplayHud;
 using Steamworks;

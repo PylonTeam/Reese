@@ -1,6 +1,4 @@
-using Microsoft.Xna.Framework.Graphics;
 using System;
-using Terraria;
 using Terraria.UI;
 using Terraria.UI.Gamepad;
 

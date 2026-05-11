@@ -1,4 +1,4 @@
-using Reese.Common.Replayer.ReplayHud.Spectate;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Core.Debug;
 using System;
 using System.IO;

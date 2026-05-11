@@ -2,7 +2,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using ReLogic.Content;
-using Reese.Core.Utilities;
 using System;
 using Terraria;
 using Terraria.Audio;

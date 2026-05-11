@@ -4,5 +4,8 @@
     <AssemblyName>Reese</AssemblyName>
     <LangVersion>latest</LangVersion>
   </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="Common\Replayer\ReplayHud\Spectate\" />
+  </ItemGroup>
 
 </Project>

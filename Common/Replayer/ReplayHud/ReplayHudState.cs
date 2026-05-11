@@ -5,9 +5,9 @@ namespace Reese.Common.Replayer.ReplayHud;
 
 public class ReplayHudState : UIState
 {
-    private Spectate.SpectateHud spectateHud;
-    private Info.InfoHud infoHud;
-    private Playback.PlaybackHud playbackHud;
+    private ReplaySpectate.SpectateHud spectateHud;
+    private ReplayInfo.InfoHud infoHud;
+    private ReplayControls.PlaybackHud playbackHud;
 
     public override void OnActivate()
     {
@@ -32,9 +32,9 @@ public class ReplayHudState : UIState
         UpdateVisibleHuds();
 
         if (ReplaySession.IsReplayPlayback)
-            Spectate.TeammateOverlay.TeammateHudOverlay.Update();
+            Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Update();
         else
-            Spectate.TeammateOverlay.TeammateHudOverlay.Clear();
+            Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Clear();
 
         base.Update(gameTime);
     }
@@ -44,7 +44,7 @@ public class ReplayHudState : UIState
         base.Draw(spriteBatch);
 
         if (ReplaySession.IsReplayPlayback)
-            Spectate.TeammateOverlay.TeammateHudOverlay.Draw(spriteBatch);
+            Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Draw(spriteBatch);
     }
 
     private void UpdateVisibleHuds()
@@ -60,9 +60,9 @@ public class ReplayHudState : UIState
 
     private void EnsureHuds()
     {
-        spectateHud ??= new Spectate.SpectateHud();
-        infoHud ??= new Info.InfoHud();
-        playbackHud ??= new Playback.PlaybackHud();
+        spectateHud ??= new ReplaySpectate.SpectateHud();
+        infoHud ??= new ReplayInfo.InfoHud();
+        playbackHud ??= new ReplayControls.PlaybackHud();
 
         if (spectateHud.Parent is null)
             Append(spectateHud);
@@ -84,7 +84,7 @@ public class ReplayHudState : UIState
         infoHud = null;
         playbackHud = null;
 
-        Spectate.TeammateOverlay.TeammateHudOverlay.Clear();
+        ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Clear();
     }
 
     public void ClosePlaybackHud()

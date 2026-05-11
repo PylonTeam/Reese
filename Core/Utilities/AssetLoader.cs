@@ -37,10 +37,13 @@ public static class Ass
     public static Asset<Texture2D> SliderGradient;
 
     // Main menu assets
+    public static Asset<Texture2D> Icon_ArrowDown;
+    public static Asset<Texture2D> Icon_ArrowUp;
     public static Asset<Texture2D> ButtonOpenFolder;
     public static Asset<Texture2D> ButtonRefresh;
     public static Asset<Texture2D> ButtonTableColumn;
     public static Asset<Texture2D> ButtonTableColumn_Border;
+    public static Asset<Texture2D> ButtonTableColumn_Selected;
 
     // Ghost spectate assets
     public static Asset<Texture2D> Biome_Shimmer;
