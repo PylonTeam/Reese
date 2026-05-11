@@ -12,19 +12,20 @@ namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
 
 internal sealed class SettingsTab : TabPage
 {
-    public override SpectatorTab Tab => SpectatorTab.Replay;
+    public override SpectatorTab Tab => SpectatorTab.Settings;
     public override string HeaderText => "Settings";
     public override string TooltipText => "Replay settings";
     public override Asset<Texture2D> Icon => Ass.Icon_Gear;
 
     public override float IconScale => 1.25f;
 
-    public override Vector2 IconOffset => new Vector2(0, 0);
+    public override Vector2 IconOffset => new Vector2(4, 4);
 
     protected override void Populate(UIList list)
     {
         AddSection(list, new GhostSettings());
         AddSection(list, new DrawSettings());
+        //AddSection(list, new DisplaySettings());
     }
     private sealed class GhostSettings : SettingsSection
     {
@@ -66,13 +67,13 @@ internal sealed class SettingsTab : TabPage
         {
             return
             [
-                new("HUD View:", () => $"Right Click Teleport: {OnOff(ReplayClientSettings.RightClickTeleport)}", GetRightClickTeleportIcon, onLeftClick: ReplayClientSettings.ToggleRightClickTeleport)
+                new("Compact HUD:", () => $"Compact HUD: {OnOff(ReplayClientSettings.IsCompactModeOn)}", GetRightClickTeleportIcon, onLeftClick: ReplayClientSettings.ToggleCompactMode)
             ];
         }
 
         private static Texture2D GetRightClickTeleportIcon()
         {
-            return ReplayClientSettings.RightClickTeleport ? Ass.Icon_TeleportOn.Value : Ass.Icon_TeleportOff.Value;
+            return ReplayClientSettings.IsCompactModeOn ? Ass.Icon_Card1.Value : Ass.Icon_Card3.Value;
         }
     }
 

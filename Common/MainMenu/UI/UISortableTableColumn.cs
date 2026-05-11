@@ -50,10 +50,13 @@ internal sealed class UISortableTableColumn : UIElement
     public void SetSortState(bool active, bool ascending)
     {
         sortDirection = !active ? SortDirection.None : ascending ? SortDirection.Ascending : SortDirection.Descending;
-
         label.SetText(text);
-        label.Left.Set(active ? -6f : 0f, 0f);
-        label.Recalculate();
+        
+        if (label.Text == "Length")
+        {
+            label.Left.Set(active ? -6f : 0f, 0f);
+            label.Recalculate();
+        }
     }
 
     protected override void DrawSelf(SpriteBatch spriteBatch)

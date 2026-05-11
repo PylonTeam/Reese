@@ -48,7 +48,7 @@ internal sealed class InfoHud : UIElement
         ContentPanel = null;
         tabBar = null;
 
-        Height.Set(PanelHeight, 0f);
+        Height.Set(525, 0f);
 
         BuildTitlePanel();
         Append(TitlePanel);
@@ -124,17 +124,6 @@ internal sealed class InfoHud : UIElement
         closePanel.Append(new UIText("X", large: true, textScale: 0.55f) { HAlign = 0.5f, VAlign = 0.5f });
         TitlePanel.Append(closePanel);
 
-        UIPanel closePanel = new();
-        closePanel.Width.Set(20f, 0f);
-        closePanel.Height.Set(20f, 0f);
-        closePanel.HAlign = 1f;
-        closePanel.VAlign = 0.5f;
-        closePanel.Left.Set(-6f, 0f);
-        closePanel.SetPadding(0f);
-        closePanel.BackgroundColor = new Color(40, 40, 40) * 0.7f;
-        closePanel.BorderColor = Color.Black;
-        closePanel.Append(new UIText("x", textScale: 0.9f) { HAlign = 0.5f, VAlign = 0.5f });
-        TitlePanel.Append(closePanel);
     }
 
     private void BuildTabPanel()

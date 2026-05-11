@@ -13,7 +13,7 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
 internal sealed class UIPlayerCard : UIPanel
 {
-    internal static int CardWidth => 80 * 2; // biome BG scaled down
+    internal static int CardWidth => 115 * 2; // biome BG scaled down
     internal static int CardHeight => 65*2; // biome BG is 65 height
 
     public int PlayerIndex { get; }

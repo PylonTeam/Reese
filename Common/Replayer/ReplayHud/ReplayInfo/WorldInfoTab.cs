@@ -25,7 +25,7 @@ internal sealed class WorldInfoTab : TabPage
     protected override void Populate(UIList list)
     {
         AddSection(list, new WorldInfo());
-        AddSection(list, new MiscInfo());
+        //AddSection(list, new MiscInfo());
         list.Add(new BossesDefeated());
     }
 
@@ -38,25 +38,20 @@ internal sealed class WorldInfoTab : TabPage
         {
             return
             [
-                new(GetWorldNameText(), GetWorldNameText, GetWorldSignTexture, iconScale: 1.3f),
-                new(GetWorldSizeText(), GetWorldSizeText, GetWorldSizeIcon, iconScale: 1.3f),
-                new(GetDifficultyText(), GetDifficultyText, GetWorldDifficultyIcon, GetDifficultyColor, iconScale: 1.3f),
-                new(GetEvilText(), GetEvilText, GetWorldEvilIcon, GetEvilColor, iconScale: 1.2f),
-                new(GetSeedText(), GetSeedText, GetWorldSeedIcon, iconScale: 1.3f),
-                new(GetTimeText(), GetTimeText, GetTimeIcon, iconScale: 0.65f),
-                new(GetWeatherText(), GetWeatherText, GetWeatherIcon, iconScale: 0.68f),
-                new(GetMoonText(), GetMoonText, GetMoonIcon, iconScale: 0.75f)
+                new("World:", () => Main.worldName, GetWorldSignTexture, iconScale: 1.3f),
+                new("Size:", GetWorldSizeText, GetWorldSizeIcon, iconScale: 1.3f),
+                new("Difficulty:", GetDifficultyText, GetWorldDifficultyIcon, GetDifficultyColor, iconScale: 1.3f),
+                new("Evil:", GetEvilText, GetWorldEvilIcon, GetEvilColor, iconScale: 1.2f),
+                new("Seed:", GetSeedText, GetWorldSeedIcon, iconScale: 1.3f),
+                new("Time:", GetTimeText, GetTimeIcon, iconScale: 0.65f),
+                new("Weather:", GetWeatherText, GetWeatherIcon, iconScale: 0.68f),
+                new("Moon:", GetMoonText, GetMoonIcon, iconScale: 0.75f)
             ];
         }
 
         private static Texture2D GetWorldSignTexture()
         {
             return Main.Assets.Request<Texture2D>("Images/UI/WorldCreation/IconRandomName").Value;
-        }
-
-        private static string GetWorldNameText()
-        {
-            return $"Name: {Main.worldName}";
         }
 
         private static Texture2D GetWorldSizeIcon()
@@ -74,15 +69,15 @@ internal sealed class WorldInfoTab : TabPage
         private static string GetWorldSizeText()
         {
             if (Main.maxTilesX <= 4200)
-                return "Size: Small";
+                return "Small";
 
             if (Main.maxTilesX <= 6400)
-                return "Size: Medium";
+                return "Medium";
 
             if (Main.maxTilesX <= 8400)
-                return "Size: Large";
+                return "Large";
 
-            return "Size: Custom";
+            return "Unknown";
         }
 
         private static Texture2D GetWorldDifficultyIcon()
@@ -356,7 +351,8 @@ internal sealed class WorldInfoTab : TabPage
             Utils.DrawBorderString(sb, "Bosses", new Vector2(box.X + 10, box.Y + 6), new Color(255, 228, 140), 0.9f);
 
             Rectangle statBox = new(box.X + ContentInset, box.Y + (int)(HeaderHeight + 4f), box.Width - ContentInset * 2, (int)RowHeight);
-            StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.Icon_CheckmarkGreen.Value, $"Bosses Defeated: {GetBossesDefeatedText()}", $"Bosses Defeated: {GetBossesDefeatedText()}", textColor: Color.White);
+            string bossesDefeatedText = GetBossesDefeatedText();
+            StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.Icon_CheckmarkGreen.Value, bossesDefeatedText, $"Bosses Defeated: {bossesDefeatedText}", textColor: Color.Gray, label: "Bosses Defeated:");
 
             int dividerY = statBox.Bottom + 8;
             sb.Draw(TextureAssets.MagicPixel.Value, new Rectangle(box.X + 10, dividerY, box.Width - 20, 2), Color.White * 0.10f);

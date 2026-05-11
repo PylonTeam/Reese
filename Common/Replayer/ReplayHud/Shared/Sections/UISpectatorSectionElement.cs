@@ -105,7 +105,10 @@ internal sealed class UISpectatorSectionElement : UIPanel
             Color textColor = row.GetTextColor?.Invoke() ?? GetDefaultTextColor();
 
             string commonTooltipText = section.UsesCommonRowTooltips && canShowHover() ? text : null;
-            StatDrawer.DrawWorldStatPanel(sb, box, icon, text, commonTooltipText, textColor: textColor, iconScale: row.IconScale);
+            string label = section.UsesOptionRowStyle ? null : row.Label;
+            Color valueColor = row.GetTextColor is null && !section.UsesOptionRowStyle ? Color.Gray : textColor;
+
+            StatDrawer.DrawWorldStatPanel(sb, box, icon, text, commonTooltipText, textColor: valueColor, iconScale: row.IconScale, label: label);
         }
 
         private Color GetDefaultTextColor()

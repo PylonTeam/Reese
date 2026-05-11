@@ -16,6 +16,7 @@ internal interface ITab
 
 internal enum SpectatorTab
 {
+    Settings,
     NPCs,
     World,
     Replay,

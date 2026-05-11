@@ -51,8 +51,8 @@ internal static class ReplayBrowserLayout
 
         const float baseNameColumnWidth = 190f;
         const float baseDateColumnWidth = 97f;
-        const float baseDurationColumnWidth = 77f;
-        const float baseSizeColumnWidth = 91f;
+        const float baseDurationColumnWidth = 88f;
+        const float baseSizeColumnWidth = 88f;
 
         float baseTotalWidth = baseNameColumnWidth + baseDateColumnWidth + baseDurationColumnWidth + baseSizeColumnWidth;
         float fittedNameColumnWidth = MathF.Round(baseNameColumnWidth / baseTotalWidth * TableWidth);

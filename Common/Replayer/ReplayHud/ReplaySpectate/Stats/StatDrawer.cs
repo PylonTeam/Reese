@@ -127,7 +127,7 @@ public static class StatDrawer
             UICommon.TooltipMouseText(text);
     }
 
-    public static void DrawWorldStatPanel(SpriteBatch spriteBatch, Rectangle area, Texture2D texture, string text, string hoverText = null, Color? textColor = null, float scale = 1f, float iconScale = 1f)
+    public static void DrawWorldStatPanel(SpriteBatch spriteBatch, Rectangle area, Texture2D texture, string text, string hoverText = null, Color? textColor = null, float scale = 1f, float iconScale = 1f, string label = null)
     {
         DrawBack(spriteBatch, area, scale);
 
@@ -150,9 +150,29 @@ public static class StatDrawer
         int textLeft = area.X + (int)MathF.Round((texture == null ? 7f : 31f) * scale);
         int textTop = area.Y + (int)MathF.Round(5f * scale);
         Rectangle textArea = new(textLeft, textTop, area.Right - textLeft - (int)MathF.Round(4f * scale), area.Height);
-        string displayText = Truncate(FontAssets.MouseText.Value, text, textArea.Width, textScale);
 
-        Utils.DrawBorderString(spriteBatch, displayText, new Vector2(textArea.X, textArea.Y), textColor ?? Color.White, textScale);
+        if (string.IsNullOrEmpty(label))
+        {
+            string displayText = Truncate(FontAssets.MouseText.Value, text, textArea.Width, textScale);
+            Utils.DrawBorderString(spriteBatch, displayText, new Vector2(textArea.X, textArea.Y), textColor ?? Color.White, textScale);
+        }
+        else
+        {
+            text ??= string.Empty;
+
+            string value = text.StartsWith(label, StringComparison.Ordinal)
+                ? text[label.Length..].TrimStart()
+                : text;
+
+            string displayLabel = Truncate(FontAssets.MouseText.Value, label + " ", textArea.Width, textScale);
+            float labelWidth = FontAssets.MouseText.Value.MeasureString(displayLabel).X * textScale;
+            int valueWidth = Math.Max(0, textArea.Width - (int)MathF.Ceiling(labelWidth));
+
+            string displayValue = Truncate(FontAssets.MouseText.Value, value, valueWidth, textScale);
+
+            Utils.DrawBorderString(spriteBatch, displayLabel, new Vector2(textArea.X, textArea.Y), Color.White, textScale);
+            Utils.DrawBorderString(spriteBatch, displayValue, new Vector2(textArea.X + labelWidth, textArea.Y), textColor ?? Color.Gray, textScale);
+        }
 
         if (!string.IsNullOrEmpty(hoverText) && area.Contains(Main.MouseScreen.ToPoint()))
         {

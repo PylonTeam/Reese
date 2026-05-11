@@ -209,7 +209,7 @@ internal sealed class SpectateHud : UIElement
         panel.BackgroundColor = new Color(63, 82, 151);
         panel.BorderColor = Color.Black;
 
-        panel.Append(new UIText("Spectate Info", large: false, textScale: 1f)
+        panel.Append(new UIText("Spectate", large: false, textScale: 1f)
         {
             HAlign = 0.5f,
             VAlign = 0.5f
@@ -479,9 +479,7 @@ internal sealed class SpectateHud : UIElement
         float maxTextWidth = panelWidth - padding * 2f;
         float maxTextHeight = StatusPanelHeight - padding * 2f;
         float fittedScale = FitTextScale(wrappedText, StatusTextScale, maxTextWidth, maxTextHeight);
-
-        if (Math.Abs(fittedScale - statusText.TextScale) > 0.001f)
-            statusText.SetText(wrappedText, fittedScale, false);
+        statusText.SetText(wrappedText, fittedScale, false);
     }
 
     private static bool IsTargetValid(int playerIndex)
@@ -687,7 +685,7 @@ internal sealed class SpectateHud : UIElement
         if (observedCardCountRevision == cardCountRevision)
             return;
         if (locked < 0 && lockedNpc < 0 && Main.LocalPlayer?.ghost == true)
-            return "You are in ghost mode";
+            return;
 
         observedCardCountRevision = cardCountRevision;
         Rebuild();
