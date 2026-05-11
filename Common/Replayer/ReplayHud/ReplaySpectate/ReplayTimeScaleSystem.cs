@@ -174,7 +174,9 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
     private static void NotifyWorldTickAdvanced()
     {
         if (Main.netMode != NetmodeID.Server && ReplaySession.IsReplayPlayback)
-            ModContent.GetInstance<Replayer>()?.AdvancePlaybackTick();
+        {
+            ModContent.GetInstance<global::Reese.Replayer>()?.AdvancePlaybackTick();
+        }
     }
 
     private void HookUpdateTime(On_Main.orig_UpdateTime orig)

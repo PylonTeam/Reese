@@ -73,7 +73,8 @@ internal sealed class ReplayBrowser : UIElement
 
             try
             {
-                Replayer.Replayer.BeginPlayback(demoPath);
+                // TODO!!!!!!!!!!!!!!!!!!!!!!!!!
+                //Replayer.BeginPlayback(demoPath);
                 ReplaySession.BeginPlayback(demoPath);
 
                 Netplay.SetRemoteIP("10.2.3.4");
