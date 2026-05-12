@@ -76,8 +76,8 @@ internal sealed class UISortableTableColumn : UIElement
         if (sortDirection != SortDirection.None)
             DrawSortArrow(spriteBatch, bounds);
 
-        if (sortDirection != SortDirection.None)
-            DrawTooltip();
+        //if (sortDirection != SortDirection.None)
+            //DrawTooltip();
     }
 
     private void DrawTooltip()

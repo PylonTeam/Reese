@@ -37,6 +37,8 @@ public static class Ass
     public static Asset<Texture2D> SliderGradient;
 
     // Main menu assets
+    public static Asset<Texture2D> IconNewlyGenerated;
+    public static Asset<Texture2D> IconPlayedBefore;
     public static Asset<Texture2D> Icon_ArrowDown;
     public static Asset<Texture2D> Icon_ArrowUp;
     public static Asset<Texture2D> ButtonOpenFolder;

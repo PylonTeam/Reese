@@ -1,9 +1,10 @@
-﻿using System;
-using System.IO;
-using System.Reflection;
-using log4net;
+﻿using log4net;
 using Microsoft.Xna.Framework;
 using MonoMod.Cil;
+using Reese.Common.MainMenu;
+using System;
+using System.IO;
+using System.Reflection;
 using Terraria;
 using Terraria.GameContent.Creative;
 using Terraria.GameContent.Events;
@@ -36,6 +37,8 @@ public class Recorder : ModSystem, ITicker
     public static bool IsRecordingActive { get; private set; }
     private bool _isRecording;
     private string _currentReplayPath;
+
+    // Reflection fields
     private static MethodInfo _modNetSyncMods;
     private static MethodInfo _modNetSendNetIds;
     private static MethodInfo _netMessageSyncOnePlayer;
@@ -103,6 +106,7 @@ public class Recorder : ModSystem, ITicker
         _currentReplayPath = Path.Combine(dir, $"{ReplayFilePrefix}_{GetNextReplayNumber(dir, ReplayFilePrefix):0000}.reese");
 
         var replayFile = ReplayFile.Write(File.Open(_currentReplayPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
+        ReplayFlags.MarkNew(_currentReplayPath);
 
         var recordClient = Netplay.Clients[RecordClientIndex];
         // Not really needed, because we probably just did it above, but why not.

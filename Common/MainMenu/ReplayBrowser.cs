@@ -41,56 +41,6 @@ internal sealed class ReplayBrowser : UIElement
     {
         browserPanel?.Refresh();
     }
-
-    public static void EnterReplay(string demoPath)
-    {
-        Main.QueueMainThreadAction(() =>
-        {
-            ModContent.GetInstance<MainMenuSystem>().CloseForReplayLaunch();
-
-            Main.LoadPlayers();
-            var player = Main.PlayerList.FirstOrDefault();
-
-            if (player == null)
-            {
-                Log.Chat("Could not enter replay: no player found.");
-                Main.menuMode = 0;
-                return;
-            }
-
-            Main.SelectPlayer(player);
-            Log.Debug($"Successfully selected {player.Player.name} for replay");
-
-            if (!File.Exists(demoPath))
-            {
-                Log.Error("Error: No replay file found at: " + demoPath);
-                Main.menuMode = 0;
-                return;
-            }
-
-            long replayMegaBytes = new FileInfo(demoPath).Length / (1024 * 1024);
-            Log.Debug("Successfully found replay file, size: " + replayMegaBytes + " MB");
-
-            try
-            {
-                // TODO!!!!!!!!!!!!!!!!!!!!!!!!!
-                //Replayer.BeginPlayback(demoPath);
-                ReplayPlayback.BeginPlayback(demoPath);
-
-                Netplay.SetRemoteIP("10.2.3.4");
-                Main.autoPass = true;
-                Netplay.StartTcpClient();
-                Main.menuMode = 10;
-            }
-            catch (Exception e)
-            {
-                Log.Error("[ReplayBrowser] Failed to start replay: " + e);
-                Main.statusText = "Failed to start replay";
-                ReplayPlayback.End("playback launch failed");
-                Main.menuMode = 0;
-            }
-        });
-    }
 }
 
 internal sealed class ReplayBrowserPanel : UIElement
@@ -119,7 +69,7 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     public void Build()
     {
-        ReplayBrowserLayout.Update();
+        ReplayLayout.Update();
 
         const float headerHeight = 46f;
         const float headerButtonSize = 36f * 0.85f;
@@ -138,19 +88,19 @@ internal sealed class ReplayBrowserPanel : UIElement
         container.Width.Set(0f, 1f);
         container.Height.Set(-headerHeight, 1f);
         container.Top.Set(headerHeight, 0f);
-        container.SetPadding(ReplayBrowserLayout.ContentPadding);
+        container.SetPadding(ReplayLayout.ContentPadding);
         Append(container);
 
         UIElement tableHeader = new();
-        tableHeader.Width.Set(ReplayBrowserLayout.TableWidth, 0f);
-        tableHeader.Height.Set(ReplayBrowserLayout.TableColumnHeight, 0f);
+        tableHeader.Width.Set(ReplayLayout.TableWidth, 0f);
+        tableHeader.Height.Set(ReplayLayout.TableColumnHeight, 0f);
         container.Append(tableHeader);
 
-        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Name", 0f, ReplayBrowserLayout.NameColumnWidth);
-        UISortableTableColumn dateColumn = UISortableTableColumn.AppendHeader(tableHeader, "Date", ReplayBrowserLayout.NameColumnWidth, ReplayBrowserLayout.DateColumnWidth);
-        UISortableTableColumn durationColumn = UISortableTableColumn.AppendHeader(tableHeader, "Length", ReplayBrowserLayout.NameColumnWidth + ReplayBrowserLayout.DateColumnWidth, ReplayBrowserLayout.DurationColumnWidth);
-        UISortableTableColumn modsColumn = UISortableTableColumn.AppendHeader(tableHeader, "Mods", ReplayBrowserLayout.ModsLeft, ReplayBrowserLayout.ModsColumnWidth);
-        UISortableTableColumn sizeColumn = UISortableTableColumn.AppendHeader(tableHeader, "Size", ReplayBrowserLayout.SizeLeft, ReplayBrowserLayout.SizeColumnWidth);
+        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Name", 0f, ReplayLayout.NameColumnWidth);
+        UISortableTableColumn dateColumn = UISortableTableColumn.AppendHeader(tableHeader, "Date", ReplayLayout.NameColumnWidth, ReplayLayout.DateColumnWidth);
+        UISortableTableColumn durationColumn = UISortableTableColumn.AppendHeader(tableHeader, "Length", ReplayLayout.NameColumnWidth + ReplayLayout.DateColumnWidth, ReplayLayout.DurationColumnWidth);
+        UISortableTableColumn modsColumn = UISortableTableColumn.AppendHeader(tableHeader, "Mods", ReplayLayout.ModsLeft, ReplayLayout.ModsColumnWidth);
+        UISortableTableColumn sizeColumn = UISortableTableColumn.AppendHeader(tableHeader, "Size", ReplayLayout.SizeLeft, ReplayLayout.SizeColumnWidth);
 
         void RefreshColumnStates()
         {
@@ -190,17 +140,17 @@ internal sealed class ReplayBrowserPanel : UIElement
         RefreshColumnStates();
 
         list = new UIList();
-        list.Width.Set(-ReplayBrowserLayout.ScrollbarWidth - 4f, 1f);
-        list.Height.Set(-ReplayBrowserLayout.ListTop, 1f);
-        list.Top.Set(ReplayBrowserLayout.ListTop, 0f);
+        list.Width.Set(-ReplayLayout.ScrollbarWidth - 4f, 1f);
+        list.Height.Set(-ReplayLayout.ListTop, 1f);
+        list.Top.Set(ReplayLayout.ListTop, 0f);
         list.ListPadding = 4f;
         container.Append(list);
 
         UIScrollbar scrollbar = new();
-        scrollbar.Width.Set(ReplayBrowserLayout.ScrollbarWidth, 0f);
-        scrollbar.Height.Set(-ReplayBrowserLayout.ListTop - 6, 1f);
-        scrollbar.Left.Set(-ReplayBrowserLayout.ScrollbarWidth, 1f);
-        scrollbar.Top.Set(ReplayBrowserLayout.ListTop, 0f);
+        scrollbar.Width.Set(ReplayLayout.ScrollbarWidth, 0f);
+        scrollbar.Height.Set(-ReplayLayout.ListTop - 6, 1f);
+        scrollbar.Left.Set(-ReplayLayout.ScrollbarWidth, 1f);
+        scrollbar.Top.Set(ReplayLayout.ListTop, 0f);
         container.Append(scrollbar);
         list.SetScrollbar(scrollbar);
 
@@ -297,7 +247,7 @@ internal sealed class ReplayBrowserPanel : UIElement
     {
         base.Update(gameTime);
 
-        if (!ReplayBrowserLayout.Update())
+        if (!ReplayLayout.Update())
             return;
 
         Build();
@@ -424,26 +374,26 @@ internal sealed class ReplayBrowserPanel : UIElement
         IOrderedEnumerable<ReplayMetadata> sorted = sortColumn switch
         {
             SortColumn.Name => sortAscending
-                ? entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenBy(x => x.ReplayName)
-                : entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenByDescending(x => x.ReplayName),
+                ? entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenBy(x => x.ReplayName)
+                : entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.ReplayName),
 
             SortColumn.Duration => sortAscending
-                ? entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenBy(x => x.DurationTicks)
-                : entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenByDescending(x => x.DurationTicks),
+                ? entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenBy(x => x.DurationTicks)
+                : entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DurationTicks),
 
             SortColumn.Mods => sortAscending
-                ? entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenBy(x => x.ModNames?.Length ?? 0)
-                : entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenByDescending(x => x.ModNames?.Length ?? 0),
+                ? entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenBy(x => x.ModNames?.Length ?? 0)
+                : entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.ModNames?.Length ?? 0),
 
             SortColumn.Size => sortAscending
-                ? entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenBy(x => x.SizeBytes)
-                : entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenByDescending(x => x.SizeBytes),
+                ? entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenBy(x => x.SizeBytes)
+                : entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.SizeBytes),
 
             SortColumn.Date => sortAscending
-                ? entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenBy(x => x.DateCreated)
-                : entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated),
+                ? entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenBy(x => x.DateCreated)
+                : entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated),
 
-            _ => entries.OrderByDescending(x => ReplayFavorites.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated)
+            _ => entries.OrderByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated)
         };
 
         return sorted.ToArray();

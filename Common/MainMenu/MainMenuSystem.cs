@@ -251,9 +251,11 @@ public class MainMenuSystem : ModSystem
             if (buttonNames[buttonIndex] != ButtonLabel)
                 return false;
 
-            Color TextColor = new(255, 64, 96);
+            //Color TextColor = new(255, 64, 96);
             //Color HoverColor = new(255, 92, 92); // brighter red
-            Color HoverColor = new(255, 200, 255);
+            //Color HoverColor = new(255, 200, 255);
+            Color TextColor = new(90, 210, 255);
+            Color HoverColor = new(255, 240, 80);
             color = Color.Lerp(TextColor, HoverColor, hoveredIndex == buttonIndex ? interpolator / 255f : 0f);
             return true;
         });

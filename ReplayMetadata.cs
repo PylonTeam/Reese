@@ -19,6 +19,14 @@ public sealed class ReplayMetadata
     public long SizeBytes { get; init; }
     public string[] ModNames { get; init; }
 
+    /// <summary>
+    /// Reads file info
+    /// Read replay header if possible
+    /// Scan duration if possible
+    /// Returns: metadata to display.
+    /// </summary>
+    /// <param name="path"></param>
+    /// <returns></returns>
     public static ReplayMetadata FromFile(string path)
     {
         bool fileExists = !string.IsNullOrWhiteSpace(path) && File.Exists(path);

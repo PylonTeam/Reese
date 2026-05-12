@@ -1,22 +1,76 @@
+using Reese.Common.Replayer;
 using Reese.Core.Debug;
 using System;
 using System.IO;
+using System.Linq;
 using Terraria.Audio;
 using Terraria.ID;
 using Terraria.ModLoader;
 
 namespace Reese.Common.MainMenu;
 
-internal static class ReplayItemActions
+internal static class ReplayActions
 {
-    public static void Play(string path)
+    public static void EnterReplay(string replayPath)
     {
         SoundEngine.PlaySound(SoundID.MenuOpen);
-        ReplayBrowser.EnterReplay(path);
+
+        Main.QueueMainThreadAction(() =>
+        {
+            ModContent.GetInstance<MainMenuSystem>().CloseForReplayLaunch();
+
+            Main.LoadPlayers();
+            var player = Main.PlayerList.FirstOrDefault();
+
+            if (player == null)
+            {
+                Log.Chat("Could not enter replay: no player found.");
+                Main.menuMode = 0;
+                return;
+            }
+
+            Main.SelectPlayer(player);
+            Log.Debug($"Successfully selected {player.Player.name} for replay");
+
+            if (!File.Exists(replayPath))
+            {
+                Log.Error("Error: No replay file found at: " + replayPath);
+                Main.menuMode = 0;
+                return;
+            }
+
+            long replayMegaBytes = new FileInfo(replayPath).Length / (1024 * 1024);
+            Log.Debug("Successfully found replay file, size: " + replayMegaBytes + " MB");
+
+            try
+            {
+                ReplayPlayback.BeginPlayback(replayPath);
+                ReplayFlags.MarkViewed(replayPath);
+                ReplayFlags.MarkPlayed(replayPath);
+
+                Netplay.SetRemoteIP("10.2.3.4");
+                Main.autoPass = true;
+                Netplay.StartTcpClient();
+                Main.menuMode = 10;
+            }
+            catch (Exception e)
+            {
+                Log.Error("[ReplayBrowser] Failed to start replay: " + e);
+                Main.statusText = "Failed to start replay";
+                ReplayPlayback.End("playback launch failed");
+                Main.menuMode = 0;
+            }
+        });
     }
 
     public static void Delete(string path, Action onDeleted = null)
     {
+        if (ReplayFlags.IsFavorite(path))
+        {
+            SoundEngine.PlaySound(SoundID.MenuTick);
+            return;
+        }
+
         SoundEngine.PlaySound(SoundID.MenuOpen);
 
         ModContent.GetInstance<MainMenuSystem>().OpenConfirmDelete(Path.GetFileName(path), () =>
@@ -26,7 +80,7 @@ internal static class ReplayItemActions
                 if (File.Exists(path))
                     File.Delete(path);
 
-                ReplayFavorites.Delete(path);
+                ReplayFlags.Delete(path);
                 onDeleted?.Invoke();
             }
             catch (Exception e)
@@ -62,8 +116,7 @@ internal static class ReplayItemActions
             string destination = GetAvailableReplayPath(directory, newName);
             File.Move(path, destination);
 
-            ReplayFavorites.Move(path, destination);
-            //ReplayImages.MovePreview(path, destination);
+            ReplayFlags.Move(path, destination);
 
             onRenamed?.Invoke();
         }
@@ -95,28 +148,13 @@ internal static class ReplayItemActions
         return name.Trim();
     }
 
-    //public static void ChoosePreviewImage(string path, Action onChanged = null)
-    //{
-    //    SoundEngine.PlaySound(SoundID.MenuOpen);
-
-    //    try
-    //    {
-    //        if (ReplayImages.ChooseAndSavePreview(path))
-    //            onChanged?.Invoke();
-    //    }
-    //    catch (Exception e)
-    //    {
-    //        Log.Error($"Failed to set replay preview image '{path}': {e}");
-    //    }
-    //}
-
     public static void Favorite(string path, Action onChanged = null)
     {
         SoundEngine.PlaySound(SoundID.MenuTick);
 
         try
         {
-            ReplayFavorites.Toggle(path);
+            ReplayFlags.ToggleFavorite(path);
             onChanged?.Invoke();
         }
         catch (Exception e)

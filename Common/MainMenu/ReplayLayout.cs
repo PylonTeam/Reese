@@ -2,7 +2,7 @@ using System;
 
 namespace Reese.Common.MainMenu;
 
-internal static class ReplayBrowserLayout
+internal static class ReplayLayout
 {
     internal static float ReplayItemHeight;
     internal static float ReplayItemActionHeight;
