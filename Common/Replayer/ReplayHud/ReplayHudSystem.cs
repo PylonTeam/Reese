@@ -48,7 +48,7 @@ public sealed class ReplayHudSystem : ModSystem
 
     public void OpenFullHud()
     {
-        if (!ReplaySession.IsReplayPlayback)
+        if (!ReplayPlayback.IsReplayPlayback)
             return;
 
         replayHudInterface.SetState(replayHudState);

@@ -12,7 +12,6 @@ public class ReplayFile : IDisposable
 {
     public const string Identifier = "Reese";
     private static readonly byte[] IdentifierASCII = Encoding.ASCII.GetBytes(Identifier);
-    private static readonly ILog Logger = LogManager.GetLogger(typeof(ReplayFile));
 
     private BinaryWriter _binaryWriter;
     private BinaryReader _binaryReader;
@@ -125,6 +124,53 @@ public class ReplayFile : IDisposable
         replayFile.ReadPacketDataHeader();
 
         return replayFile;
+    }
+
+    public static bool TryReadDurationTicks(string path, out uint durationTicks)
+    {
+        durationTicks = 0;
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return false;
+
+        try
+        {
+            using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+
+            byte[] identifier = reader.ReadBytes(Identifier.Length);
+            if (!identifier.SequenceEqual(IdentifierASCII))
+                return false;
+
+            long totalTicks = 0;
+
+            while (stream.Position + 8 <= stream.Length)
+            {
+                uint delta = reader.ReadUInt32();
+                int length = reader.ReadInt32();
+
+                if (length < 0)
+                    break;
+
+                totalTicks += delta;
+
+                if (length == 0)
+                    break;
+
+                if (stream.Position + length > stream.Length)
+                    break;
+
+                stream.Seek(length, SeekOrigin.Current);
+            }
+
+            durationTicks = (uint)Math.Min(totalTicks, uint.MaxValue);
+            return true;
+        }
+        catch
+        {
+            durationTicks = 0;
+            return false;
+        }
     }
 
     public void Dispose()

@@ -7,7 +7,7 @@ internal static class ReplayDrawGate
 {
     public static bool ShouldDrawPlayer(Player player)
     {
-        if (!ReplaySession.IsReplayPlayback || player?.active != true)
+        if (!ReplayPlayback.IsReplayPlayback || player?.active != true)
             return true;
 
         return player.ghost ? ReplayClientSettings.IsDrawGhostsOn : ReplayClientSettings.IsDrawPlayersOn;
@@ -15,12 +15,12 @@ internal static class ReplayDrawGate
 
     public static bool ShouldDrawGhost(Player player)
     {
-        return !ReplaySession.IsReplayPlayback || player?.ghost != true || ReplayClientSettings.IsDrawGhostsOn;
+        return !ReplayPlayback.IsReplayPlayback || player?.ghost != true || ReplayClientSettings.IsDrawGhostsOn;
     }
 
     public static bool ShouldDrawNameplate(Player player, bool isSpectator)
     {
-        if (!ReplaySession.IsReplayPlayback || player?.active != true)
+        if (!ReplayPlayback.IsReplayPlayback || player?.active != true)
             return true;
 
         return isSpectator ? ReplayClientSettings.IsDrawGhostsOn : ReplayClientSettings.IsDrawPlayersOn;
@@ -44,7 +44,7 @@ internal sealed class ReplayNPCDrawGate : GlobalNPC
 {
     public override bool PreDraw(NPC npc, SpriteBatch spriteBatch, Vector2 screenPos, Color drawColor)
     {
-        return !ReplaySession.IsReplayPlayback || ReplayClientSettings.IsDrawNPCsOn;
+        return !ReplayPlayback.IsReplayPlayback || ReplayClientSettings.IsDrawNPCsOn;
     }
 }
 
@@ -53,7 +53,7 @@ internal sealed class ReplayProjectileDrawGate : GlobalProjectile
 {
     public override bool PreDraw(Projectile projectile, ref Color lightColor)
     {
-        return !ReplaySession.IsReplayPlayback || ReplayClientSettings.IsDrawProjectilesOn;
+        return !ReplayPlayback.IsReplayPlayback || ReplayClientSettings.IsDrawProjectilesOn;
     }
 }
 
@@ -62,6 +62,6 @@ internal sealed class ReplayItemDrawGate : GlobalItem
 {
     public override bool PreDrawInWorld(Item item, SpriteBatch spriteBatch, Color lightColor, Color alphaColor, ref float rotation, ref float scale, int whoAmI)
     {
-        return !ReplaySession.IsReplayPlayback || ReplayClientSettings.IsDrawItemsOn;
+        return !ReplayPlayback.IsReplayPlayback || ReplayClientSettings.IsDrawItemsOn;
     }
 }

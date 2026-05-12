@@ -16,6 +16,9 @@ namespace Reese;
 
 // FIXME: cache/optimize reflection
 
+// TODO :
+// This class has been disabled because it prevents the server from starting, making us unable to use the recorder at all.
+[Autoload(false)]
 public class EncryptEverything : ModSystem
 {
     private class SslSocket : ISocket
@@ -245,7 +248,7 @@ public class EncryptEverything : ModSystem
     {
         orig(address);
 
-        if (Common.Replayer.ReplaySession.IsReplayPlayback)
+        if (Common.Replayer.ReplayPlayback.IsReplayPlayback)
         {
             Log.Debug("Replay playback connection: skipping SSL socket replacement.");
             return;

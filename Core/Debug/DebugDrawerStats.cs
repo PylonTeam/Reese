@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using Terraria.ID;
+using Terraria.ModLoader;
 
 namespace Reese.Core.Debug;
 
@@ -32,6 +33,10 @@ internal static class DebugDrawerStats
     private static void AddRecorderStats(List<DebugDrawer.DebugStatGroup> groups)
     {
         List<string> rows = [];
+
+        rows.Add($"Record client index: {ReplayPlayback.RecordClientIndex}");
+        rows.Add($"Recording active: {Recorder.IsRecordingActive}");
+        rows.Add($"Recorder tick: {Recorder.CurrentTick}");
 
         //rows.Add($"Active: {DebugRecorderDiagnostics.IsActive}");
         //rows.Add($"File: {GetFileNameOrNone(ReplaySession.CurrentPath)}");
@@ -69,6 +74,10 @@ internal static class DebugDrawerStats
     private static void AddReplayerStats(List<DebugDrawer.DebugStatGroup> groups)
     {
         List<string> rows = [];
+
+        rows.Add($"Playback active: {ReplayPlayback.IsReplayPlayback}");
+        rows.Add($"File: {GetFileNameOrNone(ReplayPlayback.CurrentPath)}");
+        rows.Add($"Replayer tick: {GetReplayerTickText()}");
 
         //rows.Add($"Active: {DebugReplayerDiagnostics.IsActive}");
         //rows.Add($"Socket active: {Replayer.IsPlaybackSocketActive}");
@@ -240,6 +249,11 @@ internal static class DebugDrawerStats
         //string world = string.IsNullOrWhiteSpace(metadata.WorldName) ? "?" : metadata.WorldName;
 
         //return $"player={player}, world={world}, duration={metadata.DurationTicks} ticks";
+    }
+
+    private static string GetReplayerTickText()
+    {
+        return ReplayPlayback.IsReplayPlayback ? ModContent.GetInstance<Replayer>()?.Ticks.ToString() ?? "<n/a>" : "0";
     }
 
     private static string GetConnectionText()

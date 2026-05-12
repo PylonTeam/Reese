@@ -46,7 +46,7 @@ internal sealed class ReplayBrowser : UIElement
     {
         Main.QueueMainThreadAction(() =>
         {
-            ModContent.GetInstance<ExtraStateMainMenuSystem>().CloseForReplayLaunch();
+            //ModContent.GetInstance<MainMenuSystem>().CloseForReplayLaunch();
 
             Main.LoadPlayers();
             var player = Main.PlayerList.FirstOrDefault();
@@ -75,7 +75,7 @@ internal sealed class ReplayBrowser : UIElement
             {
                 // TODO!!!!!!!!!!!!!!!!!!!!!!!!!
                 //Replayer.BeginPlayback(demoPath);
-                ReplaySession.BeginPlayback(demoPath);
+                ReplayPlayback.BeginPlayback(demoPath);
 
                 Netplay.SetRemoteIP("10.2.3.4");
                 Main.autoPass = true;
@@ -86,7 +86,7 @@ internal sealed class ReplayBrowser : UIElement
             {
                 Log.Error("[ReplayBrowser] Failed to start replay: " + e);
                 Main.statusText = "Failed to start replay";
-                ReplaySession.End("playback launch failed");
+                ReplayPlayback.End("playback launch failed");
                 Main.menuMode = 0;
             }
         });
@@ -302,7 +302,7 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private void OpenReeseClientConfig()
     {
-        ModContent.GetInstance<ExtraStateMainMenuSystem>().OpenClientConfig();
+        //MainMenuActions.OpenClientConfig();
     }
 
     public void Refresh(bool showLoading = true)

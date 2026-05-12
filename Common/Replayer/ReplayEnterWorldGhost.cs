@@ -51,7 +51,7 @@ internal class ReplayEnterWorldGhost : ModSystem
         {
             var game_mode = i.ReadByte();
 
-            if (!ReplaySession.IsReplayPlayback)
+            if (!ReplayPlayback.IsReplayPlayback)
                 return;
 
             if (Netplay.Connection.State != 2)

@@ -4,6 +4,7 @@ using System.Reflection;
 using log4net;
 using Microsoft.Xna.Framework;
 using MonoMod.Cil;
+using Reese.Common.Replayer;
 using Terraria;
 using Terraria.GameContent.Creative;
 using Terraria.GameContent.Events;
@@ -32,6 +33,10 @@ public class Recorder : ModSystem, ITicker
 {
     // FIXME: Become delegate
     public uint Ticks { get; private set; }
+    public static uint CurrentTick { get; private set; }
+    public static bool IsRecordingActive { get; private set; }
+    private bool _isRecording;
+    private string _currentReplayPath;
     private static MethodInfo _modNetSyncMods;
     private static MethodInfo _modNetSendNetIds;
     private static MethodInfo _netMessageSyncOnePlayer;
@@ -85,13 +90,20 @@ public class Recorder : ModSystem, ITicker
 
     private void StartRecording()
     {
+        if (_isRecording)
+            return;
+
         // FIXME: Will this break an existing recording that we try to end? prob need to do it later.
         Ticks = 0;
         const int RecordClientIndex = 254;
         const string RecordClientName = "Recording";
 
-        var replayFile = ReplayFile.Write(File.Open($"{Main.worldName}_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.reese",
-            FileMode.Create));
+        string dir = ReplayPaths.GetFolder();
+        Directory.CreateDirectory(dir);
+        const string ReplayFilePrefix = "Reese";
+        _currentReplayPath = Path.Combine(dir, $"{ReplayFilePrefix}_{GetNextReplayNumber(dir, ReplayFilePrefix):0000}.reese");
+
+        var replayFile = ReplayFile.Write(File.Open(_currentReplayPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
 
         var recordClient = Netplay.Clients[RecordClientIndex];
         // Not really needed, because we probably just did it above, but why not.
@@ -204,12 +216,33 @@ public class Recorder : ModSystem, ITicker
 
         // Flush now, so that it comes at update delta 0
         replayFile.FlushTick();
+        _isRecording = true;
+        IsRecordingActive = true;
+        CurrentTick = Ticks;
+    }
+
+    private void StopRecording()
+    {
+        if (!_isRecording)
+            return;
+
+        const int RecordClientIndex = 254;
+        var recordClient = Netplay.Clients[RecordClientIndex];
+        if (recordClient?.Socket is RecordSocket recordSocket)
+            recordSocket.Close();
+
+        recordClient?.Reset();
+        _isRecording = false;
+        IsRecordingActive = false;
+        if (!string.IsNullOrWhiteSpace(_currentReplayPath))
+            Mod.Logger.Info($"Recording saved: {_currentReplayPath}");
+        _currentReplayPath = null;
+        CurrentTick = 0;
     }
 
     private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
     {
         orig();
-        StartRecording();
     }
 
     // FIXME: This is a shitty edit I think?
@@ -230,15 +263,30 @@ public class Recorder : ModSystem, ITicker
 
     public override void PostUpdateEverything()
     {
-        Ticks++;
-        if (Ticks % 60 == 0)
-            Mod.Logger.Info("Tick!");
+        if (Main.netMode == NetmodeID.Server)
+        {
+            bool hasPlayers = HasActivePlayers();
+            if (!_isRecording && hasPlayers)
+                StartRecording();
+            else if (_isRecording && !hasPlayers)
+                StopRecording();
+        }
+
+        if (_isRecording)
+        {
+            Ticks++;
+            CurrentTick = Ticks;
+            if (Ticks % 60 == 0)
+                Mod.Logger.Info("Tick!");
+        }
     }
 
     public override void OnWorldUnload()
     {
         if (Main.dedServ)
         {
+            StopRecording();
+
             // Guess our shit isn't closed when the server dies. Would be nice to do it to everyone, but that's a big
             // change from status-quo, so just do it for ourselves.
             foreach (var remoteClient in Netplay.Clients)
@@ -247,6 +295,36 @@ public class Recorder : ModSystem, ITicker
                     recordSocket.Close();
             }
         }
+    }
+
+    private static bool HasActivePlayers()
+    {
+        const int RecordClientIndex = 254;
+        for (int i = 0; i < Main.maxPlayers; i++)
+        {
+            if (i == RecordClientIndex)
+                continue;
+
+            if (Main.player[i]?.active == true)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static int GetNextReplayNumber(string dir, string prefix)
+    {
+        int next = 1;
+
+        foreach (string path in Directory.EnumerateFiles(dir, $"{prefix}_*.reese", SearchOption.TopDirectoryOnly))
+        {
+            string name = Path.GetFileNameWithoutExtension(path);
+            string suffix = name.Length > prefix.Length + 1 ? name[(prefix.Length + 1)..] : string.Empty;
+            if (int.TryParse(suffix, out int number) && number >= next)
+                next = number + 1;
+        }
+
+        return next;
     }
 
     public class RecordCommand : ModCommand

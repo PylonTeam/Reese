@@ -1,3 +1,4 @@
+using Reese.Common.Replayer;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Common.Replayer.ReplayHud.Shared.UI;
 using Reese.Core.Configs;
@@ -284,8 +285,7 @@ public sealed class PlaybackHud : DraggablePanel
 
     private static uint GetDurationTicks()
     {
-        return uint.MaxValue;
-        //return Math.Max(1u, Replayer.ActiveDurationTicks);
+        return Math.Max(1u, ReplayPlayback.DurationTicks);
     }
 
     private static string FormatSpeedButton(float speed)

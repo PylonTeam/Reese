@@ -1,4 +1,5 @@
 using Reese.Core.Debug;
+using Reese;
 using System;
 using System.Globalization;
 using System.IO;
@@ -31,17 +32,21 @@ public sealed class ReplayDisplayInfo
         if (!fileExists)
             Log.Warn($"Replay file missing: {path}");
 
+        uint durationTicks = 0;
+        bool hasMetadata = fileExists && ReplayFile.TryReadDurationTicks(path, out durationTicks);
+        TimeSpan duration = hasMetadata ? TimeSpan.FromSeconds(durationTicks / 60d) : TimeSpan.Zero;
+
         return new ReplayDisplayInfo
         {
             FullPath = path ?? string.Empty,
             FileName = EmptyToError(fileName),
-            WorldName = "Error",
-            Duration = TimeSpan.Zero,
-            DurationTicks = 0,
+            WorldName = hasMetadata ? "Unknown" : "Error",
+            Duration = duration,
+            DurationTicks = durationTicks,
             Date = date,
             FileSizeBytes = fileSizeBytes,
             FileExists = fileExists,
-            HasMetadata = false
+            HasMetadata = hasMetadata
         };
     }
 

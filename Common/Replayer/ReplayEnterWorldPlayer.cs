@@ -14,16 +14,17 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
     public override void OnEnterWorld()
     {
 #if DEBUG
-        //string debug = $"OnEnterWorld: IsReplayPlayback={ReplaySession.IsReplayPlayback}, RecordClientIndex={ReplaySession.RecordClientIndex}, myPlayer={Main.myPlayer}, localActive={Main.LocalPlayer?.active}, ghost={Main.LocalPlayer?.ghost}, PendingReplayPath={Replayer.PendingReplayPathPublic}";
+        //string debug = $"OnEnterWorld: IsReplayPlayback={ReplayPlayback.IsReplayPlayback}, RecordClientIndex={ReplayPlayback.RecordClientIndex}, myPlayer={Main.myPlayer}, localActive={Main.LocalPlayer?.active}, ghost={Main.LocalPlayer?.ghost}, PendingReplayPath={Replayer.PendingReplayPathPublic}";
         //ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{debug}"), Main.OurFavoriteColor, Player.whoAmI);
 #endif
 
-        if (!ReplaySession.IsReplayPlayback)
+        if (!ReplayPlayback.IsReplayPlayback)
             return;
 
-        string fileName = string.IsNullOrWhiteSpace(ReplaySession.CurrentPath)
+
+        string fileName = string.IsNullOrWhiteSpace(ReplayPlayback.CurrentPath)
             ? "Unknown replay"
-            : Path.GetFileName(ReplaySession.CurrentPath);
+            : Path.GetFileName(ReplayPlayback.CurrentPath);
 
         Log.Chat("Replay started: " + fileName);
 

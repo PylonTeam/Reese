@@ -31,7 +31,7 @@ public class ReplayHudState : UIState
     {
         UpdateVisibleHuds();
 
-        if (ReplaySession.IsReplayPlayback)
+        if (ReplayPlayback.IsReplayPlayback)
             Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Update();
         else
             Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Clear();
@@ -43,13 +43,13 @@ public class ReplayHudState : UIState
     {
         base.Draw(spriteBatch);
 
-        if (ReplaySession.IsReplayPlayback)
+        if (ReplayPlayback.IsReplayPlayback)
             Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Draw(spriteBatch);
     }
 
     private void UpdateVisibleHuds()
     {
-        if (!ReplaySession.IsReplayPlayback)
+        if (!ReplayPlayback.IsReplayPlayback)
         {
             RemoveHuds();
             return;

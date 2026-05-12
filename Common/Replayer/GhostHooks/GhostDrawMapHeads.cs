@@ -41,7 +41,7 @@ internal sealed class GhostMapHeadLayer : ModMapLayer
         if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
             return;
 
-        if (ReplaySession.IsReplayPlayback && !ReplayClientSettings.IsDrawGhostsOn)
+        if (ReplayPlayback.IsReplayPlayback && !ReplayClientSettings.IsDrawGhostsOn)
             return;
 
         Texture2D ghostRight = Ass.GhostRight.Value;

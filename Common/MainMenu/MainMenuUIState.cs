@@ -13,7 +13,7 @@ using Terraria.UI;
 
 namespace Reese.Common.MainMenu;
 
-internal sealed class ExtraReeseMainMenuUIState : UIState
+internal sealed class MainMenuUIState : UIState
 {
     private const float FooterButtonHeight = 40f;
     private const float FooterButtonGap = 6f;
@@ -32,7 +32,7 @@ internal sealed class ExtraReeseMainMenuUIState : UIState
     private int lastScreenHeight;
     private float lastUiScale;
 
-    public ExtraReeseMainMenuUIState(Action onBack)
+    public MainMenuUIState(Action onBack)
     {
         this.onBack = onBack;
         Rebuild();

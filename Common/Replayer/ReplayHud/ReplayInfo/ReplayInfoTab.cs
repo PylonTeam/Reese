@@ -49,12 +49,12 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static string GetFileText()
         {
-            return string.IsNullOrWhiteSpace(ReplaySession.CurrentPath) ? "-" : Path.GetFileName(ReplaySession.CurrentPath);
+            return string.IsNullOrWhiteSpace(ReplayPlayback.CurrentPath) ? "-" : Path.GetFileName(ReplayPlayback.CurrentPath);
         }
 
         private static string GetFileSizeText()
         {
-            string path = ReplaySession.CurrentPath;
+            string path = ReplayPlayback.CurrentPath;
 
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
                 return "-";
@@ -101,14 +101,12 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static uint GetDurationTicks()
         {
-            return uint.MaxValue;
-            //return Metadata?.DurationTicks > 0 ? Metadata.DurationTicks : Replayer.ActiveDurationTicks;
+            return ReplayPlayback.DurationTicks;
         }
 
         private static int GetTickRate()
         {
-            return -1;
-            //return Math.Max(1, Metadata?.TickRate ?? 60);
+            return ReplayPlayback.TickRate;
         }
 
         private static string FormatDuration(uint ticks, int tickRate)

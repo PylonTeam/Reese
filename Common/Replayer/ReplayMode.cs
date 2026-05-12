@@ -2,7 +2,7 @@ namespace Reese.Common.Replayer;
 
 public static class ReplayMode
 {
-    public static bool IsReplayPlayback => ReplaySession.IsReplayPlayback;
+    public static bool IsReplayPlayback => ReplayPlayback.IsReplayPlayback;
 
     public static bool IsInReplayMode(Player player)
     {
@@ -15,6 +15,6 @@ public static class ReplayMode
     {
         return player?.active == true &&
                !IsInReplayMode(player) &&
-               player.whoAmI != ReplaySession.RecordClientIndex;
+               player.whoAmI != ReplayPlayback.RecordClientIndex;
     }
 }
