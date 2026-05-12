@@ -21,7 +21,7 @@ internal sealed class DrawAllPlayerHeadsOnMapSystem : ModSystem
     /// </summary>
     private static void DrawMapOverride(On_Main.orig_DrawMap orig, Main self, GameTime gameTime)
     {
-        if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
+        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
         {
             orig(self, gameTime);
             return;

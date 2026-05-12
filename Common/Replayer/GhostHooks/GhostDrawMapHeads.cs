@@ -38,7 +38,7 @@ internal sealed class GhostMapHeadLayer : ModMapLayer
 {
     public override void Draw(ref MapOverlayDrawContext context, ref string text)
     {
-        if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
+        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
             return;
 
         if (ReplayPlayback.IsReplayPlayback && !ReplayClientSettings.IsDrawGhostsOn)

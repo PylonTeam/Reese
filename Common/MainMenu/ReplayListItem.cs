@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.MainMenu.UI;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 using Reese.Core.Debug;
@@ -21,11 +22,13 @@ internal sealed class ReplayListItem : UIPanel
 {
     private readonly ActionHoverLabel actionHoverLabel;
     private readonly bool isFavorite;
+    private static readonly Color NormalTextColor = Color.White;
+    private static readonly Color FaultyTextColor = new(145, 145, 145);
 
-    public ReplayListItem(ReplayListEntry entry, Action onEntryChanged, Action<string> onFavoriteToggled)
+    public ReplayListItem(ReplayMetadata entry, Action onEntryChanged, Action<string> onFavoriteToggled)
     {
-        ReplayDisplayInfo info = entry.Info;
-        isFavorite = entry.IsFavorite;
+        isFavorite = ReplayFavorites.IsFavorite(entry.FullPath);
+        Color replayTextColor = entry.DurationTicks == 0 ? FaultyTextColor : NormalTextColor;
 
         // Layout
         ReplayBrowserLayout.Update();
@@ -37,10 +40,10 @@ internal sealed class ReplayListItem : UIPanel
         BorderColor = new Color(89, 116, 213) * 0.95f;
 
         // Preview world
-        Append(new ReplayPreviewImageElement(info, ReplayBrowserLayout.ReplayItemHeight));
+        Append(new ReplayPreviewImageElement(entry, ReplayBrowserLayout.ReplayItemHeight));
 
         // Replay filename
-        Append(new ReplayNameElement(Path.GetFileNameWithoutExtension(entry.FullPath), entry.Name)
+        Append(new ReplayNameElement(entry.ReplayName, replayTextColor)
         {
             Left = { Pixels = ReplayBrowserLayout.PreviewColumnWidth + ReplayBrowserLayout.StatColumnPadding + 4 },
             Top = { Pixels = 10f },
@@ -48,8 +51,14 @@ internal sealed class ReplayListItem : UIPanel
             Height = { Pixels = 22f }
         });
 
+        Color worldTextColor = entry.WorldName == "Unknown" ? FaultyTextColor : NormalTextColor;
+        Color dateTextColor = entry.DateCreated == DateTime.MinValue ? FaultyTextColor : NormalTextColor;
+        Color lengthTextColor = entry.DurationTicks == 0 ? FaultyTextColor : NormalTextColor;
+        Color modsTextColor = entry.ModNames is null ? FaultyTextColor : NormalTextColor;
+        Color sizeTextColor = entry.SizeBytes <= 0 ? FaultyTextColor : NormalTextColor;
+
         // World Name
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuWorldNameStat(entry.WorldName), 0.9f, iconScale: 1.25f)
+        Append(new MainMenuStatElement(MainMenuReplayStats.BuildMainMenuWorldNameStat(entry.WorldName), 0.9f, iconScale: 1.25f, textColor: worldTextColor)
         {
             Left = { Pixels = ReplayBrowserLayout.PreviewColumnWidth + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
@@ -58,7 +67,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // Date
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuDateStat(entry.Date), 0.9f, drawIcon: false, centerText: true)
+        Append(new MainMenuStatElement(MainMenuReplayStats.BuildMainMenuDateStat(entry.DateCreated), 0.9f, drawIcon: false, centerText: true, textColor: dateTextColor)
         {
             Left = { Pixels = ReplayBrowserLayout.DateLeft + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
@@ -67,7 +76,7 @@ internal sealed class ReplayListItem : UIPanel
         });
 
         // Length
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuLengthStat(entry.DurationText), 0.9f, drawIcon: false, centerText: true)
+        Append(new MainMenuStatElement(MainMenuReplayStats.BuildMainMenuLengthStat(entry.DurationTicks), 0.9f, drawIcon: false, centerText: true, textColor: lengthTextColor)
         {
             Left = { Pixels = ReplayBrowserLayout.DurationLeft + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
@@ -75,8 +84,17 @@ internal sealed class ReplayListItem : UIPanel
             Height = { Pixels = 24f }
         });
 
+        // Mods
+        Append(new MainMenuStatElement(MainMenuReplayStats.BuildMainMenuModsStat(entry.ModNames), 0.9f, drawIcon: false, centerText: true, textColor: modsTextColor)
+        {
+            Left = { Pixels = ReplayBrowserLayout.ModsLeft + ReplayBrowserLayout.StatColumnPadding },
+            Top = { Pixels = 34f },
+            Width = { Pixels = ReplayBrowserLayout.ModsColumnWidth - ReplayBrowserLayout.StatColumnPadding * 2f },
+            Height = { Pixels = 24f }
+        });
+
         // Size
-        Append(new MainMenuStatElement(PlayerStats.BuildMainMenuSizeStat(info.FileSizeText), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f)
+        Append(new MainMenuStatElement(MainMenuReplayStats.BuildMainMenuSizeStat(entry.SizeBytes), 0.9f, drawIcon: false, centerText: true, textScaleMultiplier: 1.0f, textColor: sizeTextColor)
         {
             Left = { Pixels = ReplayBrowserLayout.SizeLeft + ReplayBrowserLayout.StatColumnPadding },
             Top = { Pixels = 34f },
@@ -86,14 +104,6 @@ internal sealed class ReplayListItem : UIPanel
 
         //Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DateLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
         //Append(UISortableTableColumn.CreateSeparator(ReplayBrowserLayout.DurationLeft, ReplayBrowserLayout.ReplayItemTotalHeight));
-
-        // Hover label
-        actionHoverLabel = new ActionHoverLabel();
-        actionHoverLabel.Left.Set(ReplayBrowserLayout.ReplayItemHeight - ReplayBrowserLayout.ActionButtonRightPadding + ReplayBrowserLayout.ActionLabelGap, 0f);
-        actionHoverLabel.Top.Set(ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f, 0f);
-        actionHoverLabel.Width.Set(ReplayBrowserLayout.ActionLabelWidth, 0f);
-        actionHoverLabel.Height.Set(ReplayBrowserLayout.ActionButtonSize, 0f);
-        Append(actionHoverLabel);
 
         Asset<Texture2D> favoriteTexture = Main.Assets.Request<Texture2D>(
             isFavorite ? "Images/UI/ButtonFavoriteActive" : "Images/UI/ButtonFavoriteInactive");
@@ -107,6 +117,7 @@ internal sealed class ReplayListItem : UIPanel
             new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayItemActions.Rename(entry.FullPath, onEntryChanged)),
         ];
 
+        // Hover label
         actionHoverLabel = new ActionHoverLabel();
         actionHoverLabel.Left.Set(10f + actions.Length * ReplayBrowserLayout.ActionButtonSize + Math.Max(0, actions.Length - 1) * ReplayBrowserLayout.ActionButtonGap + ReplayBrowserLayout.ActionLabelGap, 0f);
         actionHoverLabel.Top.Set(ReplayBrowserLayout.ReplayItemHeight + (ReplayBrowserLayout.ReplayItemActionHeight - ReplayBrowserLayout.ActionButtonSize) * 0.5f + 1f, 0f);
@@ -149,13 +160,11 @@ internal sealed class ReplayListItem : UIPanel
 
     private sealed class ReplayPreviewImageElement : UIElement
     {
-        private readonly ReplayDisplayInfo info;
         private readonly Asset<Texture2D> fallbackIcon;
 
-        public ReplayPreviewImageElement(ReplayDisplayInfo info, float size)
+        public ReplayPreviewImageElement(ReplayMetadata metadata, float size)
         {
-            this.info = info;
-            fallbackIcon = GetFallbackWorldIcon(info);
+            fallbackIcon = GetFallbackWorldIcon(metadata);
 
             Width.Set(size, 0f);
             Height.Set(size, 0f);
@@ -184,7 +193,7 @@ internal sealed class ReplayListItem : UIPanel
             spriteBatch.Draw(texture, destination, Color.White);
         }
 
-        private static Asset<Texture2D> GetFallbackWorldIcon(ReplayDisplayInfo info)
+        private static Asset<Texture2D> GetFallbackWorldIcon(ReplayMetadata info)
         {
             var world = Main.WorldList?.FirstOrDefault(x =>
                 x != null &&
@@ -218,12 +227,12 @@ internal sealed class ReplayListItem : UIPanel
     private sealed class ReplayNameElement : UIElement
     {
         private readonly string text;
-        private readonly string tooltip;
+        private readonly Color textColor;
 
-        public ReplayNameElement(string text, string tooltip)
+        public ReplayNameElement(string text, Color textColor)
         {
             this.text = string.IsNullOrWhiteSpace(text) ? "-" : text;
-            this.tooltip = tooltip;
+            this.textColor = textColor;
         }
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
@@ -235,7 +244,7 @@ internal sealed class ReplayListItem : UIPanel
             Vector2 size = font.MeasureString(text) * TextScale;
             Vector2 position = new(area.X, area.Y + (area.Height - size.Y) * 0.5f);
 
-            Utils.DrawBorderString(spriteBatch, text, position, Color.White, TextScale);
+            Utils.DrawBorderString(spriteBatch, text, position, textColor, TextScale);
         }
     }
 
@@ -337,8 +346,9 @@ internal sealed class ReplayListItem : UIPanel
         private readonly float iconScale;
         private readonly bool centerText;
         private readonly float textScaleMultiplier;
+        private readonly Color? textColor;
 
-        public MainMenuStatElement(PlayerStatSnapshot stat, float scale, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f)
+        public MainMenuStatElement(PlayerStatSnapshot stat, float scale, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f, Color? textColor = null)
         {
             this.stat = stat;
             this.scale = scale;
@@ -346,31 +356,12 @@ internal sealed class ReplayListItem : UIPanel
             this.iconScale = iconScale;
             this.centerText = centerText;
             this.textScaleMultiplier = textScaleMultiplier;
+            this.textColor = textColor;
         }
 
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
-            StatDrawer.DrawReplayStatInMainMenu(spriteBatch, GetDimensions().ToRectangle(), stat, scale, drawIcon, iconScale, centerText, textScaleMultiplier);
-        }
-    }
-
-    private sealed class ReplayPreviewElement : UIElement
-    {
-        public ReplayPreviewElement(UICharacter preview, float size)
-        {
-            Width.Set(size, 0f);
-            Height.Set(size, 0f);
-            Left.Set(6, 0);
-            Top.Set(6, 0);
-
-            preview.Width.Set(size, 0f);
-            preview.Height.Set(size, 0f);
-            Append(preview);
-        }
-
-        protected override void DrawSelf(SpriteBatch spriteBatch)
-        {
-            EntityDrawer.DrawEntityBackground(spriteBatch, GetDimensions().ToRectangle());
+            StatDrawer.DrawReplayStatInMainMenu(spriteBatch, GetDimensions().ToRectangle(), stat, scale, drawIcon, iconScale, centerText, textScaleMultiplier, textColor);
         }
     }
 

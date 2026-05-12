@@ -22,9 +22,9 @@ public static class StatDrawer
     #region Main menu drawing
 
 
-    public static void DrawReplayStatInMainMenu(SpriteBatch spriteBatch, Rectangle area, PlayerStatSnapshot stat, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f)
+    public static void DrawReplayStatInMainMenu(SpriteBatch spriteBatch, Rectangle area, PlayerStatSnapshot stat, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f, Color? textColor = null)
     {
-        DrawStat(spriteBatch, area, drawIcon ? stat.Icon?.Value : null, stat.IconFrame, stat.Text, scale, drawIcon, iconScale, centerText, textScaleMultiplier);
+        DrawStat(spriteBatch, area, drawIcon ? stat.Icon?.Value : null, stat.IconFrame, stat.Text, scale, drawIcon, iconScale, centerText, textScaleMultiplier, textColor);
         DrawMainMenuTooltip(area, stat.HoverText);
     }
 
@@ -72,7 +72,7 @@ public static class StatDrawer
         return ellipsis;
     }
 
-    private static void DrawStat(SpriteBatch spriteBatch, Rectangle area, Texture2D texture, Rectangle? frame, string text, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f)
+    private static void DrawStat(SpriteBatch spriteBatch, Rectangle area, Texture2D texture, Rectangle? frame, string text, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f, Color? textColor = null)
     {
         DrawBack(spriteBatch, area, scale);
 
@@ -99,29 +99,23 @@ public static class StatDrawer
             textLeft = area.X + (int)MathF.Round(29f * scale);
         }
 
+        text ??= string.Empty;
+
         float textScale = 0.9f * scale * textScaleMultiplier;
-        int textTop = area.Y + (int)MathF.Round(3f * scale);
         int rightPadding = (int)MathF.Round(4f * scale);
-        Rectangle textArea = new(textLeft, textTop, area.Right - textLeft - rightPadding, area.Height);
+        Rectangle textArea = new(textLeft, area.Y, area.Right - textLeft - rightPadding, area.Height);
 
         if (centerText)
-            textArea = new(area.X + rightPadding, textTop, area.Width - rightPadding * 2, area.Height);
+            textArea = new(area.X + rightPadding, area.Y, area.Width - rightPadding * 2, area.Height);
 
         string truncatedText = Truncate(FontAssets.MouseText.Value, text, textArea.Width, textScale);
-        Vector2 position = new(textArea.X, textArea.Y);
-
-        if (textScaleMultiplier != 1f)
-        {
-            position.Y += 2f;
-        }
+        Vector2 size = FontAssets.MouseText.Value.MeasureString(truncatedText) * textScale;
+        Vector2 position = new(textArea.X, area.Y + (area.Height - size.Y) * 0.5f + 3f); // <-- hardcoded 3 because y pos looks bad otherwise
 
         if (centerText)
-        {
-            Vector2 size = FontAssets.MouseText.Value.MeasureString(truncatedText) * textScale;
             position.X = textArea.X + (textArea.Width - size.X) * 0.5f;
-        }
 
-        Utils.DrawBorderString(spriteBatch, truncatedText, position, Color.White, textScale);
+        Utils.DrawBorderString(spriteBatch, truncatedText, position, textColor ?? Color.White, textScale);
 
         if (truncatedText != text && area.Contains(Main.mouseX, Main.mouseY))
             UICommon.TooltipMouseText(text);

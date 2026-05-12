@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using Terraria;
 
-namespace Reese.Common.Replayer;
+namespace Reese;
 
 internal static class ReplayPaths
 {

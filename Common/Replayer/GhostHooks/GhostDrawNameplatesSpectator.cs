@@ -262,7 +262,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
 
         //bool drawSpectators = ModContent.GetInstance<ClientConfig>().DrawSpectators;
         bool drawSpectators = true;
-        bool otherIsSpectator = otherPlayer.ghost || ReplayMode.IsInReplayMode(otherPlayer);
+        bool otherIsSpectator = otherPlayer.ghost || ReplayPlayback.IsPlayerReplayClient(otherPlayer);
 
         if (!ReplayDrawGate.ShouldDrawNameplate(otherPlayer, otherIsSpectator))
             return false;
@@ -273,6 +273,6 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
         if (otherIsSpectator)
             return drawSpectators;
 
-        return ReplayMode.IsInReplayMode(localPlayer) ? true : localPlayer.team != 0 && otherPlayer.team == localPlayer.team;
+        return ReplayPlayback.IsPlayerReplayClient(localPlayer) ? true : localPlayer.team != 0 && otherPlayer.team == localPlayer.team;
     }
 }

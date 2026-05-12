@@ -66,6 +66,6 @@ public class TeleportMapSystem : ModSystem
     {
         return Main.mapFullscreen &&
             Main.LocalPlayer?.active == true &&
-            ReplayMode.IsInReplayMode(Main.LocalPlayer);
+            ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer);
     }
 }

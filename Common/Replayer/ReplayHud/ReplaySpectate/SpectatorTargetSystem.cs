@@ -16,7 +16,7 @@ public class SpectatorTargetSystem : ModSystem
 
     public static bool HasLockedTarget()
     {
-        return ReplayMode.IsInReplayMode(Main.LocalPlayer) && (CanTarget(target) || CanTargetNPC(npcTarget));
+        return ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer) && (CanTarget(target) || CanTargetNPC(npcTarget));
     }
 
     private static bool CanTarget(int playerId)
@@ -25,9 +25,9 @@ public class SpectatorTargetSystem : ModSystem
             return false;
 
         Player p = Main.player[playerId];
-        bool inPlayerMode = ReplayMode.IsInPlayerMode(p);
+        bool isPlaybackClient = ReplayPlayback.IsPlayerReplayClient(p);
         bool isGhost = p.ghost;
-        bool result = p.active && (inPlayerMode || isGhost);
+        bool result = p.active && (!isPlaybackClient || isGhost);
 
         return result;
     }
@@ -130,7 +130,7 @@ public class SpectatorTargetSystem : ModSystem
 
     public static Player GetPlayerTarget()
     {
-        if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
+        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
             return null;
 
         if (CanTarget(previewTarget))
@@ -144,14 +144,14 @@ public class SpectatorTargetSystem : ModSystem
 
     public static Player GetLockedPlayerTarget()
     {
-        bool inReplayMode = ReplayMode.IsInReplayMode(Main.LocalPlayer);
+        bool inReplayMode = ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer);
         bool canTarget = CanTarget(target);
         return inReplayMode && canTarget ? Main.player[target] : null;
     }
 
     public static NPC GetLockedNPCTarget()
     {
-        return ReplayMode.IsInReplayMode(Main.LocalPlayer) && CanTargetNPC(npcTarget) ? Main.npc[npcTarget] : null;
+        return ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer) && CanTargetNPC(npcTarget) ? Main.npc[npcTarget] : null;
     }
 
     public static string GetLockedTargetStatusText()
@@ -279,7 +279,7 @@ public class SpectatorTargetSystem : ModSystem
         if (autoSpectatedFirstPlayer || target != -1 || npcTarget != -1)
             return;
 
-        if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
+        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
             return;
 
         for (int i = 0; i < Main.maxPlayers; i++)

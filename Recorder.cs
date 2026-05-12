@@ -4,7 +4,6 @@ using System.Reflection;
 using log4net;
 using Microsoft.Xna.Framework;
 using MonoMod.Cil;
-using Reese.Common.Replayer;
 using Terraria;
 using Terraria.GameContent.Creative;
 using Terraria.GameContent.Events;

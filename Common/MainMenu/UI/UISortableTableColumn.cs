@@ -7,6 +7,9 @@ using Terraria.UI;
 
 namespace Reese.Common.MainMenu.UI;
 
+/// <summary>
+/// Used in <see cref="ReplayListItem"/>
+/// </summary>
 internal sealed class UISortableTableColumn : UIElement
 {
     private enum SortDirection
@@ -51,10 +54,10 @@ internal sealed class UISortableTableColumn : UIElement
     {
         sortDirection = !active ? SortDirection.None : ascending ? SortDirection.Ascending : SortDirection.Descending;
         label.SetText(text);
-        
-        if (label.Text == "Length")
+
+        if (label.Text is "Length" or "Mods" or "Size")
         {
-            label.Left.Set(active ? -6f : 0f, 0f);
+            label.Left.Set(active ? -10f : 0f, 0f);
             label.Recalculate();
         }
     }
@@ -72,6 +75,25 @@ internal sealed class UISortableTableColumn : UIElement
 
         if (sortDirection != SortDirection.None)
             DrawSortArrow(spriteBatch, bounds);
+
+        if (sortDirection != SortDirection.None)
+            DrawTooltip();
+    }
+
+    private void DrawTooltip()
+    {
+        if (!IsMouseHovering)
+            return;
+
+        string tooltip = sortDirection switch
+        {
+            SortDirection.Ascending => "Sort ascending",
+            SortDirection.Descending => "Sort descending",
+            _ => "Click to sort" // never shown
+        };
+
+        Main.LocalPlayer.mouseInterface = true;
+        UICommon.TooltipMouseText(tooltip);
     }
 
     public override void MouseOver(UIMouseEvent evt)

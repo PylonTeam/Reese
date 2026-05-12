@@ -25,7 +25,7 @@ public sealed class KeybindsPlayer : ModPlayer
 {
     public override void ProcessTriggers(TriggersSet triggersSet)
     {
-        if (Main.drawingPlayerChat || !ReplayMode.IsReplayPlayback)
+        if (Main.drawingPlayerChat || !ReplayPlayback.IsReplayPlayback)
             return;
 
         Keybinds keybinds = ModContent.GetInstance<Keybinds>();

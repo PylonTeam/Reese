@@ -28,7 +28,7 @@ internal class GhostFullbright : ModSystem
     {
         orig(self, x, y, out outputColor);
 
-        if (!Enabled || !ReplayMode.IsInReplayMode(Main.LocalPlayer))
+        if (!Enabled || !ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
             return;
 
         // Clamp to 1 from below so dark tiles become fully lit,

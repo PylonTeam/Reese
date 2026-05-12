@@ -4,6 +4,7 @@ using Reese.Core.Utilities;
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.Localization;
@@ -76,72 +77,6 @@ internal static class PlayerStats
     //    "Ping",
     //    Ass.Ping,
     //    player => $"{GetPlayerPingMs(player)} ms");
-
-    #region Main menu stats
-    public static PlayerStatSnapshot BuildMainMenuDateStat(string dateText)
-    {
-        dateText = string.IsNullOrWhiteSpace(dateText) ? "Error" : dateText.Trim();
-        return new PlayerStatSnapshot("Created", dateText, $"Date created: {dateText}", Ass.Icon_Watch, null);
-    }
-
-    public static PlayerStatSnapshot BuildMainMenuLengthStat(string lengthText)
-    {
-        lengthText = string.IsNullOrWhiteSpace(lengthText) ? "Error" : lengthText.Trim();
-        return new PlayerStatSnapshot("Length", lengthText, $"Length: {lengthText}", Ass.Icon_Watch, null);
-    }
-
-    public static PlayerStatSnapshot BuildMainMenuWorldNameStat(string worldName)
-    {
-        worldName = string.IsNullOrWhiteSpace(worldName) ? "-" : worldName.Trim();
-        return new PlayerStatSnapshot("World", worldName, $"World: {worldName}", Ass.Icon_Biome, null);
-    }
-
-    public static PlayerStatSnapshot BuildMainMenuDateStat(DateTime date)
-    {
-        string display = date.ToString("d MMM HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-        string hover = $"Date created: {date.ToString("d MMM yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)}";
-        return new PlayerStatSnapshot("Created", display, hover, Ass.Icon_Watch, null);
-    }
-
-    public static PlayerStatSnapshot BuildMainMenuLengthStat(TimeSpan length)
-    {
-        string display = $"{(int)length.TotalHours:00}:{length.Minutes:00}:{length.Seconds:00}";
-        return new PlayerStatSnapshot("Length", display, $"Length: {FormatLengthText(length)}", Ass.Icon_Watch, null);
-    }
-
-    public static PlayerStatSnapshot BuildMainMenuSizeStat(string size)
-    {
-        size = string.IsNullOrWhiteSpace(size) ? "-" : size.Trim();
-        return new PlayerStatSnapshot("Size", size, $"Size: {size}", Ass.Icon_Watch, null);
-    }
-
-    private static string FormatLengthText(TimeSpan length)
-    {
-        int hours = (int)length.TotalHours;
-        int minutes = length.Minutes;
-        int seconds = length.Seconds;
-        string text = "";
-
-        AddLengthPart(ref text, hours, "hour");
-        AddLengthPart(ref text, minutes, "minute");
-
-        if (seconds > 0 || text.Length == 0)
-            AddLengthPart(ref text, seconds, "second");
-
-        return text;
-    }
-
-    private static void AddLengthPart(ref string text, int value, string unit)
-    {
-        if (value <= 0)
-            return;
-
-        if (text.Length > 0)
-            text += ", ";
-
-        text += $"{value} {unit}{(value == 1 ? "" : "s")}";
-    }
-    #endregion
 
     //public static readonly PlayerStatDefinition InventoryItemCount = new(
     //    "InventoryItemCount",

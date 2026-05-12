@@ -143,6 +143,8 @@ public class ReplayFile : IDisposable
                 return false;
 
             long totalTicks = 0;
+            int chunkCount = 0;
+            bool foundTerminator = false;
 
             while (stream.Position + 8 <= stream.Length)
             {
@@ -150,20 +152,30 @@ public class ReplayFile : IDisposable
                 int length = reader.ReadInt32();
 
                 if (length < 0)
-                    break;
-
-                totalTicks += delta;
+                    return false;
 
                 if (length == 0)
+                {
+                    foundTerminator = true;
                     break;
+                }
 
                 if (stream.Position + length > stream.Length)
-                    break;
+                    return false;
+
+                totalTicks += delta;
+                chunkCount++;
+
+                if (totalTicks > uint.MaxValue)
+                    return false;
 
                 stream.Seek(length, SeekOrigin.Current);
             }
 
-            durationTicks = (uint)Math.Min(totalTicks, uint.MaxValue);
+            if (!foundTerminator || chunkCount == 0 || totalTicks <= 0)
+                return false;
+
+            durationTicks = (uint)totalTicks;
             return true;
         }
         catch

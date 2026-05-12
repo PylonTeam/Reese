@@ -278,40 +278,40 @@ internal sealed class WorldInfoTab : TabPage
         {
             return
             [
-                new(GetPlayersOnlineText(), GetPlayersOnlineText, GetPlayersOnlineTexture, iconScale: 1f),
-                new(GetSpectatorsOnlineText(), GetSpectatorsOnlineText, GetSpectatorsOnlineTexture, iconScale: 0.75f)
+                //new(GetPlayersOnlineText(), GetPlayersOnlineText, GetPlayersOnlineTexture, iconScale: 1f),
+                //new(GetSpectatorsOnlineText(), GetSpectatorsOnlineText, GetSpectatorsOnlineTexture, iconScale: 0.75f)
             ];
         }
 
-        private static string GetPlayersOnlineText()
-        {
-            int count = 0;
+        //private static string GetPlayersOnlineText()
+        //{
+        //    int count = 0;
 
-            for (int i = 0; i < Main.maxPlayers; i++)
-            {
-                Player player = Main.player[i];
+        //    for (int i = 0; i < Main.maxPlayers; i++)
+        //    {
+        //        Player player = Main.player[i];
 
-                if (player?.active == true && ReplayMode.IsInPlayerMode(player))
-                    count++;
-            }
+        //        if (player?.active == true && ReplayPlayback.IsInPlayerMode(player))
+        //            count++;
+        //    }
 
-            return "Players Online: " + count;
-        }
+        //    return "Players Online: " + count;
+        //}
 
-        private static string GetSpectatorsOnlineText()
-        {
-            int count = 0;
+        //private static string GetSpectatorsOnlineText()
+        //{
+        //    int count = 0;
 
-            for (int i = 0; i < Main.maxPlayers; i++)
-            {
-                Player player = Main.player[i];
+        //    for (int i = 0; i < Main.maxPlayers; i++)
+        //    {
+        //        Player player = Main.player[i];
 
-                if (ReplayMode.IsInReplayMode(player))
-                    count++;
-            }
+        //        if (ReplayPlayback.IsInReplayMode(player))
+        //            count++;
+        //    }
 
-            return "Spectators Online: " + count;
-        }
+        //    return "Spectators Online: " + count;
+        //}
 
         private static Texture2D GetPlayersOnlineTexture()
         {

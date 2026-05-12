@@ -107,7 +107,7 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static int GetTickRate()
         {
-            return ReplayPlayback.TickRate;
+            return 60;
         }
 
         private static string FormatDuration(uint ticks, int tickRate)

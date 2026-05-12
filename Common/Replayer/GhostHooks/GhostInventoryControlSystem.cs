@@ -25,7 +25,7 @@ internal class GhostInventoryControlSystem : ModSystem
 
     private void ModifyIngameOptionsInput(On_Player.orig_TryOpeningInGameOptionsBasedOnInput orig, Player self)
     {
-        bool inSpectateMode = ReplayMode.IsInReplayMode(Main.LocalPlayer);
+        bool inSpectateMode = ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer);
 
         if ((inSpectateMode || self.ghost) && KeyboardHelper.Pressed(Keys.Escape))
         {
@@ -61,7 +61,7 @@ internal class GhostInventoryControlSystem : ModSystem
 
     private void ModifyInterfaceLogic(On_Main.orig_DrawInterface_26_InterfaceLogic3 orig)
     {
-        if (!ReplayMode.IsInReplayMode(Main.LocalPlayer))
+        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
         {
             orig();
             return;

@@ -7,13 +7,19 @@ namespace Reese.Common.Replayer;
 public static class ReplayPlayback
 {
 	public const int RecordClientIndex = 254;
-	public const int TickRate = 60;
 
 	public static bool IsReplayPlayback { get; private set; }
 	public static string CurrentPath { get; private set; }
 	public static uint DurationTicks { get; private set; }
 
-	public static void BeginPlayback(string path)
+    public static bool IsPlayerReplayClient(Player player)
+    {
+        return IsReplayPlayback &&
+               player?.active == true &&
+               player.whoAmI == RecordClientIndex;
+    }
+
+    public static void BeginPlayback(string path)
 	{
 		IsReplayPlayback = true;
 		CurrentPath = path;
@@ -29,20 +35,6 @@ public static class ReplayPlayback
 		IsReplayPlayback = false;
 		CurrentPath = null;
 		DurationTicks = 0;
-	}
-
-	public static bool IsInReplayMode(Player player)
-	{
-		return IsReplayPlayback &&
-		       player?.active == true &&
-		       player.whoAmI == Main.myPlayer;
-	}
-
-	public static bool IsInPlayerMode(Player player)
-	{
-		return player?.active == true &&
-		       !IsInReplayMode(player) &&
-		       player.whoAmI != RecordClientIndex;
 	}
 
 	private static uint TryGetDurationTicks(string path)
