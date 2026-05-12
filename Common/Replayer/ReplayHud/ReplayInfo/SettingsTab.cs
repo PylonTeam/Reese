@@ -13,8 +13,8 @@ namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
 internal sealed class SettingsTab : TabPage
 {
     public override SpectatorTab Tab => SpectatorTab.Settings;
-    public override string HeaderText => "Settings";
-    public override string TooltipText => "Replay settings";
+    public override string HeaderText => "Options";
+    public override string TooltipText => "Fine-tune your experience";
     public override Asset<Texture2D> Icon => Ass.Icon_Gear;
 
     public override float IconScale => 1.25f;
@@ -29,7 +29,7 @@ internal sealed class SettingsTab : TabPage
     }
     private sealed class GhostSettings : SettingsSection
     {
-        public override string HeaderText => "Replay Settings";
+        public override string HeaderText => "Visualization";
         public override float Height => 146f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
@@ -80,7 +80,7 @@ internal sealed class SettingsTab : TabPage
     private sealed class DrawSettings : SettingsSection
     {
         public override string HeaderText => "Draw Settings";
-        public override float Height => 214f;
+        public override float Height => 244f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
@@ -90,7 +90,8 @@ internal sealed class SettingsTab : TabPage
                 new("Draw Ghosts:", () => $"Draw Ghosts: {OnOff(ReplayClientSettings.IsDrawGhostsOn)}", GetGhostIcon, onLeftClick: ReplayClientSettings.ToggleGhosts, iconScale: 1.0f),
                 new("Draw Projectiles:", () => $"Draw Projectiles: {OnOff(ReplayClientSettings.IsDrawProjectilesOn)}", GetProjectileIcon, onLeftClick: ReplayClientSettings.ToggleProjectiles),
                 new("Draw NPCs:", () => $"Draw NPCs: {OnOff(ReplayClientSettings.IsDrawNPCsOn)}", () => Ass.Icon_NPC.Value, onLeftClick: ReplayClientSettings.ToggleNPCs),
-                new("Draw Items:", () => $"Draw Items: {OnOff(ReplayClientSettings.IsDrawItemsOn)}", GetItemIcon, onLeftClick: ReplayClientSettings.ToggleItems, iconScale: 0.8f)
+                new("Draw Items:", () => $"Draw Items: {OnOff(ReplayClientSettings.IsDrawItemsOn)}", GetItemIcon, onLeftClick: ReplayClientSettings.ToggleItems, iconScale: 0.8f),
+                new("Draw Nameplates:", () => $"Draw Nameplates: {OnOff(ReplayClientSettings.IsNameplatesOn)}", GetNameplateIcon, onLeftClick: ReplayClientSettings.ToggleNameplates, iconScale: 0.8f)
             ];
         }
 
@@ -119,6 +120,11 @@ internal sealed class SettingsTab : TabPage
         private static Texture2D GetItemIcon()
         {
             return Ass.Icon_Chest.Value;
+        }
+
+        private static Texture2D GetNameplateIcon()
+        {
+            return Ass.Icon_PlayerHead.Value;
         }
     }
 }

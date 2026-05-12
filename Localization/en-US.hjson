@@ -15,12 +15,12 @@ Mods: {
 				}
 
 				AddExtraMenuState: {
-					Label: Add Reese Button To Main Menu
-					Tooltip: Adds the extra Reese button to the buttons in the main menu
+					Label: Show Reese Button
+					Tooltip: Adds the extra Reese button among the main menu, allowing you to enter the replay browser
 				}
 
 				ShowInMainMenu: {
-					Label: Always Show In Main Menu
+					Label: Show In Main Menu
 					Tooltip: Always shows the replay browser in main menu
 				}
 

@@ -106,31 +106,33 @@ public static class EntityDrawer
     private static float GetPlayerScale()
     {
         ClientConfig clientConfig = ModContent.GetInstance<ClientConfig>();
+        return 1f;
 
-        float scale = clientConfig.replayHudSize switch
-        {
-            ClientConfig.ReplayHudSize.Small => 1.0f,
-            ClientConfig.ReplayHudSize.Medium => 1.25f,
-            ClientConfig.ReplayHudSize.Large => 1.5f,
-            _ => 1f
-        };
+        //float scale = clientConfig.replayHudSize switch
+        //{
+        //    ClientConfig.ReplayHudSize.Small => 1.0f,
+        //    ClientConfig.ReplayHudSize.Medium => 1.25f,
+        //    ClientConfig.ReplayHudSize.Large => 1.5f,
+        //    _ => 1f
+        //};
 
-        return scale;
+        //return scale;
     }
 
     private static float GetPlayerScaleVerticalOffset()
     {
         ClientConfig clientConfig = ModContent.GetInstance<ClientConfig>();
 
-        float scale = clientConfig.replayHudSize switch
-        {
-            ClientConfig.ReplayHudSize.Small => 5f,
-            ClientConfig.ReplayHudSize.Medium => 10f,
-            ClientConfig.ReplayHudSize.Large => 20,
-            _ => 1f
-        };
+        return 8f;
+        //float scale = clientConfig.replayHudSize switch
+        //{
+        //    ClientConfig.ReplayHudSize.Small => 5f,
+        //    ClientConfig.ReplayHudSize.Medium => 10f,
+        //    ClientConfig.ReplayHudSize.Large => 20,
+        //    _ => 1f
+        //};
 
-        return scale;
+        //return scale;
     }
 
     public static void DrawFullPlayer(SpriteBatch sb, Player player, Vector2 position, float scale = 1f)

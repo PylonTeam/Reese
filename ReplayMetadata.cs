@@ -36,20 +36,29 @@ public sealed class ReplayMetadata
             Log.Warn($"Replay file missing: {path}");
 
         uint durationTicks = 0;
-        bool hasDuration = fileExists && ReplayFile.TryReadDurationTicks(path, out durationTicks);
+        string worldName = null;
+        string[] modNames = null;
+
+        bool hasSummary = fileExists && ReplayFile.TryReadSummary(path, out durationTicks, out worldName, out modNames);
 
         return new ReplayMetadata
         {
             FullPath = path ?? string.Empty,
             FileName = fileName,
             ReplayName = EmptyToError(Path.GetFileNameWithoutExtension(fileName)),
-            WorldName = "Unknown",
-            DurationTicks = hasDuration ? durationTicks : 0,
+            WorldName = EmptyToUnknown(worldName),
+            DurationTicks = hasSummary ? durationTicks : 0,
             DateCreated = fileExists ? File.GetLastWriteTime(path) : DateTime.MinValue,
             SizeBytes = fileExists ? new FileInfo(path).Length : 0,
-            ModNames = fileExists ? ReadModNames(path) : null
+            ModNames = modNames
         };
     }
+
+    private static string EmptyToUnknown(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "Unknown" : value.Trim();
+    }
+
 
     private static string[] ReadModNames(string path)
     {

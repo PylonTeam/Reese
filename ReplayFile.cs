@@ -30,25 +30,7 @@ public class ReplayFile : IDisposable
         _binaryWriter.Write(IdentifierASCII);
     }
 
-    // FIXME: Ever heard of async? We have the opportunity upstream.
-    public void WritePacketData(byte[] data, uint tick)
-    {
-        // Can't go backwards
-        if (Tick > tick)
-            throw new Exception("Cannot write packet data into the past");
-
-        if (Tick < tick)
-            FlushTick(tick);
-
-        if (NumberOfPacketDataBytesRemaining == 0)
-        {
-            _binaryWriter.Write(0);
-            _binaryWriter.Write(0);
-        }
-
-        _binaryWriter.Write(data);
-        NumberOfPacketDataBytesRemaining += data.Length;
-    }
+    private static readonly byte[] MetadataMarkerASCII = Encoding.ASCII.GetBytes("RMD1");
 
     private void ReadPacketDataHeader()
     {
@@ -76,23 +58,73 @@ public class ReplayFile : IDisposable
         return numberOfBytesRead;
     }
 
-    public void FlushTick()
+    // FIXME: Ever heard of async? We have the opportunity upstream.
+    public void WritePacketData(byte[] data, uint tick)
     {
-        FlushTick(Tick);
+        if (_binaryWriter == null)
+            throw new InvalidOperationException("ReplayFile is not open for writing.");
+
+        if (tick < Tick)
+            throw new InvalidOperationException("Cannot write packet data into the past.");
+
+        if (NumberOfPacketDataBytesRemaining > 0 && tick != Tick)
+            FlushTick();
+
+        if (NumberOfPacketDataBytesRemaining == 0)
+        {
+            _binaryWriter.Write(tick - Tick); // delta to THIS block
+            _binaryWriter.Write(0);           // placeholder length
+            Tick = tick;
+        }
+
+        _binaryWriter.Write(data);
+        NumberOfPacketDataBytesRemaining += data.Length;
     }
 
-    private void FlushTick(uint tick)
+    public void FlushTick()
     {
-        if (NumberOfPacketDataBytesRemaining > 0)
-        {
-            _binaryWriter.Seek((-NumberOfPacketDataBytesRemaining) - 8, SeekOrigin.Current);
-            _binaryWriter.Write(tick - Tick);
-            _binaryWriter.Write(NumberOfPacketDataBytesRemaining);
-            _binaryWriter.Seek(0, SeekOrigin.End);
+        if (NumberOfPacketDataBytesRemaining == 0)
+            return;
 
-            Tick = tick;
-            NumberOfPacketDataBytesRemaining = 0;
-        }
+        _binaryWriter.Seek(-NumberOfPacketDataBytesRemaining - sizeof(int), SeekOrigin.Current);
+        _binaryWriter.Write(NumberOfPacketDataBytesRemaining);
+        _binaryWriter.Seek(0, SeekOrigin.End);
+
+        NumberOfPacketDataBytesRemaining = 0;
+    }
+
+    public void Finish(uint finalTick, string worldName, string[] modNames)
+    {
+        if (_binaryWriter == null)
+            return;
+
+        if (finalTick < Tick)
+            finalTick = Tick;
+
+        FlushTick();
+
+        _binaryWriter.Write(finalTick - Tick); // delta to recording end
+        _binaryWriter.Write(0);                // terminator
+
+        WriteMetadata(worldName, modNames);
+        _binaryWriter.Flush();
+
+        Tick = finalTick;
+    }
+
+    private void WriteMetadata(string worldName, string[] modNames)
+    {
+        _binaryWriter.Write(MetadataMarkerASCII);
+        _binaryWriter.Write(string.IsNullOrWhiteSpace(worldName) ? "Unknown" : worldName.Trim());
+
+        string[] names = (modNames ?? [])
+                     .Where(name => name != "ModLoader") // don't count modloader itself as a mod
+                     .ToArray();
+
+        _binaryWriter.Write(names.Length);
+
+        foreach (string name in names)
+            _binaryWriter.Write(name ?? string.Empty);
     }
 
     public static ReplayFile Write(Stream stream)
@@ -126,6 +158,30 @@ public class ReplayFile : IDisposable
         return replayFile;
     }
 
+    public void Dispose()
+    {
+        _binaryWriter?.Dispose();
+        _binaryReader?.Dispose();
+
+        // We told both binary streams to leaveOpen, so let's close it once ourselves now.
+        if (_binaryReader != null)
+            _binaryReader.BaseStream.Dispose();
+        else if (_binaryWriter != null)
+            _binaryWriter.BaseStream.Dispose();
+    }
+
+    public void Reset()
+    {
+        if (_binaryReader == null)
+            throw new InvalidOperationException("ReplayFile is not open for reading.");
+
+        _binaryReader.BaseStream.Seek(IdentifierASCII.Length, SeekOrigin.Begin);
+        Tick = 0;
+        NumberOfPacketDataBytesRemaining = 0;
+        ReadPacketDataHeader(); // Prime the first header so ReadPacketData has data ready to go
+    }
+
+    #region Metadata reading
     public static bool TryReadDurationTicks(string path, out uint durationTicks)
     {
         durationTicks = 0;
@@ -154,6 +210,10 @@ public class ReplayFile : IDisposable
                 if (length < 0)
                     return false;
 
+                totalTicks += delta;
+                if (totalTicks > uint.MaxValue)
+                    return false;
+
                 if (length == 0)
                 {
                     foundTerminator = true;
@@ -163,16 +223,11 @@ public class ReplayFile : IDisposable
                 if (stream.Position + length > stream.Length)
                     return false;
 
-                totalTicks += delta;
-                chunkCount++;
-
-                if (totalTicks > uint.MaxValue)
-                    return false;
-
                 stream.Seek(length, SeekOrigin.Current);
+                chunkCount++;
             }
 
-            if (!foundTerminator || chunkCount == 0 || totalTicks <= 0)
+            if (!foundTerminator || chunkCount == 0)
                 return false;
 
             durationTicks = (uint)totalTicks;
@@ -184,16 +239,89 @@ public class ReplayFile : IDisposable
             return false;
         }
     }
-
-    public void Dispose()
+    public static bool TryReadSummary(string path, out uint durationTicks, out string worldName, out string[] modNames)
     {
-        _binaryWriter?.Dispose();
-        _binaryReader?.Dispose();
+        durationTicks = 0;
+        worldName = null;
+        modNames = null;
 
-        // We told both binary streams to leaveOpen, so let's close it once ourselves now.
-        if (_binaryReader != null)
-            _binaryReader.BaseStream.Dispose();
-        else if (_binaryWriter != null)
-            _binaryWriter.BaseStream.Dispose();
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return false;
+
+        try
+        {
+            using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+
+            byte[] identifier = reader.ReadBytes(Identifier.Length);
+            if (!identifier.SequenceEqual(IdentifierASCII))
+                return false;
+
+            long totalTicks = 0;
+            int chunkCount = 0;
+
+            while (stream.Position + 8 <= stream.Length)
+            {
+                uint delta = reader.ReadUInt32();
+                int length = reader.ReadInt32();
+
+                if (length < 0)
+                    return false;
+
+                totalTicks += delta;
+                if (totalTicks > uint.MaxValue)
+                    return false;
+
+                if (length == 0)
+                {
+                    durationTicks = chunkCount > 0 ? (uint)totalTicks : 0;
+                    ReadMetadataTrailer(reader, out worldName, out modNames);
+                    return chunkCount > 0;
+                }
+
+                if (stream.Position + length > stream.Length)
+                    return false;
+
+                stream.Seek(length, SeekOrigin.Current);
+                chunkCount++;
+            }
+
+            return false;
+        }
+        catch
+        {
+            durationTicks = 0;
+            worldName = null;
+            modNames = null;
+            return false;
+        }
     }
+
+    private static bool ReadMetadataTrailer(BinaryReader reader, out string worldName, out string[] modNames)
+    {
+        worldName = null;
+        modNames = null;
+
+        Stream stream = reader.BaseStream;
+        if (stream.Position + MetadataMarkerASCII.Length > stream.Length)
+            return false;
+
+        byte[] marker = reader.ReadBytes(MetadataMarkerASCII.Length);
+        if (!marker.SequenceEqual(MetadataMarkerASCII))
+            return false;
+
+        worldName = reader.ReadString();
+
+        int modCount = reader.ReadInt32();
+        if (modCount < 0 || modCount > 4096)
+            return false;
+
+        modNames = new string[modCount];
+        for (int i = 0; i < modCount; i++)
+            modNames[i] = reader.ReadString();
+
+        return true;
+    }
+
+    #endregion
 }

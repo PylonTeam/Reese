@@ -46,11 +46,20 @@ internal sealed class TabButton : UIPanel
             ImageScale = iconScale * scale
         });
 
-        float extraLeft = headerText == "Settings" ? -5f : 0f;
+        float GetLeftOffset(string text) => text switch
+        {
+            "Options" => -5f,
+            "Settings" => 10f,
+            string s when s.StartsWith("NPCs") => 10f, 
+            string s when s.StartsWith("Players") => 10f, 
+            _ => 0f
+        };
+
+        Log.Chat(headerText);
 
         Append(new UIText(headerText, textScale: 0.85f * scale)
         {
-            Left = new StyleDimension((38f + extraLeft) * scale, 0f),
+            Left = new StyleDimension((38f + GetLeftOffset(headerText)) * scale, 0f),
             VAlign = 0.5f
         });
     }

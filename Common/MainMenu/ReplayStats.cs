@@ -22,8 +22,11 @@ public static class ReplayStats
         if (date == DateTime.MinValue)
             return new ReplayStatSnapshot("Created", "Unknown", "Unknown date", Ass.Icon_Watch, null);
 
-        //string display = date.ToString("d MMM HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-        string display = date.ToString("dd/M  HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        // September 28th is the "stress test" date for UI layouts
+        //date = new DateTime(2026, 9, 28, 12, 34, 56);
+
+        string display = date.ToString("d MMM HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+        //string display = date.ToString("dd/M  HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         string hover = $"Date created: {date.ToString("d MMM yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)}";
 
         return new ReplayStatSnapshot("Created", display, hover, Ass.Icon_Watch, null);
@@ -56,7 +59,7 @@ public static class ReplayStats
     }
     public static ReplayStatSnapshot BuildMainMenuModsStat(string[] modNames)
     {
-        modNames ??= Array.Empty<string>();
+        modNames ??= [];
 
         if (modNames.Length == 0)
             return new ReplayStatSnapshot("Mods", "Unknown", "Unknown mods used", Ass.Icon_CheckmarkGreen, null);
@@ -72,17 +75,17 @@ public static class ReplayStats
         if (modNames == null || modNames.Length == 0)
             return "Unknown mods";
 
-        string text = "Mods used in replay:";
+        string text = "Mods:";
 
         foreach (string modName in modNames)
         {
             if (string.IsNullOrWhiteSpace(modName))
                 continue;
 
-            text += "\n" + modName.Trim();
+            text += $"\n[mi:{modName}]{modName.Trim()}";
         }
 
-        return text == "Mods used in replay:" ? "Mods used in replay:\n-" : text;
+        return text;
     }
 
     private static string FormatLengthHoverText(uint durationTicks)

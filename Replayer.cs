@@ -1,6 +1,7 @@
 ﻿using log4net;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using System;
 using System.IO;
 using System.Reflection;
@@ -21,21 +22,22 @@ public class Replayer : ModSystem, ITicker
     public override void Load()
     {
         On_Netplay.ClientLoopSetup += OnClientLoopSetup;
-        IL_Main.DoUpdate += il =>
-        {
-            var cursor = new ILCursor(il);
-            cursor.GotoNext(i => i.MatchStsfld<Main>("drawSkip"));
-            // cursor.Index += 1;
-            cursor.EmitDelegate(() =>
-            {
-                if (!ReplayPlayback.IsReplayPlayback || !Main.gameMenu)
-                    return;
 
-                Ticks++;
-                if ((Ticks % 60) == 0)
-                    Mod.Logger.Info("Tick: " + Ticks);
-            });
-        };
+        //IL_Main.DoUpdate += il =>
+        //{
+        //    var cursor = new ILCursor(il);
+        //    cursor.GotoNext(i => i.MatchStsfld<Main>("drawSkip"));
+        //    // cursor.Index += 1;
+        //    cursor.EmitDelegate(() =>
+        //    {
+        //        if (!ReplayPlayback.IsReplayPlayback || !Main.gameMenu)
+        //            return;
+
+        //        Ticks++;
+        //        if ((Ticks % 60) == 0)
+        //            Mod.Logger.Info("Tick: " + Ticks);
+        //    });
+        //};
     }
 
     private void OnClientLoopSetup(On_Netplay.orig_ClientLoopSetup orig, RemoteAddress address)
@@ -101,11 +103,27 @@ public class Replayer : ModSystem, ITicker
             ReplayPlayback.End("replay socket closed");
         }
 
+        public bool ResetToStart()
+        {
+            try
+            {
+                // Tell your ReplayFile to seek its internal stream back to the start
+                // This usually involves: stream.Position = 0 (or after the header)
+                replayFile.Reset();
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Failed to reset replay stream: {e.Message}");
+                return false;
+            }
+        }
+
         public bool IsConnected() => true;
 
         public void Connect(RemoteAddress address)
         {
-            Logger.Info($"Replay connect to {address}");
+            Log.Info($"Replay connect to {address}");
         }
 
         public void AsyncSend(byte[] data, int offset, int size, SocketSendCallback callback, object state)
@@ -143,4 +161,49 @@ public class Replayer : ModSystem, ITicker
 
         public RemoteAddress GetRemoteAddress() => _remoteAddress;
     }
+
+    #region Seeking
+    private static ReplaySocket CurrentReplaySocket => Netplay.Connection?.Socket as ReplaySocket;
+    public static void SeekToTick(uint targetTick)
+    {
+        if (!ReplayPlayback.IsReplayPlayback)
+            return;
+
+        var replayer = ModContent.GetInstance<Replayer>();
+
+        uint duration = ReplayPlayback.DurationTicks;
+        if (duration > 0)
+            targetTick = Math.Min(targetTick, duration);
+
+        // If seeking backward, we must reset the stream
+        bool resetStream = targetTick < replayer.Ticks;
+        if (resetStream)
+        {
+            if (CurrentReplaySocket?.ResetToStart() != true)
+            {
+                Log.Chat("Unable to seek backward: Stream reset failed.");
+                return;
+            }
+        }
+
+        if (!resetStream && targetTick == replayer.Ticks)
+            return;
+
+        replayer.Ticks = targetTick;
+
+        Netplay.Connection?.StatusText = string.Empty;
+
+        Log.Chat($"Seeking to tick {targetTick}...");
+    }
+
+    public static void SeekToStart()
+    {
+        SeekToTick(0);
+    }
+
+    public static void SeekToEnd()
+    {
+        SeekToTick(ReplayPlayback.DurationTicks);
+    }
+    #endregion
 }

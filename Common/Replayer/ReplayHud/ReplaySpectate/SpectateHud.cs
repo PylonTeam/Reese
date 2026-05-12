@@ -797,15 +797,16 @@ internal sealed class SpectateHud : UIElement
     #region Layout Helpers
     private static float GetScale()
     {
-        ClientConfig clientConfig = ModContent.GetInstance<ClientConfig>();
+        return 0.85f;
+        //ClientConfig clientConfig = ModContent.GetInstance<ClientConfig>();
 
-        return clientConfig.replayHudSize switch
-        {
-            ClientConfig.ReplayHudSize.Small => 0.7f,
-            ClientConfig.ReplayHudSize.Medium => 0.9f,
-            ClientConfig.ReplayHudSize.Large => 1.1f,
-            _ => 1f
-        };
+        //return clientConfig.replayHudSize switch
+        //{
+        //    ClientConfig.ReplayHudSize.Small => 0.7f,
+        //    ClientConfig.ReplayHudSize.Medium => 0.9f,
+        //    ClientConfig.ReplayHudSize.Large => 1.1f,
+        //    _ => 1f
+        //};
     }
 
     private static float GetHeaderHeight() => HeaderHeight * GetScale();
@@ -974,8 +975,8 @@ internal sealed class SpectateHud : UIElement
         public string HeaderText => $"Players ({GetPlayerTargetCount()})";
         public string TooltipText => "Spectate players";
         public Asset<Texture2D> Icon => Ass.Icon_Player;
-        public float IconScale => 1.2f;
-        public Vector2 IconOffset => new(0f, 1f);
+        public float IconScale => 1.3f;
+        public Vector2 IconOffset => new(12f, -2f);
 
         public void Refresh()
         {
@@ -989,7 +990,7 @@ internal sealed class SpectateHud : UIElement
         public string TooltipText => "Spectate NPCs";
         public Asset<Texture2D> Icon => Ass.Icon_NPC;
         public float IconScale => 1f;
-        public Vector2 IconOffset => new(0f, -2f);
+        public Vector2 IconOffset => new(16f, -4f);
 
         public void Refresh()
         {

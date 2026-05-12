@@ -28,6 +28,12 @@ public static class StatDrawer
 
     private static void DrawMainMenuTooltip(Rectangle area, string hoverText)
     {
+        // temp hot reload
+        //if (hoverText.StartsWith("Mods"))
+        //{
+        //    UICommon.TooltipMouseText(hoverText);
+        //}
+
         if (string.IsNullOrWhiteSpace(hoverText) || !area.Contains(Main.MouseScreen.ToPoint()))
             return;
 

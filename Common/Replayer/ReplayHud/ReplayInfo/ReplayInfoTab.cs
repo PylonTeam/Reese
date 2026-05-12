@@ -1,3 +1,4 @@
+using Microsoft.CodeAnalysis;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
 using ReLogic.Content;
 using System;
@@ -66,26 +67,22 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static string GetRecordedText()
         {
-            //string created = Metadata?.CreatedUtc;
+            if (ReplayPlayback.Metadata == null || ReplayPlayback.Metadata.DateCreated == DateTime.MinValue)
+                return "-";
 
-            //if (DateTime.TryParse(created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date))
-            //    return date.ToLocalTime().ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
-
-            return "-";
+            return ReplayPlayback.Metadata.DateCreated.ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
         }
 
         private static string GetPlaybackText()
         {
-            return "";
+            uint currentTick = ReplayPlayback.CurrentTick;
+            uint durationTicks = GetDurationTicks();
+            int tickRate = GetTickRate();
 
-            //uint currentTick = Replayer.CurrentTick;
-            //uint durationTicks = GetDurationTicks();
-            //int tickRate = GetTickRate();
+            if (durationTicks == 0)
+                return FormatDuration(currentTick, tickRate);
 
-            //if (durationTicks == 0)
-            //    return FormatDuration(currentTick, tickRate);
-
-            //return $"{FormatDuration(currentTick, tickRate)} / {FormatDuration(durationTicks, tickRate)}";
+            return $"{FormatDuration(currentTick, tickRate)} / {FormatDuration(durationTicks, tickRate)}";
         }
 
         private static string GetLengthText()
@@ -166,7 +163,7 @@ internal sealed class ReplayInfoTab : TabPage
 
             string tooltip = mods.Count == 0
                 ? "No mods used in replay"
-                : "Mods used in replay:\n" + string.Join("\n", mods.Select(x => x.DisplayName));
+                : "Mods used in replay:\n" + string.Join($"\n", mods.Select(x => $"[mi:{x.InternalName}]{x.DisplayName}"));
 
             StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.Icon_CheckmarkGreen.Value, modsText, tooltip, textColor: Color.Gray, label: "Mods used:");
 
@@ -241,20 +238,12 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static IReadOnlyList<ModEntry> GetModEntries()
         {
-            return [new ModEntry()];
+            string[] modNames = ReplayPlayback.Metadata?.ModNames;
 
-            //string[] modNames = Replayer.ActiveMetadata?.ModNames ?? [];
-            //List<ModEntry> entries = [];
+            if (modNames == null || modNames.Length == 0)
+                return [];
 
-            //foreach (string modName in modNames)
-            //{
-            //    if (string.IsNullOrWhiteSpace(modName))
-            //        continue;
-
-            //    entries.Add(CreateModEntry(modName));
-            //}
-
-            //return entries;
+            return modNames.Select(CreateModEntry).ToList();
         }
 
         private static ModEntry CreateModEntry(string modName)

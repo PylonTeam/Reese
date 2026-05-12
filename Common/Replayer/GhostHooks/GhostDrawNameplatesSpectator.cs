@@ -1,7 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
-using Reese.Core.Configs;
-using Reese.Core.Utilities;
 using ReLogic.Graphics;
 using System.Collections.Generic;
 using System.Reflection;
@@ -189,7 +187,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
         _ = Main.screenPosition;
         Player player2 = player[myPlayer];
         float num2 = (float)(int)mouseTextColor / 255f;
-        if (player2.team == 0)
+        if (player2.team == 0 && !ReplayPlayback.IsReplayPlayback)
         {
             return;
         }
@@ -260,8 +258,6 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
         if (otherPlayer == null || !otherPlayer.active || otherPlayer.whoAmI == Main.myPlayer)
             return false;
 
-        //bool drawSpectators = ModContent.GetInstance<ClientConfig>().DrawSpectators;
-        bool drawSpectators = true;
         bool otherIsSpectator = otherPlayer.ghost || ReplayPlayback.IsPlayerReplayClient(otherPlayer);
 
         if (!ReplayDrawGate.ShouldDrawNameplate(otherPlayer, otherIsSpectator))
@@ -271,8 +267,11 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
             return false;
 
         if (otherIsSpectator)
-            return drawSpectators;
+            return true;
 
-        return ReplayPlayback.IsPlayerReplayClient(localPlayer) ? true : localPlayer.team != 0 && otherPlayer.team == localPlayer.team;
+        if (ReplayPlayback.IsReplayPlayback)
+            return true;
+
+        return localPlayer.team != 0 && otherPlayer.team == localPlayer.team;
     }
 }

@@ -23,7 +23,7 @@ internal static class ReplayDrawGate
         if (!ReplayPlayback.IsReplayPlayback || player?.active != true)
             return true;
 
-        return isSpectator ? ReplayClientSettings.IsDrawGhostsOn : ReplayClientSettings.IsDrawPlayersOn;
+        return ReplayClientSettings.IsNameplatesOn;
     }
 }
 

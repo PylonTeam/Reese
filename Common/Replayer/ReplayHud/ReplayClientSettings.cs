@@ -22,4 +22,9 @@ internal static class ReplayClientSettings
     public static void ToggleProjectiles() => IsDrawProjectilesOn = !IsDrawProjectilesOn;
     public static void ToggleNPCs() => IsDrawNPCsOn = !IsDrawNPCsOn;
     public static void ToggleItems() => IsDrawItemsOn = !IsDrawItemsOn;
+
+    // More settings
+    public static bool IsNameplatesOn { get; set; } = true;
+    public static void ToggleNameplates() => IsNameplatesOn = !IsNameplatesOn;
+
 }

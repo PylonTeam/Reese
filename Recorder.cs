@@ -33,17 +33,15 @@ public class Recorder : ModSystem, ITicker
 {
     // FIXME: Become delegate
     public uint Ticks { get; private set; }
-    public static uint CurrentTick { get; private set; }
-    public static bool IsRecordingActive { get; private set; }
-    private bool _isRecording;
-    private string _currentReplayPath;
+    private bool isRecording;
+    private string currentReplayPath;
 
     // Reflection fields
     private static MethodInfo _modNetSyncMods;
     private static MethodInfo _modNetSendNetIds;
     private static MethodInfo _netMessageSyncOnePlayer;
     private static MethodInfo _netMessageSendNPCHousesAndTravelShop;
-    private static MethodInfo _netPlayKickClient;
+    //private static MethodInfo _netPlayKickClient;
 
     public override void Load()
     {
@@ -53,7 +51,7 @@ public class Recorder : ModSystem, ITicker
             typeof(NetMessage).GetMethod("SyncOnePlayer", BindingFlags.NonPublic | BindingFlags.Static);
         _netMessageSendNPCHousesAndTravelShop = typeof(NetMessage).GetMethod("SendNPCHousesAndTravelShop",
             BindingFlags.NonPublic | BindingFlags.Static);
-        _netPlayKickClient = typeof(Netplay).GetMethod("KickClient", BindingFlags.NonPublic | BindingFlags.Static);
+        //_netPlayKickClient = typeof(Netplay).GetMethod("KickClient", BindingFlags.NonPublic | BindingFlags.Static);
 
         On_Netplay.InitializeServer += OnNetplayInitializeServer;
 
@@ -92,21 +90,23 @@ public class Recorder : ModSystem, ITicker
 
     private void StartRecording()
     {
-        if (_isRecording)
+        if (isRecording)
             return;
 
         // FIXME: Will this break an existing recording that we try to end? prob need to do it later.
         Ticks = 0;
-        const int RecordClientIndex = 254;
+        const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
         const string RecordClientName = "Recording";
 
         string dir = ReplayPaths.GetFolder();
         Directory.CreateDirectory(dir);
         const string ReplayFilePrefix = "Reese";
-        _currentReplayPath = Path.Combine(dir, $"{ReplayFilePrefix}_{GetNextReplayNumber(dir, ReplayFilePrefix):0000}.reese");
+        currentReplayPath = Path.Combine(dir, $"{ReplayFilePrefix}_{ReplayPlayback.GetNextReplayNumber(dir, ReplayFilePrefix):0000}.reese");
 
-        var replayFile = ReplayFile.Write(File.Open(_currentReplayPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
-        ReplayFlags.MarkNew(_currentReplayPath);
+        Console.WriteLine($"Server ({RecordClientIndex}) started recording for {Path.GetFileName(currentReplayPath)}");
+
+        var replayFile = ReplayFile.Write(File.Open(currentReplayPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
+        ReplayFlags.MarkNew(currentReplayPath);
 
         var recordClient = Netplay.Clients[RecordClientIndex];
         // Not really needed, because we probably just did it above, but why not.
@@ -219,29 +219,42 @@ public class Recorder : ModSystem, ITicker
 
         // Flush now, so that it comes at update delta 0
         replayFile.FlushTick();
-        _isRecording = true;
-        IsRecordingActive = true;
-        CurrentTick = Ticks;
+        isRecording = true;
     }
 
     private void StopRecording()
     {
-        if (!_isRecording)
+        if (!isRecording)
             return;
 
-        const int RecordClientIndex = 254;
-        var recordClient = Netplay.Clients[RecordClientIndex];
-        if (recordClient?.Socket is RecordSocket recordSocket)
-            recordSocket.Close();
+        isRecording = false;
 
-        recordClient?.Reset();
-        _isRecording = false;
-        IsRecordingActive = false;
-        if (!string.IsNullOrWhiteSpace(_currentReplayPath))
-            Mod.Logger.Info($"Recording saved: {_currentReplayPath}");
-        _currentReplayPath = null;
-        CurrentTick = 0;
+        const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
+        string savedReplayPath = currentReplayPath;
+
+        var recordClient = Netplay.Clients[RecordClientIndex];
+
+        if (recordClient?.Socket is RecordSocket recordSocket)
+            recordSocket.Finish(ReplayStats.GetCurrentWorldName(), ReplayStats.GetCurrentModNames(), Ticks);
+
+        if (recordClient != null)
+        {
+            NetMessage.buffer[RecordClientIndex].broadcast = false;
+            recordClient.Reset();
+        }
+
+        ReplayPlayback.NotifyFolderChanged();
+
+        currentReplayPath = null;
+
+        if (!string.IsNullOrWhiteSpace(savedReplayPath))
+        {
+            string message = $"Recording stopped at tick {Ticks}. Saved to {Path.GetFileNameWithoutExtension(savedReplayPath)}";
+            Log.Info(message);
+            Console.WriteLine(message);
+        }
     }
+
 
     private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
     {
@@ -266,21 +279,25 @@ public class Recorder : ModSystem, ITicker
 
     public override void PostUpdateEverything()
     {
+        // Automatically start and stop recording when there are players in the world
         if (Main.netMode == NetmodeID.Server)
         {
-            bool hasPlayers = HasActivePlayers();
-            if (!_isRecording && hasPlayers)
+            bool hasPlayers = ReplayPlayback.HasActivePlayers();
+            if (!isRecording && hasPlayers)
                 StartRecording();
-            else if (_isRecording && !hasPlayers)
+            else if (isRecording && !hasPlayers)
                 StopRecording();
         }
 
-        if (_isRecording)
+        if (isRecording)
         {
             Ticks++;
-            CurrentTick = Ticks;
-            if (Ticks % 60 == 0)
-                Mod.Logger.Info("Tick!");
+            if (Ticks % (60*5) == 0)
+            {
+                string message = $"Server tick: {Ticks} | Recording to: {Path.GetFileNameWithoutExtension(currentReplayPath)}";
+                Console.WriteLine(message);
+                Log.Info(message);
+            }
         }
     }
 
@@ -298,36 +315,6 @@ public class Recorder : ModSystem, ITicker
                     recordSocket.Close();
             }
         }
-    }
-
-    private static bool HasActivePlayers()
-    {
-        const int RecordClientIndex = 254;
-        for (int i = 0; i < Main.maxPlayers; i++)
-        {
-            if (i == RecordClientIndex)
-                continue;
-
-            if (Main.player[i]?.active == true)
-                return true;
-        }
-
-        return false;
-    }
-
-    private static int GetNextReplayNumber(string dir, string prefix)
-    {
-        int next = 1;
-
-        foreach (string path in Directory.EnumerateFiles(dir, $"{prefix}_*.reese", SearchOption.TopDirectoryOnly))
-        {
-            string name = Path.GetFileNameWithoutExtension(path);
-            string suffix = name.Length > prefix.Length + 1 ? name[(prefix.Length + 1)..] : string.Empty;
-            if (int.TryParse(suffix, out int number) && number >= next)
-                next = number + 1;
-        }
-
-        return next;
     }
 
     public class RecordCommand : ModCommand
@@ -352,48 +339,75 @@ public class Recorder : ModSystem, ITicker
 
     private class RecordSocket(ITicker ticker, RemoteClient remoteClient, ReplayFile replayFile) : ISocket
     {
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(RecordSocket));
         private readonly RecordRemoteAddress _remoteAddress = new();
+        private bool isFinished;
+        private bool isClosed;
+
+        public void Finish(string worldName, string[] modNames, uint finalTick)
+        {
+            if (isFinished || isClosed)
+                return;
+
+            isFinished = true;
+
+            // Stop any further traffic to this fake client immediately.
+            NetMessage.buffer[remoteClient.Id].broadcast = false;
+            remoteClient.IsActive = false;
+            remoteClient.State = 0;
+
+            replayFile.Finish(finalTick, worldName, modNames);
+        }
 
         public void Close()
         {
-            _netPlayKickClient.Invoke(null, [this, NetworkText.FromLiteral("Recording closed")]);
-            // This is essentially a flush operation
-            SendQueuedPackets();
-            Logger.Info("Closing record socket");
+            if (isClosed)
+                return;
+
+            isClosed = true;
+
+            NetMessage.buffer[remoteClient.Id].broadcast = false;
+            remoteClient.IsActive = false;
+            remoteClient.State = 0;
+
+            Log.Info("Closing record socket");
             replayFile.Dispose();
         }
 
-        public bool IsConnected() => true;
+        public bool IsConnected() => !isClosed && !isFinished;
 
         public void Connect(RemoteAddress address) =>
             throw new InvalidOperationException("The recording socket cannot connect");
 
         public void AsyncSend(byte[] data, int offset, int size, SocketSendCallback callback, object state = null)
         {
-            // FIXME: Actually do this async
-            replayFile.WritePacketData(data[offset..(offset + size)], ticker.Ticks);
+            if (isFinished || isClosed)
+            {
+                callback?.Invoke(state);
+                return;
+            }
 
-            callback(state);
+            replayFile.WritePacketData(data[offset..(offset + size)], ticker.Ticks);
+            callback?.Invoke(state);
         }
 
-        public void AsyncReceive(byte[] data, int offset, int size, SocketReceiveCallback callback,
-            object state = null) => throw new InvalidOperationException("The recording socket cannot receive");
+        public void AsyncReceive(byte[] data, int offset, int size, SocketReceiveCallback callback, object state = null) =>
+            throw new InvalidOperationException("The recording socket cannot receive");
 
         public bool IsDataAvailable() => false;
 
         public void SendQueuedPackets()
         {
-            // TODO: Verify this is actually preventing us from timing out
-            //       (and that this is an issue at all which i think it is)
-            remoteClient.TimeOutTimer = 0;
+            if (!isFinished && !isClosed)
+                remoteClient.TimeOutTimer = 0;
         }
 
         public bool StartListening(SocketConnectionAccepted callback) =>
             throw new InvalidOperationException("The recording socket cannot listen");
 
-        public void StopListening() => throw new InvalidOperationException("The recording socket cannot listen");
+        public void StopListening() =>
+            throw new InvalidOperationException("The recording socket cannot listen");
 
         public RemoteAddress GetRemoteAddress() => _remoteAddress;
     }
+
 }

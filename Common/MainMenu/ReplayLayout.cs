@@ -55,7 +55,7 @@ internal static class ReplayLayout
         Set(ref TableWidth, ReplayBrowser.PanelWidth - ContentPadding * 2f - ScrollbarWidth - 4f, ref changed);
 
         const float baseNameColumnWidth = 150f;
-        const float baseDateColumnWidth = 92f;
+        const float baseDateColumnWidth = 96f;
         const float baseDurationColumnWidth = 72f;
         const float baseModsColumnWidth = 72f;
         const float baseSizeColumnWidth = 72f;
