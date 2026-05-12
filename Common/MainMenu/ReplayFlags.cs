@@ -2,6 +2,9 @@
 
 namespace Reese.Common.MainMenu;
 
+/// <summary>
+/// Keeps track of and displays new/played/favorite flags for a replay.
+/// </summary>
 internal static class ReplayFlags
 {
     public static bool IsNew(string replayPath) => HasFlag(replayPath, "new");

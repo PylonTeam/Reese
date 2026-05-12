@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.MainMenu;
 using ReLogic.Content;
 using ReLogic.Graphics;
 using System;
@@ -19,10 +20,7 @@ public static class StatDrawer
         DrawStat(spriteBatch, area, stat.Icon.Value, stat.IconFrame, stat.Text, scale);
     }
 
-    #region Main menu drawing
-
-
-    public static void DrawReplayStatInMainMenu(SpriteBatch spriteBatch, Rectangle area, PlayerStatSnapshot stat, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f, Color? textColor = null)
+    public static void DrawReplayStatInMainMenu(SpriteBatch spriteBatch, Rectangle area, ReplayStatSnapshot stat, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f, Color? textColor = null)
     {
         DrawStat(spriteBatch, area, drawIcon ? stat.Icon?.Value : null, stat.IconFrame, stat.Text, scale, drawIcon, iconScale, centerText, textScaleMultiplier, textColor);
         DrawMainMenuTooltip(area, stat.HoverText);
@@ -36,7 +34,6 @@ public static class StatDrawer
         Main.LocalPlayer.mouseInterface = true;
         UICommon.TooltipMouseText(hoverText);
     }
-    #endregion
 
     #region Shared draw helpers
     public static void DrawBack(SpriteBatch spriteBatch, Rectangle area, float scale = 1f)

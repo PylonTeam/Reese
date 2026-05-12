@@ -1,7 +1,6 @@
 ﻿using log4net;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
-using Reese.Common.Replayer;
 using System;
 using System.IO;
 using System.Reflection;
@@ -75,8 +74,10 @@ public class Replayer : ModSystem, ITicker
             return;
 
         Ticks++;
-        if ((Ticks % 60) == 0)
-            Mod.Logger.Info("Tick: " + Ticks);
+        if ((Ticks % (60*5)) == 0)
+        {
+            Log.Info("Client replay tick: " + Ticks);
+        }
     }
 
     private class ReplayRemoteAddress : RemoteAddress
@@ -95,8 +96,9 @@ public class Replayer : ModSystem, ITicker
 
         public void Close()
         {
-            Logger.Info("Closing replay socket");
+            Log.Info("Closing replay socket");
             replayFile.Dispose();
+            ReplayPlayback.End("replay socket closed");
         }
 
         public bool IsConnected() => true;

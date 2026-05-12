@@ -13,6 +13,10 @@ using Terraria.UI;
 
 namespace Reese.Common.MainMenu;
 
+/// <summary>
+/// The lone Reese UIState.
+/// Drawn on top of an empty <see cref="Main.menuMode"/>
+/// </summary>
 internal sealed class MainMenuUIState : UIState
 {
     private const float FooterButtonHeight = 40f;

@@ -1,19 +1,16 @@
 using Microsoft.Xna.Framework.Input;
-using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using Reese.Core.Configs;
 using System;
-using System.Collections.Generic;
-using System.Reflection;
 using Terraria.Audio;
-using Terraria.GameContent;
 using Terraria.ID;
 using Terraria.UI;
 
 namespace Reese.Common.MainMenu;
 
 /// <summary>
-/// Adds a Reese Replays button to the Main Menu.
+/// Adds a custom Reese Replays button to the main menu buttons (the button is added inbetween workshop and settings)
+/// Adds a <see cref="MainMenuUIState"/> with the <see cref="ReplayBrowserPanel"/>
 /// </summary>
 [Autoload(Side = ModSide.Client)]
 public class MainMenuSystem : ModSystem
@@ -21,8 +18,6 @@ public class MainMenuSystem : ModSystem
     private const int SharedMenuMode = 888;
     private const string ButtonLabel = "Reese";
 
-    private static readonly Color TextColor = new(220, 38, 38); // red
-    private static readonly Color HoverColor = new(255, 92, 92); // brighter red
 
     public UserInterface ui;
     private UserInterface reeseMainMenuUI;

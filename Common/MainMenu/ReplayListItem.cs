@@ -1,5 +1,3 @@
-using Humanizer;
-using Reese.Common.MainMenu.UI;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
 using ReLogic.Content;
 using System;
@@ -12,6 +10,11 @@ using Terraria.UI;
 
 namespace Reese.Common.MainMenu;
 
+/// <summary>
+/// Represents a single replay entry in the replay list.
+/// This is where most of the work happens for the replay list.
+/// Displays replay stats and buttons for play, favorite, rename, and delete.
+/// </summary>
 internal sealed class ReplayListItem : UIPanel
 {
     private static readonly Color NormalTextColor = Color.White;
@@ -44,19 +47,19 @@ internal sealed class ReplayListItem : UIPanel
             Height = { Pixels = 22f }
         });
 
-        AddStat(MainMenuReplayStats.BuildMainMenuWorldNameStat(metadata.WorldName), ReplayLayout.PreviewColumnWidth + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.BuildMainMenuWorldNameStat(metadata.WorldName), ReplayLayout.PreviewColumnWidth + ReplayLayout.StatColumnPadding,
             ReplayLayout.NameColumnWidth - ReplayLayout.PreviewColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.WorldName == "Unknown"), true, false, 1.25f);
 
-        AddStat(MainMenuReplayStats.BuildMainMenuDateStat(metadata.DateCreated), ReplayLayout.DateLeft + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.BuildMainMenuDateStat(metadata.DateCreated), ReplayLayout.DateLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.DateColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.DateCreated == DateTime.MinValue));
 
-        AddStat(MainMenuReplayStats.BuildMainMenuLengthStat(metadata.DurationTicks), ReplayLayout.DurationLeft + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.BuildMainMenuLengthStat(metadata.DurationTicks), ReplayLayout.DurationLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.DurationColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.DurationTicks == 0));
 
-        AddStat(MainMenuReplayStats.BuildMainMenuModsStat(metadata.ModNames), ReplayLayout.ModsLeft + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.BuildMainMenuModsStat(metadata.ModNames), ReplayLayout.ModsLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.ModsColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.ModNames is null));
 
-        AddStat(MainMenuReplayStats.BuildMainMenuSizeStat(metadata.SizeBytes), ReplayLayout.SizeLeft + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.BuildMainMenuSizeStat(metadata.SizeBytes), ReplayLayout.SizeLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.SizeColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.SizeBytes <= 0));
 
         Asset<Texture2D> favoriteTexture = Main.Assets.Request<Texture2D>(isFavorite ? "Images/UI/ButtonFavoriteActive" : "Images/UI/ButtonFavoriteInactive");
@@ -115,7 +118,7 @@ internal sealed class ReplayListItem : UIPanel
         };
     }
 
-    private void AddStat(PlayerStatSnapshot stat, float left, float width, Color color, bool icon = false, bool center = true, float iconScale = 1f)
+    private void AddStat(ReplayStatSnapshot stat, float left, float width, Color color, bool icon = false, bool center = true, float iconScale = 1f)
     {
         Append(new Stat(stat, 0.9f, icon, iconScale, center, color)
         {
@@ -321,7 +324,7 @@ internal sealed class ReplayListItem : UIPanel
         }
     }
 
-    private sealed class Stat(PlayerStatSnapshot stat, float scale, bool icon, float iconScale, bool center, Color color) : UIElement
+    private sealed class Stat(ReplayStatSnapshot stat, float scale, bool icon, float iconScale, bool center, Color color) : UIElement
     {
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {

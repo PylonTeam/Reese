@@ -6,6 +6,9 @@ using Terraria.UI;
 
 namespace Reese.Common.MainMenu;
 
+/// <summary>
+/// Actions for the <see cref="MainMenuSystem"/> and <see cref="MainMenuUIState"/>
+/// </summary>
 public static class MainMenuActions
 {
     public static void OpenReplayBrowser(UserInterface ui, UserInterface reeseMainMenuUI)

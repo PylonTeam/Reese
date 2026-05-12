@@ -1,48 +1,50 @@
 ﻿using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
+using ReLogic.Content;
 using System;
+using System.Linq;
 
-namespace Reese.Common.MainMenu.UI;
+namespace Reese.Common.MainMenu;
 
 /// <summary>
-/// Ugh, somehow this is a PlayerStatSnapshot but it's fine because they share common properties and it avoids a lot of duplicate code. Yes, this is gross, but it's only used in the main menu and it works, so whatever.
+/// Stats for the <see cref="ReplayListItem"/>
+/// Uses <see cref="StatDrawer"/>
 /// </summary>
-public static class MainMenuReplayStats
+public static class ReplayStats
 {
-    #region Main menu stats
-    public static PlayerStatSnapshot BuildMainMenuWorldNameStat(string worldName)
+    public static ReplayStatSnapshot BuildMainMenuWorldNameStat(string worldName)
     {
         worldName = string.IsNullOrWhiteSpace(worldName) ? "-" : worldName.Trim();
-        return new PlayerStatSnapshot("World", worldName, $"World: {worldName}", Ass.Icon_Biome, null);
+        return new ReplayStatSnapshot("World", worldName, $"World: {worldName}", Ass.Icon_Biome, null);
     }
 
-    public static PlayerStatSnapshot BuildMainMenuDateStat(DateTime date)
+    public static ReplayStatSnapshot BuildMainMenuDateStat(DateTime date)
     {
         if (date == DateTime.MinValue)
-            return new PlayerStatSnapshot("Created", "Unknown", "Unknown date", Ass.Icon_Watch, null);
+            return new ReplayStatSnapshot("Created", "Unknown", "Unknown date", Ass.Icon_Watch, null);
 
         //string display = date.ToString("d MMM HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         string display = date.ToString("dd/M  HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         string hover = $"Date created: {date.ToString("d MMM yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)}";
 
-        return new PlayerStatSnapshot("Created", display, hover, Ass.Icon_Watch, null);
+        return new ReplayStatSnapshot("Created", display, hover, Ass.Icon_Watch, null);
     }
 
-    public static PlayerStatSnapshot BuildMainMenuLengthStat(uint durationTicks)
+    public static ReplayStatSnapshot BuildMainMenuLengthStat(uint durationTicks)
     {
         if (durationTicks == 0)
-            return new PlayerStatSnapshot("Length", "Unknown", "Unknown length", Ass.Icon_Watch, null);
+            return new ReplayStatSnapshot("Length", "Unknown", "Unknown length", Ass.Icon_Watch, null);
 
         string display = FormatDurationText(durationTicks);
-        return new PlayerStatSnapshot("Length", display, $"Length: {FormatLengthHoverText(durationTicks)}", Ass.Icon_Watch, null);
+        return new ReplayStatSnapshot("Length", display, $"Length: {FormatLengthHoverText(durationTicks)}", Ass.Icon_Watch, null);
     }
 
-    public static PlayerStatSnapshot BuildMainMenuSizeStat(long bytes)
+    public static ReplayStatSnapshot BuildMainMenuSizeStat(long bytes)
     {
         if (bytes <= 0)
-            return new PlayerStatSnapshot("Size", "Unknown", "Unknown size", Ass.Icon_Watch, null);
+            return new ReplayStatSnapshot("Size", "Unknown", "Unknown size", Ass.Icon_Watch, null);
 
         string display = FormatFileSizeText(bytes);
-        return new PlayerStatSnapshot("Size", display, $"Size: {display}", Ass.Icon_Watch, null);
+        return new ReplayStatSnapshot("Size", display, $"Size: {display}", Ass.Icon_Watch, null);
     }
     private static string FormatDurationText(uint durationTicks)
     {
@@ -52,17 +54,17 @@ public static class MainMenuReplayStats
             ? $"{(int)timeSpan.TotalHours:00}:{timeSpan.Minutes:00}"
             : $"{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
     }
-    public static PlayerStatSnapshot BuildMainMenuModsStat(string[] modNames)
+    public static ReplayStatSnapshot BuildMainMenuModsStat(string[] modNames)
     {
         modNames ??= Array.Empty<string>();
 
         if (modNames.Length == 0)
-            return new PlayerStatSnapshot("Mods", "Unknown", "Unknown mods used", Ass.Icon_CheckmarkGreen, null);
+            return new ReplayStatSnapshot("Mods", "Unknown", "Unknown mods used", Ass.Icon_CheckmarkGreen, null);
 
         string display = modNames.Length == 1 ? "1 mod" : $"{modNames.Length} mods";
         string hover = BuildModsHoverText(modNames);
 
-        return new PlayerStatSnapshot("Mods", display, hover, Ass.Icon_CheckmarkGreen, null);
+        return new ReplayStatSnapshot("Mods", display, hover, Ass.Icon_CheckmarkGreen, null);
     }
 
     private static string BuildModsHoverText(string[] modNames)
@@ -123,6 +125,47 @@ public static class MainMenuReplayStats
 
         text += $"{value} {unit}{(value == 1 ? "" : "s")}";
     }
-    #endregion
+
+    public static string GetCurrentWorldName()
+    {
+        return string.IsNullOrWhiteSpace(Main.worldName) ? "Unknown" : Main.worldName.Trim();
+    }
+
+    public static string[] GetCurrentModNames()
+    {
+        return ModLoader.Mods
+            .Select(x => x?.Name)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
 
 }
+
+public sealed class ReplayStatDefinition
+{
+    public string Id { get; }
+    public string Label { get; }
+    public Func<Player, Asset<Texture2D>> GetIcon { get; }
+    public Func<Player, string> GetText { get; }
+    public Func<Player, string> GetHoverText { get; }
+    public Func<Player, Rectangle?> GetIconFrame { get; }
+
+    public ReplayStatSnapshot Build(Player player)
+    {
+        string text = GetText(player);
+        string hoverText = GetHoverText == null ? $"{Label}: {text}" : GetHoverText(player);
+        Rectangle? iconFrame = GetIconFrame == null ? null : GetIconFrame(player);
+
+        return new ReplayStatSnapshot(Label, text, hoverText, GetIcon(player), iconFrame);
+    }
+}
+
+public readonly record struct ReplayStatSnapshot(
+    string Label,
+    string Text,
+    string HoverText,
+    Asset<Texture2D> Icon,
+    Rectangle? IconFrame);

@@ -1,4 +1,3 @@
-using Reese.Common.Replayer;
 using Reese.Core.Debug;
 using System;
 using System.IO;
@@ -9,6 +8,9 @@ using Terraria.ModLoader;
 
 namespace Reese.Common.MainMenu;
 
+/// <summary>
+/// Actions for <see cref="ReplayListItem"/>
+/// </summary>
 internal static class ReplayActions
 {
     public static void EnterReplay(string replayPath)

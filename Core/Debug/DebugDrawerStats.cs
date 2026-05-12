@@ -1,9 +1,9 @@
-﻿using Reese.Common.Replayer;
-using Reese.Common.Replayer.ReplayHud;
+﻿using Reese.Common.Replayer.ReplayHud;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -34,9 +34,16 @@ internal static class DebugDrawerStats
     {
         List<string> rows = [];
 
-        rows.Add($"Record client index: {ReplayPlayback.RecordClientIndex}");
-        rows.Add($"Recording active: {Recorder.IsRecordingActive}");
-        rows.Add($"Recorder tick: {Recorder.CurrentTick}");
+        //rows.Add($"Recording active: {Recorder.IsRecordingActive}");
+        //rows.Add($"File: {GetFileNameOrNone(Recorder.CurrentReplayPath)}");
+        //rows.Add($"Tick: {Recorder.CurrentTick}");
+        //rows.Add($"Elapsed: {FormatTicks(Recorder.CurrentTick)}");
+        //rows.Add($"World: {(Recorder.IsRecordingActive ? Main.worldName : "-")}");
+        //rows.Add($"Mods: {(Recorder.IsRecordingActive ? string.Join(", ", ModLoader.Mods.Select(x => x.Name)) : "-")}");
+
+        //rows.Add($"Record client index: {ReplayPlayback.RecordClientIndex}");
+        //rows.Add($"Recording active: {Recorder.IsRecording}");
+        //rows.Add($"Recorder tick: {Recorder.CurrentTick}");
 
         //rows.Add($"Active: {DebugRecorderDiagnostics.IsActive}");
         //rows.Add($"File: {GetFileNameOrNone(ReplaySession.CurrentPath)}");

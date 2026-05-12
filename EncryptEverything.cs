@@ -248,7 +248,7 @@ public class EncryptEverything : ModSystem
     {
         orig(address);
 
-        if (Common.Replayer.ReplayPlayback.IsReplayPlayback)
+        if (ReplayPlayback.IsReplayPlayback)
         {
             Log.Debug("Replay playback connection: skipping SSL socket replacement.");
             return;

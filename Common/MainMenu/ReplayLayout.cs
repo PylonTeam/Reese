@@ -2,6 +2,9 @@ using System;
 
 namespace Reese.Common.MainMenu;
 
+/// <summary>
+/// Hot reload layout for <see cref="ReplayBrowserPanel"/>
+/// </summary>
 internal static class ReplayLayout
 {
     internal static float ReplayItemHeight;
