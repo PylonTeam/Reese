@@ -1,15 +1,12 @@
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
-using Reese.Core.Debug;
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using Terraria;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
-using Terraria.ModLoader;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
@@ -48,7 +45,7 @@ internal sealed class ReplayInfoTab : TabPage
             ];
         }
 
-        private static global::Reese.ReplayMetadata Metadata => global::Reese.Replayer.ActiveMetadata;
+        //private static ReplayMetadata Metadata => Replayer.ActiveMetadata;
 
         private static string GetFileText()
         {
@@ -68,11 +65,10 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static string GetRecordedText()
         {
-            string created = Metadata?.CreatedUtc;
+            //string created = Metadata?.CreatedUtc;
 
-            if (!string.IsNullOrWhiteSpace(created) &&
-                DateTime.TryParse(created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date))
-                return date.ToLocalTime().ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
+            //if (DateTime.TryParse(created, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out DateTime date))
+            //    return date.ToLocalTime().ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
 
             return "-";
         }
@@ -99,22 +95,20 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static string GetWorldText()
         {
-            return EmptyToDash(Metadata?.WorldName);
+            return "-";
+            //return EmptyToDash(Metadata?.WorldName);
         }
 
         private static uint GetDurationTicks()
         {
-            uint fromMeta = Metadata.DurationTicks;
-            if (fromMeta > 0)
-                return fromMeta;
-
-            uint active = global::Reese.Replayer.ActiveDurationTicks;
-            return active;
+            return uint.MaxValue;
+            //return Metadata?.DurationTicks > 0 ? Metadata.DurationTicks : Replayer.ActiveDurationTicks;
         }
 
         private static int GetTickRate()
         {
-            return Math.Max(1, Metadata?.TickRate ?? 60);
+            return -1;
+            //return Math.Max(1, Metadata?.TickRate ?? 60);
         }
 
         private static string FormatDuration(uint ticks, int tickRate)
@@ -243,21 +237,20 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static IReadOnlyList<ModEntry> GetModEntries()
         {
-            string[] modNames = global::Reese.Replayer.ActiveMetadata.ModNames ?? [];
-            if (modNames.Length == 0)
-                return Array.Empty<ModEntry>();
+            return [new ModEntry()];
 
-            List<ModEntry> entries = [];
+            //string[] modNames = Replayer.ActiveMetadata?.ModNames ?? [];
+            //List<ModEntry> entries = [];
 
-            foreach (string modName in modNames)
-            {
-                if (string.IsNullOrWhiteSpace(modName))
-                    continue;
+            //foreach (string modName in modNames)
+            //{
+            //    if (string.IsNullOrWhiteSpace(modName))
+            //        continue;
 
-                entries.Add(CreateModEntry(modName));
-            }
+            //    entries.Add(CreateModEntry(modName));
+            //}
 
-            return entries;
+            //return entries;
         }
 
         private static ModEntry CreateModEntry(string modName)

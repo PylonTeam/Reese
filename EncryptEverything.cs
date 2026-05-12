@@ -16,9 +16,6 @@ namespace Reese;
 
 // FIXME: cache/optimize reflection
 
-// TODO :
-// This class has been disabled because it prevents the server from starting, making us unable to use the recorder at all.
-[Autoload(false)]
 public class EncryptEverything : ModSystem
 {
     private class SslSocket : ISocket

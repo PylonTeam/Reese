@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using log4net;
 
 namespace Reese;
 
@@ -10,16 +11,13 @@ namespace Reese;
 public class ReplayFile : IDisposable
 {
     public const string Identifier = "Reese";
-    private const byte Version2Marker = (byte)'2';
     private static readonly byte[] IdentifierASCII = Encoding.ASCII.GetBytes(Identifier);
+    private static readonly ILog Logger = LogManager.GetLogger(typeof(ReplayFile));
 
     private BinaryWriter _binaryWriter;
     private BinaryReader _binaryReader;
 
     public uint Tick { get; private set; }
-
-    /// <summary>Populated for v2 replays after the header is read.</summary>
-    public ReplayMetadata Metadata { get; private set; } = new ReplayMetadata();
 
     // FIXME: We should just buffer this.
     public int NumberOfPacketDataBytesRemaining { get; private set; }
@@ -60,48 +58,12 @@ public class ReplayFile : IDisposable
         {
             Tick += _binaryReader.ReadUInt32();
             NumberOfPacketDataBytesRemaining = _binaryReader.ReadInt32();
-            if (NumberOfPacketDataBytesRemaining < 0)
-                throw new InvalidDataException("Replay block length cannot be negative");
         }
         catch (EndOfStreamException)
         {
             Tick = 0;
             NumberOfPacketDataBytesRemaining = 0;
         }
-    }
-
-    /// <summary>
-    /// V2 replays store JSON metadata after the magic string; legacy files go straight to tick/length blocks.
-    /// </summary>
-    private void ReadFormatHeaderAfterIdentifier()
-    {
-        long packetStart = _binaryReader.BaseStream.Position;
-        int marker = _binaryReader.BaseStream.ReadByte();
-        if (marker == Version2Marker)
-        {
-            try
-            {
-                int metadataByteCount = _binaryReader.ReadInt32();
-                if (metadataByteCount < 0 || metadataByteCount > 1024 * 1024)
-                    throw new InvalidDataException($"Invalid Reese metadata block length: {metadataByteCount}");
-
-                byte[] metadataBytes = _binaryReader.ReadBytes(metadataByteCount);
-                Metadata = ReplayMetadata.FromJsonBytes(metadataBytes);
-                Metadata.FormatVersion = Math.Max(Metadata.FormatVersion, 2);
-                return;
-            }
-            catch (Exception e) when (e is EndOfStreamException or InvalidDataException)
-            {
-                _binaryReader.BaseStream.Seek(packetStart, SeekOrigin.Begin);
-                Metadata = new ReplayMetadata();
-                return;
-            }
-        }
-
-        if (marker >= 0)
-            _binaryReader.BaseStream.Seek(-1, SeekOrigin.Current);
-
-        Metadata = new ReplayMetadata();
     }
 
     public int ReadPacketData(Span<byte> data)
@@ -134,68 +96,6 @@ public class ReplayFile : IDisposable
         }
     }
 
-    public static FileStream OpenReadShared(string path) =>
-        new(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-
-    /// <summary>Read embedded v2 metadata for UI (browser list) without loading the full packet stream.</summary>
-    public static bool TryReadMetadata(string path, out ReplayMetadata metadata)
-    {
-        metadata = new ReplayMetadata();
-
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-            return false;
-
-        try
-        {
-            using FileStream stream = OpenReadShared(path);
-            using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: false);
-
-            byte[] identifier = reader.ReadBytes(Identifier.Length);
-            if (!identifier.SequenceEqual(IdentifierASCII))
-                return false;
-
-            long packetStart = stream.Position;
-            int marker = stream.ReadByte();
-            if (marker == Version2Marker)
-            {
-                int metadataByteCount = reader.ReadInt32();
-                if (metadataByteCount < 0 || metadataByteCount > 1024 * 1024)
-                    return false;
-
-                byte[] raw = reader.ReadBytes(metadataByteCount);
-                metadata = ReplayMetadata.FromJsonBytes(raw);
-                return true;
-            }
-
-            if (marker >= 0)
-                stream.Seek(-1, SeekOrigin.Current);
-
-            return false;
-        }
-        catch
-        {
-            return false;
-        }
-    }
-
-    public bool ResetRead()
-    {
-        if (_binaryReader == null || !_binaryReader.BaseStream.CanSeek)
-            return false;
-
-        _binaryReader.BaseStream.Seek(0, SeekOrigin.Begin);
-        Tick = 0;
-        NumberOfPacketDataBytesRemaining = 0;
-
-        byte[] identifier = _binaryReader.ReadBytes(Identifier.Length);
-        if (!identifier.SequenceEqual(IdentifierASCII))
-            return false;
-
-        ReadFormatHeaderAfterIdentifier();
-        ReadPacketDataHeader();
-        return true;
-    }
-
     public static ReplayFile Write(Stream stream)
     {
         var replayFile = new ReplayFile
@@ -219,7 +119,9 @@ public class ReplayFile : IDisposable
         if (!identifier.SequenceEqual(IdentifierASCII))
             throw new InvalidDataException("Not a Reese file");
 
-        replayFile.ReadFormatHeaderAfterIdentifier();
+        // Do this once right now, so we have some data to deal in once it comes time to.
+        // FIXME: This honestly smells like implementation detail from upstream (them checking on how many bytes we have)
+        //        but honestly it might be okay to assume that if we have data we should say we do. yeah i agree hard with that.
         replayFile.ReadPacketDataHeader();
 
         return replayFile;
