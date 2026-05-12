@@ -46,7 +46,7 @@ internal sealed class ReplayBrowser : UIElement
     {
         Main.QueueMainThreadAction(() =>
         {
-            //ModContent.GetInstance<MainMenuSystem>().CloseForReplayLaunch();
+            ModContent.GetInstance<MainMenuSystem>().CloseForReplayLaunch();
 
             Main.LoadPlayers();
             var player = Main.PlayerList.FirstOrDefault();
@@ -302,7 +302,7 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private void OpenReeseClientConfig()
     {
-        //MainMenuActions.OpenClientConfig();
+        ModContent.GetInstance<MainMenuSystem>().OpenClientConfig();
     }
 
     public void Refresh(bool showLoading = true)

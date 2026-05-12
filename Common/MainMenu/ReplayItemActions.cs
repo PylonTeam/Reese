@@ -18,30 +18,30 @@ internal static class ReplayItemActions
     public static void Delete(string path, Action onDeleted = null)
     {
         SoundEngine.PlaySound(SoundID.MenuOpen);
-        //MainMenuActions.OpenConfirmDelete(Path.GetFileName(path), () =>
-        //{
-        //    try
-        //    {
-        //        if (File.Exists(path))
-        //            File.Delete(path);
 
-        //        ReplayFavorites.Delete(path);
-        //        //ReplayImages.DeletePreview(path);
+        ModContent.GetInstance<MainMenuSystem>().OpenConfirmDelete(Path.GetFileName(path), () =>
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
 
-        //        onDeleted?.Invoke();
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        Log.Error($"Failed to delete replay '{path}': {e}");
-        //    }
-        //});
+                ReplayFavorites.Delete(path);
+                onDeleted?.Invoke();
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Failed to delete replay '{path}': {e}");
+            }
+        });
     }
 
     public static void Rename(string path, Action onRenamed = null)
     {
         SoundEngine.PlaySound(SoundID.MenuOpen);
+
         string currentName = Path.GetFileNameWithoutExtension(path);
-        //MainMenuActions.OpenRename(currentName, name => FinishRename(path, name, onRenamed));
+        ModContent.GetInstance<MainMenuSystem>().OpenRename(currentName, name => FinishRename(path, name, onRenamed));
     }
 
     private static void FinishRename(string path, string name, Action onRenamed)

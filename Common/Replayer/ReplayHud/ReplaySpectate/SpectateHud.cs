@@ -6,8 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
+using Terraria.Audio;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
+using Terraria.ID;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
@@ -196,7 +198,7 @@ internal sealed class SpectateHud : UIElement
         return null;
     }
 
-    private static UIPanel BuildHeaderPanel(float height)
+    private UIPanel BuildHeaderPanel(float height)
     {
         float scale = GetScale();
 
@@ -213,17 +215,45 @@ internal sealed class SpectateHud : UIElement
             VAlign = 0.5f
         });
 
+        Color normalColor = panel.BackgroundColor;
+        Color hoverColor = new Color(95, 45, 55);
+
         UIPanel closePanel = new()
         {
             Height = new StyleDimension(0f, 1f),
             Width = new StyleDimension(40f * scale, 0f),
             HAlign = 1f,
             VAlign = 0.5f,
-            BackgroundColor = panel.BackgroundColor
+            BackgroundColor = normalColor,
+            BorderColor = Color.Black
         };
 
         closePanel.SetPadding(0f);
-        closePanel.Append(new UIText("X", large: true, textScale: 0.55f * scale) { HAlign = 0.5f, VAlign = 0.5f });
+
+        closePanel.OnMouseOver += (_, _) =>
+        {
+            closePanel.BackgroundColor = hoverColor;
+            SoundEngine.PlaySound(SoundID.MenuTick);
+        };
+
+        closePanel.OnMouseOut += (_, _) =>
+        {
+            closePanel.BackgroundColor = normalColor;
+        };
+
+        closePanel.OnLeftClick += (_, _) =>
+        {
+            SoundEngine.PlaySound(SoundID.MenuClose);
+            ModContent.GetInstance<ReplayHudSystem>().CloseSpectateHud();
+        };
+
+        closePanel.Append(new UIText("X", large: true, textScale: 0.55f * scale)
+        {
+            HAlign = 0.5f,
+            VAlign = 0.5f,
+            TextColor = Color.White
+        });
+
         panel.Append(closePanel);
 
         return panel;

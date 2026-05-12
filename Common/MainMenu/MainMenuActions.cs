@@ -56,19 +56,20 @@ public static class MainMenuActions
                 return;
 
             handled = true;
+
             Main.QueueMainThreadAction(() =>
             {
-            action?.Invoke();
+                action?.Invoke();
 
-            if (returnToBrowserState)
-                OpenReplayBrowser(ui, reeseMainMenuUI);
-            else
-                CloseReplayBrowser(ui, reeseMainMenuUI);
+                if (returnToBrowserState)
+                    OpenReplayBrowser(ui, reeseMainMenuUI);
+                else
+                    CloseReplayBrowser(ui, reeseMainMenuUI);
             });
         }
 
         Main.clrInput();
-        ui.SetState(new ConfirmRenameState(currentName, name => Close(() => onSubmit?.Invoke(name)), () => Close(null)));
+        ui?.SetState(new ConfirmRenameState(currentName, name => Close(() => onSubmit?.Invoke(name)), () => Close(null)));
     }
 
     public static void OpenClientConfig(UserInterface ui, UserInterface reeseMainMenuUI)

@@ -60,11 +60,6 @@ public sealed class ReplayHudSystem : ModSystem
         replayHudInterface?.SetState(null);
     }
 
-    public void ClosePlaybackHud()
-    {
-        replayHudState?.ClosePlaybackHud();
-    }
-
     public bool IsReplayHudOpen()
     {
         return replayHudInterface?.CurrentState != null;
@@ -108,5 +103,21 @@ public sealed class ReplayHudSystem : ModSystem
             return logicIndex;
 
         return deathTextIndex;
+    }
+
+    // Close huds
+    public void CloseSpectateHud()
+    {
+        replayHudState?.CloseSpectateHud();
+    }
+
+    public void CloseInfoHud()
+    {
+        replayHudState?.CloseInfoHud();
+    }
+
+    public void ClosePlaybackHud()
+    {
+        replayHudState?.ClosePlaybackHud();
     }
 }

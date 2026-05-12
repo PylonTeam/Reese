@@ -9,6 +9,10 @@ public class ReplayHudState : UIState
     private ReplayInfo.InfoHud infoHud;
     private ReplayControls.PlaybackHud playbackHud;
 
+    private bool showSpectateHud = true;
+    private bool showInfoHud = true;
+    private bool showPlaybackHud = true;
+
     public override void OnActivate()
     {
         RemoveAllChildren();
@@ -16,6 +20,10 @@ public class ReplayHudState : UIState
         spectateHud = null;
         infoHud = null;
         playbackHud = null;
+
+        showSpectateHud = true;
+        showInfoHud = true;
+        showPlaybackHud = true;
 
         EnsureHuds();
     }
@@ -32,9 +40,9 @@ public class ReplayHudState : UIState
         UpdateVisibleHuds();
 
         if (ReplayPlayback.IsReplayPlayback)
-            Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Update();
+            ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Update();
         else
-            Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Clear();
+            ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Clear();
 
         base.Update(gameTime);
     }
@@ -44,7 +52,7 @@ public class ReplayHudState : UIState
         base.Draw(spriteBatch);
 
         if (ReplayPlayback.IsReplayPlayback)
-            Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Draw(spriteBatch);
+            ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Draw(spriteBatch);
     }
 
     private void UpdateVisibleHuds()
@@ -60,18 +68,41 @@ public class ReplayHudState : UIState
 
     private void EnsureHuds()
     {
-        spectateHud ??= new ReplaySpectate.SpectateHud();
-        infoHud ??= new ReplayInfo.InfoHud();
-        playbackHud ??= new ReplayControls.PlaybackHud();
+        if (showSpectateHud)
+        {
+            spectateHud ??= new ReplaySpectate.SpectateHud();
 
-        if (spectateHud.Parent is null)
-            Append(spectateHud);
+            if (spectateHud.Parent is null)
+                Append(spectateHud);
+        }
+        else
+        {
+            spectateHud?.Remove();
+        }
 
-        if (infoHud.Parent is null)
-            Append(infoHud);
+        if (showInfoHud)
+        {
+            infoHud ??= new ReplayInfo.InfoHud();
 
-        if (playbackHud.Parent is null)
-            Append(playbackHud);
+            if (infoHud.Parent is null)
+                Append(infoHud);
+        }
+        else
+        {
+            infoHud?.Remove();
+        }
+
+        if (showPlaybackHud)
+        {
+            playbackHud ??= new ReplayControls.PlaybackHud();
+
+            if (playbackHud.Parent is null)
+                Append(playbackHud);
+        }
+        else
+        {
+            playbackHud?.Remove();
+        }
     }
 
     private void RemoveHuds()
@@ -87,8 +118,22 @@ public class ReplayHudState : UIState
         ReplaySpectate.TeammateOverlay.TeammateHudOverlay.Clear();
     }
 
+    // Close huds
+    public void CloseSpectateHud()
+    {
+        showSpectateHud = false;
+        spectateHud?.Remove();
+    }
+
+    public void CloseInfoHud()
+    {
+        showInfoHud = false;
+        infoHud?.Remove();
+    }
+
     public void ClosePlaybackHud()
     {
+        showPlaybackHud = false;
         playbackHud?.Remove();
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.Xna.Framework.Input;
 using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using Reese.Core.Configs;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Terraria.Audio;
@@ -355,5 +356,26 @@ public class MainMenuSystem : ModSystem
         {
             UserInterface.ActiveInstance = old;
         }
+    }
+
+    // Actions
+    internal void OpenConfirmDelete(string targetName, Action onConfirm)
+    {
+        MainMenuActions.OpenConfirmDelete(ui, reeseMainMenuUI, targetName, onConfirm);
+    }
+
+    internal void OpenRename(string currentName, Action<string> onSubmit)
+    {
+        MainMenuActions.OpenRename(ui, reeseMainMenuUI, currentName, onSubmit);
+    }
+
+    internal void OpenClientConfig()
+    {
+        MainMenuActions.OpenClientConfig(ui, reeseMainMenuUI);
+    }
+
+    internal void CloseForReplayLaunch()
+    {
+        MainMenuActions.CloseForReplayLaunch(ui, reeseMainMenuUI);
     }
 }

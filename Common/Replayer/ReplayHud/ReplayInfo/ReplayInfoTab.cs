@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
@@ -162,7 +163,12 @@ internal sealed class ReplayInfoTab : TabPage
 
             Rectangle statBox = new(box.X + ContentInset, box.Y + (int)(HeaderHeight + 4f), box.Width - ContentInset * 2, (int)RowHeight);
             string modsText = mods.Count == 0 ? "-" : $"{mods.Count:N0}";
-            StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.Icon_CheckmarkGreen.Value, modsText, $"Mods used in replay: {modsText}", textColor: Color.Gray, label: "Mods used:");
+
+            string tooltip = mods.Count == 0
+                ? "No mods used in replay"
+                : "Mods used in replay:\n" + string.Join("\n", mods.Select(x => x.DisplayName));
+
+            StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.Icon_CheckmarkGreen.Value, modsText, tooltip, textColor: Color.Gray, label: "Mods used:");
 
             int dividerY = statBox.Bottom + 8;
             sb.Draw(TextureAssets.MagicPixel.Value, new Rectangle(box.X + 10, dividerY, box.Width - 20, 2), Color.White * 0.10f);
