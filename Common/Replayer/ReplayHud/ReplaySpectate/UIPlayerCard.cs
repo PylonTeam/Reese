@@ -162,7 +162,7 @@ internal sealed class UIPlayerCard : UIPanel
                 Ass.Icon_Eye,
                 "Spectate player",
                 "Stop spectating",
-                SpectatorTargetSystem.TogglePlayerTarget,
+                static playerIndex => SpectatorTargetSystem.TogglePlayerTarget(playerIndex, moveCameraToLocal: false),
                 static playerIndex => Main.player[playerIndex]?.active == true && SpectatorTargetSystem.IsLockedTargeting(Main.player[playerIndex])),
 
             new PlayerCardAction(
@@ -213,6 +213,8 @@ internal sealed class UIPlayerCard : UIPanel
 
             OnLeftClick += (_, _) =>
             {
+                Main.LocalPlayer.mouseInterface = true;
+
                 if (!IsValidPlayer())
                     return;
 

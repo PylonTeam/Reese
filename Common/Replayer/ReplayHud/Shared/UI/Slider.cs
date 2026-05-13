@@ -19,8 +19,10 @@ public class Slider : UIElement
     public bool AllowsInput = true;
     public bool IsHeld;
     public float Ratio;
+    public Color HighlightColor = Main.OurFavoriteColor;
 
     public event Action<float> OnDrag;
+    public event Action<float> OnRelease;
 
     public Slider()
     {
@@ -45,8 +47,12 @@ public class Slider : UIElement
 
     public override void LeftMouseUp(UIMouseEvent evt)
     {
+        bool wasHeld = IsHeld;
         base.LeftMouseUp(evt);
         IsHeld = false;
+
+        if (AllowsInput && wasHeld)
+            OnRelease?.Invoke(GetMouseRatio());
     }
 
     public override void MouseOver(UIMouseEvent evt)
@@ -88,12 +94,16 @@ public class Slider : UIElement
         Ratio = MathHelper.Clamp(ratio, 0f, 1f);
     }
 
-    private void UpdateRatioFromMouse()
+    public float GetMouseRatio()
     {
         Rectangle track = GetTrackRectangle();
         float mouseX = MathHelper.Clamp(Main.MouseScreen.X, track.Left, track.Right);
-        float rawRatio = track.Width <= 0 ? 0f : (mouseX - track.Left) / track.Width;
-        SetRatio(rawRatio);
+        return track.Width <= 0 ? 0f : (mouseX - track.Left) / track.Width;
+    }
+
+    private void UpdateRatioFromMouse()
+    {
+        SetRatio(GetMouseRatio());
         OnDrag?.Invoke(Ratio);
     }
 
@@ -130,7 +140,7 @@ public class Slider : UIElement
         DrawBar(sb, Ass.Slider.Value, rect, Color.White);
 
         if (IsHeld || IsMouseHovering)
-            DrawBar(sb, OuterTexture.Value, rect, Main.OurFavoriteColor);
+            DrawBar(sb, OuterTexture.Value, rect, HighlightColor);
 
         sb.Draw(InnerTexture.Value, track, Color.White);
 

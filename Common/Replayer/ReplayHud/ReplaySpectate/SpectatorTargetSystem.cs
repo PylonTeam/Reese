@@ -56,20 +56,30 @@ public class SpectatorTargetSystem : ModSystem
             SnapLocalPlayerTo(Main.npc[npcTarget].Center, GetNPCDirection(Main.npc[npcTarget]));
     }
 
-    public static void TogglePlayerTarget(int slot)
+    public static void TogglePlayerTarget(int slot, bool moveCameraToLocal = true)
     {
         if (target == slot)
-            ClearTarget();
+            ClearTarget(moveCameraToLocal);
         else
             SetPlayerTarget(slot);
     }
 
-    public static void ToggleNPCTarget(int slot)
+    public static void ToggleNPCTarget(int slot, bool moveCameraToLocal = true)
     {
         if (npcTarget == slot)
-            ClearTarget();
+            ClearTarget(moveCameraToLocal);
         else
             SetNPCTarget(slot);
+    }
+
+    public static void ResetForReplayStart()
+    {
+        target = -1;
+        npcTarget = -1;
+        previewTarget = -1;
+        cameraTarget = -1;
+        autoSpectatedFirstPlayer = false;
+        SpectateCameraFade.Reset();
     }
 
     public static void SetPreviewTarget(int slot)

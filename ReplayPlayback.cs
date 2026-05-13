@@ -3,6 +3,7 @@ using System;
 using System.IO;
 using Terraria;
 using Terraria.Localization;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
 namespace Reese;
 
@@ -33,6 +34,7 @@ public static class ReplayPlayback
 		CurrentPath = path;
         Metadata = ReplayMetadata.FromFile(path);
         DurationTicks = TryGetDurationTicks(path);
+        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 		Log.Info($"Replay playback started: {path}");
 	}
 
@@ -41,6 +43,7 @@ public static class ReplayPlayback
 		if (IsReplayPlayback)
 			Log.Info($"Replay playback ended: {reason ?? "no reason supplied"}");
 
+        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 		IsReplayPlayback = false;
 		CurrentPath = null;
 		DurationTicks = 0;
@@ -116,19 +119,84 @@ public static class ReplayPlayback
     #region Seeking
     public static void SeekToTick(uint tick)
     {
-        if (!IsReplayPlayback) return;
-        Replayer.SeekToTick(tick);
+        if (!IsReplayPlayback)
+            return;
+
+        Replayer replayer = ModContent.GetInstance<Replayer>();
+
+        if (DurationTicks > 0)
+            tick = Math.Min(tick, DurationTicks);
+
+        if (tick <= replayer.Ticks)
+            return;
+
+        replayer.SetTicks(tick);
+
+        if (Netplay.Connection != null)
+            Netplay.Connection.StatusText = string.Empty;
+
+        Replayer.ReplaySocket.ResetTimeoutTimer();
+        Log.Chat($"Seeking to tick {tick}...");
     }
+
     public static void SeekToStart()
     {
-        if (!IsReplayPlayback) return;
-        Replayer.SeekToStart();
+        if (!IsReplayPlayback)
+            return;
+
+        Replayer replayer = ModContent.GetInstance<Replayer>();
+        Replayer.ReplaySocket socket = CurrentReplaySocket;
+
+        if (socket?.ResetToStart() != true)
+        {
+            Log.Chat("Unable to restart replay: stream reset failed.");
+            return;
+        }
+
+        replayer.SetTicks(0);
+        ResetReplayStateForStart();
+        SpectatorTargetSystem.ResetForReplayStart();
+        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
+
+        if (Netplay.Connection != null)
+            Netplay.Connection.StatusText = string.Empty;
+
+        Replayer.ReplaySocket.ResetTimeoutTimer();
+        Log.Chat("Replay restarted from the beginning.");
     }
 
     public static void SeekToEnd()
     {
-        if (!IsReplayPlayback) return;
-        Replayer.SeekToEnd();
+        SeekToTick(DurationTicks);
+    }
+
+    private static Replayer.ReplaySocket CurrentReplaySocket => Netplay.Connection?.Socket as Replayer.ReplaySocket;
+
+    private static void ResetReplayStateForStart()
+    {
+        for (int i = 0; i < Main.maxPlayers; i++)
+        {
+            if (i != Main.myPlayer && Main.player[i] != null)
+                Main.player[i].active = false;
+        }
+
+        for (int i = 0; i < Main.maxNPCs; i++)
+        {
+            if (Main.npc[i] != null)
+                Main.npc[i].active = false;
+        }
+
+        for (int i = 0; i < Main.maxProjectiles; i++)
+        {
+            if (Main.projectile[i] != null)
+                Main.projectile[i].active = false;
+        }
+
+        for (int i = 0; i < Main.maxItems; i++)
+        {
+            if (Main.item[i] != null)
+                Main.item[i].active = false;
+        }
     }
     #endregion
 }

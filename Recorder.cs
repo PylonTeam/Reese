@@ -110,7 +110,6 @@ public class Recorder : ModSystem, ITicker
         Console.WriteLine($"Server ({RecordClientIndex}) started recording for {Path.GetFileName(currentReplayPath)}");
 
         var replayFile = ReplayFile.Write(File.Open(currentReplayPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
-        ReplayFlags.MarkNew(currentReplayPath);
 
         var recordClient = Netplay.Clients[RecordClientIndex];
         // Not really needed, because we probably just did it above, but why not.
@@ -225,6 +224,12 @@ public class Recorder : ModSystem, ITicker
         replayFile.FlushTick();
         isRecording = true;
         RecorderStatus.SyncToClients(force: true);
+
+        for (int i = 0; i < Main.maxPlayers; i++)
+        {
+            if (i != RecordClientIndex && Main.player[i]?.active == true)
+                RecorderStatus.SendStartMessage(i);
+        }
     }
 
     public void StopRecordingPublic(string reason="") => StopRecording(reason);
@@ -244,7 +249,10 @@ public class Recorder : ModSystem, ITicker
         var recordClient = Netplay.Clients[RecordClientIndex];
 
         if (recordClient?.Socket is RecordSocket recordSocket)
+        {
             recordSocket.Finish(ReplayStats.GetCurrentWorldName(), ReplayStats.GetCurrentModNames(), Ticks);
+            recordSocket.Close();
+        }
 
         if (recordClient != null)
         {
@@ -252,6 +260,7 @@ public class Recorder : ModSystem, ITicker
             recordClient.Reset();
         }
 
+        ReplayFlags.MarkNew(savedReplayPath);
         ReplayPlayback.NotifyFolderChanged();
 
         currentReplayPath = null;

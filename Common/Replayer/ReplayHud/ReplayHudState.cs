@@ -13,6 +13,8 @@ public class ReplayHudState : UIState
     private bool showInfoHud = true;
     private bool showPlaybackHud = true;
 
+    public bool HasVisibleHuds => showSpectateHud || showInfoHud || showPlaybackHud;
+
     public override void OnActivate()
     {
         RemoveAllChildren();
@@ -21,11 +23,16 @@ public class ReplayHudState : UIState
         infoHud = null;
         playbackHud = null;
 
+        ShowAllHuds();
+
+        EnsureHuds();
+    }
+
+    public void ShowAllHuds()
+    {
         showSpectateHud = true;
         showInfoHud = true;
         showPlaybackHud = true;
-
-        EnsureHuds();
     }
 
     public void Rebuild()
@@ -70,13 +77,18 @@ public class ReplayHudState : UIState
 
     private void EnsureHuds()
     {
-        spectateHud ??= new ReplaySpectate.SpectateHud();
-        infoHud ??= new ReplayInfo.InfoHud();
-        playbackHud ??= new ReplayControls.PlaybackHud();
+        if (showSpectateHud)
+            spectateHud ??= new ReplaySpectate.SpectateHud();
 
-        if (spectateHud.Parent == null) Append(spectateHud);
-        if (infoHud.Parent == null) Append(infoHud);
-        if (playbackHud.Parent == null) Append(playbackHud);
+        if (showInfoHud)
+            infoHud ??= new ReplayInfo.InfoHud();
+
+        if (showPlaybackHud)
+            playbackHud ??= new ReplayControls.PlaybackHud();
+
+        if (showSpectateHud && spectateHud.Parent == null) Append(spectateHud);
+        if (showInfoHud && infoHud.Parent == null) Append(infoHud);
+        if (showPlaybackHud && playbackHud.Parent == null) Append(playbackHud);
     }
 
     private void RemoveHuds()
@@ -97,17 +109,20 @@ public class ReplayHudState : UIState
     {
         showSpectateHud = false;
         spectateHud?.Remove();
+        spectateHud = null;
     }
 
     public void CloseInfoHud()
     {
         showInfoHud = false;
         infoHud?.Remove();
+        infoHud = null;
     }
 
     public void ClosePlaybackHud()
     {
         showPlaybackHud = false;
         playbackHud?.Remove();
+        playbackHud = null;
     }
 }

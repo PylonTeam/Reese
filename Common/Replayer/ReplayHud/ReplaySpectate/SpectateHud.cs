@@ -68,7 +68,7 @@ internal sealed class SpectateHud : UIElement
 
     private void Rebuild()
     {
-        Log.Chat("Rebuilding SpectateHud...");
+        //Log.Chat("Rebuilding SpectateHud...");
 
         RemoveAllChildren();
 
@@ -109,6 +109,10 @@ internal sealed class SpectateHud : UIElement
         contentPanel.BackgroundColor = new Color(20, 20, 60) * 0.9f;
         contentPanel.BorderColor = Color.Black;
         Append(contentPanel);
+
+        statusPanel = new UIStatusPanel(scale);
+        statusPanel.Top.Set(headerHeight + tabHeight + contentHeight + GetContentGap(), 0f);
+        Append(statusPanel);
 
         RefreshTargets();
     }
@@ -258,8 +262,11 @@ internal sealed class SpectateHud : UIElement
                 playerCard.Width.Set(cardWidth, 0f);
                 playerCard.Height.Set(cardHeight, 0f);
                 playerCard.Left.Set(cardsStart + i * (cardWidth + cardGap), 0f);
-                playerCard.OnLeftClick += (_, _) =>
+                playerCard.OnLeftClick += (evt, _) =>
                 {
+                    if (evt.Target != playerCard)
+                        return;
+
                     SpectatorTargetSystem.TogglePlayerTarget(playerIndex);
                     UpdateTarget();
                     UpdateStatusText();
@@ -678,9 +685,14 @@ internal sealed class SpectateHud : UIElement
         return GetCardHeight() + GetPlayerPanelPadding() * 2f;
     }
 
+    private static float GetStatusHeight()
+    {
+        return 44f * GetScale();
+    }
+
     private static float GetPanelHeight()
     {
-        return GetHeaderHeight() + GetTabHeight() + GetContentHeight() + GetContentGap();
+        return GetHeaderHeight() + GetTabHeight() + GetContentHeight() + GetContentGap() + GetStatusHeight();
     }
 
     private static float GetPanelWidth(int shownCards, float cardWidth, bool showButtons)
@@ -728,7 +740,6 @@ internal sealed class SpectateHud : UIElement
         nextButton.BackgroundColor = new Color(55, 48, 92) * 0.9f;
         nextButton.BorderColor = Color.Black;
         nextButton.OnLeftClick += (_, _) => onClick();
-        nextButton.OnMouseOver += (_, _) =>
         nextButton.OnMouseOver += (_, _) => nextButton.BorderColor = Color.Yellow;
         nextButton.OnMouseOut += (_, _) => nextButton.BorderColor = Color.Black;
 

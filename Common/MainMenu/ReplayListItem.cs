@@ -438,7 +438,7 @@ internal sealed class ReplayListItem : UIPanel
             if (text.Length > 0)
                 text += "\n\n";
 
-            text += "Extra mods:\n" + string.Join("\n", extraMods.Select(x => $"[mi:{x}][c/77ff77:{x} (enabled)]"));
+            text += "Extra mods:\n" + string.Join("\n", extraMods.Select(x => $"[mi:{x}][c/1ec2ff:{x} (disable this before playing)]"));
         }
 
         return text;

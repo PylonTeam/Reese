@@ -35,7 +35,7 @@ public sealed class ReplayHudSystem : ModSystem
 
     public void ToggleReplayHud()
     {
-        if (IsReplayHudOpen())
+        if (IsReplayHudOpen() && replayHudState?.HasVisibleHuds == true)
         {
             CloseFullHud();
         }
@@ -50,6 +50,7 @@ public sealed class ReplayHudSystem : ModSystem
         if (!ReplayPlayback.IsReplayPlayback)
             return;
 
+        replayHudState?.ShowAllHuds();
         replayHudInterface.SetState(replayHudState);
         Log.Chat("Opened Replay HUD.");
     }

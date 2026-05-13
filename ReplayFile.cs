@@ -20,6 +20,7 @@ public class ReplayFile : IDisposable
 
     // FIXME: We should just buffer this.
     public int NumberOfPacketDataBytesRemaining { get; private set; }
+    public bool ReachedTerminator { get; private set; }
 
     private ReplayFile()
     {
@@ -34,16 +35,22 @@ public class ReplayFile : IDisposable
 
     private void ReadPacketDataHeader()
     {
+        if (ReachedTerminator)
+            return;
+
         // FIXME: This seems like a shitty way to handle EOF? idek
         try
         {
             Tick += _binaryReader.ReadUInt32();
             NumberOfPacketDataBytesRemaining = _binaryReader.ReadInt32();
+
+            if (NumberOfPacketDataBytesRemaining == 0)
+                ReachedTerminator = true;
         }
         catch (EndOfStreamException)
         {
-            Tick = 0;
             NumberOfPacketDataBytesRemaining = 0;
+            ReachedTerminator = true;
         }
     }
 
@@ -178,6 +185,7 @@ public class ReplayFile : IDisposable
         _binaryReader.BaseStream.Seek(IdentifierASCII.Length, SeekOrigin.Begin);
         Tick = 0;
         NumberOfPacketDataBytesRemaining = 0;
+        ReachedTerminator = false;
         ReadPacketDataHeader(); // Prime the first header so ReadPacketData has data ready to go
     }
 

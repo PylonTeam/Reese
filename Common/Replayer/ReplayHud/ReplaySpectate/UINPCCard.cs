@@ -140,7 +140,7 @@ internal sealed class UINPCCard : UIPanel
                 Ass.Icon_Eye,
                 "Spectate NPC",
                 "Stop spectating",
-                SpectatorTargetSystem.ToggleNPCTarget,
+                static npcIndex => SpectatorTargetSystem.ToggleNPCTarget(npcIndex, moveCameraToLocal: false),
                 static npcIndex => IsValidNPC(npcIndex) && SpectatorTargetSystem.IsLockedTargeting(Main.npc[npcIndex]))
         ];
     }
@@ -186,6 +186,8 @@ internal sealed class UINPCCard : UIPanel
 
             OnLeftClick += (_, _) =>
             {
+                Main.LocalPlayer.mouseInterface = true;
+
                 if (IsValidNPC(npcIndex))
                     action.Click(npcIndex);
             };

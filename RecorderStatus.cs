@@ -100,6 +100,17 @@ internal static class RecorderStatus
         LastPacketBytes = reader.ReadInt32();
         LastPacketMessageId = reader.ReadInt32();
     }
+
+    public static void SendStartMessage(int playerId)
+    {
+        string bigCameraItemTag = $"[i:{ModContent.ItemType<CameraItem>()}]";
+
+        ChatHelper.SendChatMessageToClient(
+            NetworkText.FromLiteral($"{bigCameraItemTag} This world is being recorded with Reese!"),
+            new Color(90, 255, 100),
+            playerId
+        );
+    }
 }
 
 internal enum ReesePacketType : byte
@@ -112,19 +123,14 @@ internal sealed class RecorderJoinMessagePlayer : ModPlayer
 {
     public override void OnEnterWorld()
     {
+        Log.Info("enter world: " + Player.whoAmI);
+
         if (Main.netMode != NetmodeID.Server)
             return;
 
         if (!ModContent.GetInstance<Recorder>().IsRecording)
             return;
 
-        string smallCameraItemTag = $"[i:{ModContent.ItemType<SmallCameraItem>()}]";
-        string bigCameraItemTag = $"[i:{ModContent.ItemType<CameraItem>()}]";
-
-        ChatHelper.SendChatMessageToClient(
-            NetworkText.FromLiteral($"{bigCameraItemTag} This world is being recorded with Reese!"),
-            new Color(90, 255, 100),
-            Player.whoAmI
-        );
+        RecorderStatus.SendStartMessage(Player.whoAmI);
     }
 }

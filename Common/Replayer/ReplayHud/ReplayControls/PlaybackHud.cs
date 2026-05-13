@@ -71,10 +71,21 @@ public sealed class PlaybackHud : DraggablePanel
         positionSlider = new Slider();
         positionSlider.OnDrag += ratio =>
         {
-            if (!ModContent.GetInstance<ClientConfig>().IsSeekbarEnabled)
+            uint targetTick = RatioToTick(ratio);
+            if (targetTick <= ReplayPlayback.CurrentTick)
+            {
+                RefreshPositionSlider();
                 return;
+            }
 
-            ReplayPlayback.SeekToTick((uint)Math.Round(ratio * GetDurationTicks()));
+            ReplayPlayback.SeekToTick(targetTick);
+        };
+        positionSlider.OnRelease += ratio =>
+        {
+            if (RatioToTick(ratio) < ReplayPlayback.CurrentTick)
+                Main.NewText("You cannot go backwards in a replay. Use Go to Start instead.", Color.OrangeRed);
+
+            RefreshPositionSlider();
         };
         ContentPanel.Append(positionSlider);
 
@@ -254,14 +265,15 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void RefreshVisualState()
     {
-        positionSlider.AllowsInput = ModContent.GetInstance<ClientConfig>().IsSeekbarEnabled;
+        positionSlider.AllowsInput = true;
 
         uint durationTicks = GetDurationTicks();
         uint currentTick = Math.Min(ReplayPlayback.CurrentTick, durationTicks);
         float speed = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
         bool paused = speed <= 0f;
 
-        positionSlider.SetRatio(currentTick / (float)durationTicks);
+        RefreshPositionSlider(currentTick, durationTicks);
+        positionSlider.HighlightColor = IsHoveringBackwardPosition() ? Color.Red : Main.OurFavoriteColor;
         positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
         speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
         transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Tick: {currentTick}");
@@ -286,9 +298,34 @@ public sealed class PlaybackHud : DraggablePanel
         transportButtons[3].SetSelected(paused);  // Pause
     }
 
+    private void RefreshPositionSlider()
+    {
+        uint durationTicks = GetDurationTicks();
+        uint currentTick = Math.Min(ReplayPlayback.CurrentTick, durationTicks);
+        RefreshPositionSlider(currentTick, durationTicks);
+    }
+
+    private void RefreshPositionSlider(uint currentTick, uint durationTicks)
+    {
+        positionSlider.SetRatio(currentTick / (float)durationTicks);
+    }
+
     private static uint GetDurationTicks()
     {
         return Math.Max(1u, ReplayPlayback.DurationTicks);
+    }
+
+    private uint RatioToTick(float ratio)
+    {
+        return (uint)Math.Round(MathHelper.Clamp(ratio, 0f, 1f) * GetDurationTicks());
+    }
+
+    private bool IsHoveringBackwardPosition()
+    {
+        if (!positionSlider.AllowsInput || (!positionSlider.IsMouseHovering && !positionSlider.IsHeld))
+            return false;
+
+        return RatioToTick(positionSlider.GetMouseRatio()) < ReplayPlayback.CurrentTick;
     }
 
     private static string FormatSpeedButton(float speed)

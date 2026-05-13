@@ -60,8 +60,8 @@ public class ClientConfig : ModConfig
 
     // Temporary options set to false to hide them from users until they are ready to be used.
     // These will likely be removed in the future once the features they relate to are fully implemented and ready for use.
-    [BackgroundColor(150, 150, 150, 150)]
-    [DefaultValue(false)] public bool IsSeekbarEnabled;
+    //[BackgroundColor(150, 150, 150, 150)]
+    //[DefaultValue(false)] public bool IsSeekbarEnabled;
 
     [BackgroundColor(150, 150, 150, 150)]
     [DefaultValue(true)] public bool ShowWelcomeMessageOnEnterWorld;

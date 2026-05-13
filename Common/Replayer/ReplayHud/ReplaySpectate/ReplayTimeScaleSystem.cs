@@ -24,7 +24,9 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
     /// </summary>
     /// <remarks>A time scale of 1.0 represents normal speed. Values greater than 1.0 accelerate time, while
     /// values between 0.0 and 1.0 slow it down. A value of 0.0 effectively pauses time-dependent operations.</remarks>
-    public float TimeScale { get; private set; } = 1f;
+    private float timeScale = 1f;
+
+    public float TimeScale => ReplayPlayback.IsReplayPlayback ? timeScale : 1f;
 
     private double worldUpdateAccumulator;
     private double timeUpdateAccumulator;
@@ -57,14 +59,14 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
 
     public void SetTimeScale(float value)
     {
-        TimeScale = SnapTimeScale(value);
+        timeScale = ReplayPlayback.IsReplayPlayback ? SnapTimeScale(value) : 1f;
         ResetAccumulators();
         ClearStepRequest();
     }
 
     public void StepOneFrame()
     {
-        if (Main.gameMenu)
+        if (Main.gameMenu || !ReplayPlayback.IsReplayPlayback)
             return;
 
         stepOneFrameRequested = true;

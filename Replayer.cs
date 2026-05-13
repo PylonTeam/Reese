@@ -75,11 +75,19 @@ public class Replayer : ModSystem, ITicker
         if (!ReplayPlayback.IsReplayPlayback)
             return;
 
+        if (ReplayPlayback.DurationTicks > 0 && Ticks >= ReplayPlayback.DurationTicks)
+            return;
+
         Ticks++;
         if ((Ticks % (60*5)) == 0)
         {
             Log.Info("Client replay tick: " + Ticks);
         }
+    }
+
+    internal void SetTicks(uint ticks)
+    {
+        Ticks = ticks;
     }
 
     private class ReplayRemoteAddress : RemoteAddress
@@ -95,11 +103,14 @@ public class Replayer : ModSystem, ITicker
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(ReplaySocket));
         private readonly ReplayRemoteAddress _remoteAddress = new();
+        private readonly object replayFileLock = new();
 
         public void Close()
         {
             Log.Info("Closing replay socket");
-            replayFile.Dispose();
+            lock (replayFileLock)
+                replayFile.Dispose();
+
             ReplayPlayback.End("replay socket closed");
         }
 
@@ -109,7 +120,9 @@ public class Replayer : ModSystem, ITicker
             {
                 // Tell your ReplayFile to seek its internal stream back to the start
                 // This usually involves: stream.Position = 0 (or after the header)
-                replayFile.Reset();
+                lock (replayFileLock)
+                    replayFile.Reset();
+
                 return true;
             }
             catch (Exception e)
@@ -135,23 +148,39 @@ public class Replayer : ModSystem, ITicker
 
         public void AsyncReceive(byte[] data, int offset, int size, SocketReceiveCallback callback, object state)
         {
-            if (!IsDataAvailable())
+            int numberOfBytesRead = 0;
+
+            lock (replayFileLock)
             {
-                callback(state, 0);
-                return;
+                ResetTimeoutTimer();
+
+                if (!replayFile.ReachedTerminator && ticker.Ticks >= replayFile.Tick && replayFile.NumberOfPacketDataBytesRemaining > 0)
+                    numberOfBytesRead = replayFile.ReadPacketData(data.AsSpan()[offset..(offset + size)]);
             }
 
-            var numberOfBytesRead = replayFile.ReadPacketData(data.AsSpan()[offset..(offset + size)]);
             callback(state, numberOfBytesRead);
         }
 
         public bool IsDataAvailable()
         {
-            return ticker.Ticks >= replayFile.Tick && replayFile.NumberOfPacketDataBytesRemaining > 0;
+            lock (replayFileLock)
+            {
+                ResetTimeoutTimer();
+                return !replayFile.ReachedTerminator &&
+                       ticker.Ticks >= replayFile.Tick &&
+                       replayFile.NumberOfPacketDataBytesRemaining > 0;
+            }
         }
 
         public void SendQueuedPackets()
         {
+            ResetTimeoutTimer();
+        }
+
+        public static void ResetTimeoutTimer()
+        {
+            if (Netplay.Connection != null)
+                Netplay.Connection.TimeOutTimer = 0;
         }
 
         public bool StartListening(SocketConnectionAccepted callback) =>
@@ -161,49 +190,4 @@ public class Replayer : ModSystem, ITicker
 
         public RemoteAddress GetRemoteAddress() => _remoteAddress;
     }
-
-    #region Seeking
-    private static ReplaySocket CurrentReplaySocket => Netplay.Connection?.Socket as ReplaySocket;
-    public static void SeekToTick(uint targetTick)
-    {
-        if (!ReplayPlayback.IsReplayPlayback)
-            return;
-
-        var replayer = ModContent.GetInstance<Replayer>();
-
-        uint duration = ReplayPlayback.DurationTicks;
-        if (duration > 0)
-            targetTick = Math.Min(targetTick, duration);
-
-        // If seeking backward, we must reset the stream
-        bool resetStream = targetTick < replayer.Ticks;
-        if (resetStream)
-        {
-            if (CurrentReplaySocket?.ResetToStart() != true)
-            {
-                Log.Chat("Unable to seek backward: Stream reset failed.");
-                return;
-            }
-        }
-
-        if (!resetStream && targetTick == replayer.Ticks)
-            return;
-
-        replayer.Ticks = targetTick;
-
-        Netplay.Connection?.StatusText = string.Empty;
-
-        Log.Chat($"Seeking to tick {targetTick}...");
-    }
-
-    public static void SeekToStart()
-    {
-        SeekToTick(0);
-    }
-
-    public static void SeekToEnd()
-    {
-        SeekToTick(ReplayPlayback.DurationTicks);
-    }
-    #endregion
 }
