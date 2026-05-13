@@ -189,8 +189,8 @@ public static class EntityDrawer
         try
         {
             // debug
-            if (Main.GameUpdateCount % 60 == 0)
-                Log.Chat($"{drawPlayer.name}: ({drawPlayer.whoAmI}) ghost={drawPlayer.ghost}, dead={drawPlayer.dead}, life={drawPlayer.statLife}");
+            //if (Main.GameUpdateCount % 60 == 0)
+                //Log.Chat($"{drawPlayer.name}: ({drawPlayer.whoAmI}) ghost={drawPlayer.ghost}, dead={drawPlayer.dead}, life={drawPlayer.statLife}");
 
             bool isDead = drawPlayer.dead || drawPlayer.statLife <= 0;
             bool drawAsGhost = drawPlayer.ghost && !isDead;

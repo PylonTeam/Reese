@@ -13,8 +13,8 @@ internal static class DebugDrawer
     internal readonly record struct DebugStatGroup(string Header, Color HeaderColor, Func<bool> IsEnabled, string[] Rows);
 
     // Toggles
-    internal static bool ShowDebugRecorderStats { get; private set; } = false;
-    internal static bool ShowDebugReplayerStats { get; private set; } = false;
+    internal static bool ShowDebugRecorderStats { get; private set; } = true;
+    internal static bool ShowDebugReplayerStats { get; private set; } = true;
     internal static bool ShowDebugClientNetplayStats { get; private set; } = false;
     internal static bool ShowDebugLocalPlayerStats { get; private set; } = false;
     internal static bool ShowDebugHudUiStats { get; private set; } = false;

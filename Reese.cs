@@ -1,3 +1,5 @@
+using System.IO;
+
 namespace Reese;
 
 // General FIXMEs in architecture and implementation
@@ -15,4 +17,21 @@ namespace Reese;
 // FIXME: Obviously we need a better interface for interacting with a replay that isn't just dropping a player into the same world (allowing some influence)
 // FIXME: Sleeping is fucked up, causes mispredictions, because the client needs EVERYONE sleeping to advance time, and the replay player isn't sleeping but has influence.
 
-public class Reese : Mod;
+public class Reese : Mod
+{
+    public override void HandlePacket(BinaryReader reader, int whoAmI)
+    {
+        ReesePacketType packetType = (ReesePacketType)reader.ReadByte();
+
+        switch (packetType)
+        {
+            case ReesePacketType.RecorderStatus:
+                RecorderStatus.Receive(reader);
+                break;
+
+            default:
+                Log.Warn($"Unknown Reese packet type: {(byte)packetType}");
+                break;
+        }
+    }
+}

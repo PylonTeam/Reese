@@ -34,6 +34,7 @@ public class Recorder : ModSystem, ITicker
 {
     // FIXME: Become delegate
     public uint Ticks { get; private set; }
+    public bool IsRecording => isRecording;
     private bool isRecording;
     private string currentReplayPath;
 
@@ -89,6 +90,7 @@ public class Recorder : ModSystem, ITicker
         // };
     }
 
+    public void StartRecordingPublic() => StartRecording();
     private void StartRecording()
     {
         if (isRecording)
@@ -103,6 +105,7 @@ public class Recorder : ModSystem, ITicker
         Directory.CreateDirectory(dir);
         const string ReplayFilePrefix = "Reese";
         currentReplayPath = Path.Combine(dir, $"{ReplayFilePrefix}_{ReplayPlayback.GetNextReplayNumber(dir, ReplayFilePrefix):0000}.reese");
+        RecorderStatus.Start(currentReplayPath);
 
         Console.WriteLine($"Server ({RecordClientIndex}) started recording for {Path.GetFileName(currentReplayPath)}");
 
@@ -221,14 +224,19 @@ public class Recorder : ModSystem, ITicker
         // Flush now, so that it comes at update delta 0
         replayFile.FlushTick();
         isRecording = true;
+        RecorderStatus.SyncToClients(force: true);
     }
 
+    public void StopRecordingPublic(string reason="") => StopRecording(reason);
     private void StopRecording(string reason="")
     {
         if (!isRecording)
             return;
 
         isRecording = false;
+
+        RecorderStatus.Stop(Ticks);
+        RecorderStatus.SyncToClients(force: true);
 
         const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
         string savedReplayPath = currentReplayPath;
@@ -286,13 +294,16 @@ public class Recorder : ModSystem, ITicker
             if (!isRecording && hasPlayers)
                 StartRecording();
             else if (isRecording && !hasPlayers)
-                StopRecording("No players in server.");
+                StopRecording("No players in server");
         }
 
         if (isRecording)
         {
             Ticks++;
-            if (Ticks % (60*5) == 0)
+            RecorderStatus.UpdateTick(Ticks);
+            RecorderStatus.SyncToClients();
+
+            if (Ticks % (60 * 5) == 0)
             {
                 string message = $"Server tick: {Ticks} | Recording to: {Path.GetFileNameWithoutExtension(currentReplayPath)}";
                 Console.WriteLine(message);
@@ -305,7 +316,7 @@ public class Recorder : ModSystem, ITicker
     {
         if (Main.dedServ)
         {
-            StopRecording();
+            StopRecording("Server shutting down due to world unload");
 
             // Guess our shit isn't closed when the server dies. Would be nice to do it to everyone, but that's a big
             // change from status-quo, so just do it for ourselves.
@@ -314,28 +325,6 @@ public class Recorder : ModSystem, ITicker
                 if (remoteClient.Socket is RecordSocket recordSocket)
                     recordSocket.Close();
             }
-        }
-    }
-
-    public class RecordCommand : ModCommand
-    {
-        public override string Command => "record";
-        public override CommandType Type => CommandType.Console;
-
-        public override void Action(CommandCaller caller, string input, string[] args)
-        {
-            ModContent.GetInstance<Recorder>().StartRecording();
-        }
-    }
-
-    public class StopRecordCommand : ModCommand
-    {
-        public override string Command => "stoprecord";
-        public override CommandType Type => CommandType.Console;
-
-        public override void Action(CommandCaller caller, string input, string[] args)
-        {
-            ModContent.GetInstance<Recorder>().StopRecording();
         }
     }
 
@@ -397,6 +386,7 @@ public class Recorder : ModSystem, ITicker
                 return;
             }
 
+            RecorderStatus.TrackPacket(data, offset, size, ticker.Ticks);
             replayFile.WritePacketData(data[offset..(offset + size)], ticker.Ticks);
             callback?.Invoke(state);
         }

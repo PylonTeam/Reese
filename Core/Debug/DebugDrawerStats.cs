@@ -34,6 +34,16 @@ internal static class DebugDrawerStats
     {
         List<string> rows = [];
 
+        rows.Add($"Has status: {RecorderStatus.HasStatus}");
+        rows.Add($"Recording: {RecorderStatus.IsRecording}");
+        rows.Add($"Replay: {NullDash(RecorderStatus.ReplayName)}");
+        rows.Add($"Tick: {RecorderStatus.Tick}");
+        rows.Add($"Packets sent: {RecorderStatus.TotalPacketsSent}");
+        rows.Add($"Bytes sent: {RecorderStatus.TotalBytesSent}");
+        rows.Add($"Last packet tick: {RecorderStatus.LastPacketTick}");
+        rows.Add($"Last packet bytes: {RecorderStatus.LastPacketBytes}");
+        rows.Add($"Last packet id: {RecorderStatus.LastPacketMessageId}");
+
         //rows.Add($"Recording active: {Recorder.IsRecordingActive}");
         //rows.Add($"File: {GetFileNameOrNone(Recorder.CurrentReplayPath)}");
         //rows.Add($"Tick: {Recorder.CurrentTick}");
@@ -364,6 +374,10 @@ internal static class DebugDrawerStats
     private static string FormatPoint(Point value)
     {
         return $"{value.X}, {value.Y}";
+    }
+    private static string NullDash(string value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? "-" : value;
     }
 }
 #endif
