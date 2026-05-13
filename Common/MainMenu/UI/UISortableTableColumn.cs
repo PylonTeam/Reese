@@ -55,7 +55,13 @@ internal sealed class UISortableTableColumn : UIElement
         sortDirection = !active ? SortDirection.None : ascending ? SortDirection.Ascending : SortDirection.Descending;
         label.SetText(text);
 
-        if (label.Text is "Length" or "Mods" or "Size")
+        if (label.Text is "Length")
+        {
+            label.Left.Set(active ? -10f : 0f, 0f);
+            label.Recalculate();
+        }
+
+        if (label.Text is "Mods")
         {
             label.Left.Set(active ? -10f : 0f, 0f);
             label.Recalculate();
@@ -106,7 +112,7 @@ internal sealed class UISortableTableColumn : UIElement
     {
         Texture2D texture = (sortDirection == SortDirection.Ascending ? Ass.Icon_ArrowUp : Ass.Icon_ArrowDown).Value;
 
-        const int arrowRightPadding = 12;
+        const int arrowRightPadding = 8;
         const int arrowMaxSize = 12;
 
         float scale = Math.Min(1f, Math.Min((float)arrowMaxSize / texture.Width, (float)arrowMaxSize / texture.Height));

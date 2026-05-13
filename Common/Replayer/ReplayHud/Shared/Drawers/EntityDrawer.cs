@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.Replayer.GhostHooks;
 using Reese.Core.Configs;
+using ReLogic.Graphics;
 using System;
 using Terraria.GameContent;
 using Terraria.Graphics;
@@ -100,7 +101,44 @@ public static class EntityDrawer
 
         drawPos.Y += GetPlayerScaleVerticalOffset();
 
+        //DebugDrawer.DrawRectangle(area);
+
+        if (drawPlayer.statLife <= 0)
+        {
+            DrawRespawnTime(sb, player, area);
+        }
+
         DrawFullPlayer(sb, player, drawPos, scale);
+    }
+
+    private static void DrawRespawnTime(SpriteBatch sb, Player player, Rectangle area)
+    {
+        DrawCenteredTexture(sb, Ass.Icon_Dead.Value, area, 1.5f);
+
+        int seconds = Math.Max(0, (int)Math.Ceiling(player.respawnTimer / 60f));
+        string text = seconds.ToString();
+
+        DynamicSpriteFont font = FontAssets.DeathText.Value;
+        float textScale = 1f;
+
+        Vector2 textSize = font.MeasureString(text) * textScale;
+        Vector2 textPosition = new(
+            area.X + (area.Width - textSize.X) * 0.5f,
+            area.Y + (area.Height - textSize.Y) * 0.5f + 10f
+        );
+
+        Utils.DrawBorderStringBig(sb, text, textPosition, Color.White*0.5f, textScale, 0f, 0f);
+    }
+
+    private static void DrawCenteredTexture(SpriteBatch sb, Texture2D texture, Rectangle area, float scale)
+    {
+        if (texture == null)
+            return;
+
+        Vector2 origin = texture.Size() * 0.5f;
+        Vector2 position = area.Center.ToVector2();
+
+        sb.Draw(texture, position, null, Color.White*1f, 0f, origin, scale, SpriteEffects.None, 0f);
     }
 
     private static float GetPlayerScale()
@@ -123,7 +161,7 @@ public static class EntityDrawer
     {
         ClientConfig clientConfig = ModContent.GetInstance<ClientConfig>();
 
-        return 8f;
+        return 2f;
         //float scale = clientConfig.replayHudSize switch
         //{
         //    ClientConfig.ReplayHudSize.Small => 5f,
@@ -150,10 +188,30 @@ public static class EntityDrawer
 
         try
         {
-            if (drawPlayer.ghost)
+            // debug
+            if (Main.GameUpdateCount % 60 == 0)
+                Log.Chat($"{drawPlayer.name}: ({drawPlayer.whoAmI}) ghost={drawPlayer.ghost}, dead={drawPlayer.dead}, life={drawPlayer.statLife}");
+
+            bool isDead = drawPlayer.dead || drawPlayer.statLife <= 0;
+            bool drawAsGhost = drawPlayer.ghost && !isDead;
+
+            if (drawAsGhost)
+            {
                 DrawGhost(Main.Camera, drawPlayer, position + Main.screenPosition, scale);
+            }
             else
-                Main.PlayerRenderer.DrawPlayer(Main.Camera, drawPlayer, position + Main.screenPosition, 0f, Vector2.Zero, 0f, scale);
+            {
+                drawPlayer.ghost = false;
+                drawPlayer.dead = false;
+
+                //if (drawPlayer.statLife <= 0)
+                    //drawPlayer.statLife = 1;
+
+                if (drawPlayer.statLife > 0)
+                {
+                    Main.PlayerRenderer.DrawPlayer(Main.Camera, drawPlayer, position + Main.screenPosition, 0f, Vector2.Zero, 0f, scale);
+                }
+            }
         }
         finally
         {

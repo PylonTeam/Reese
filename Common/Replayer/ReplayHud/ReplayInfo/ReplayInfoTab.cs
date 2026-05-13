@@ -1,5 +1,5 @@
 using Microsoft.CodeAnalysis;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
+using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
@@ -20,9 +20,10 @@ internal sealed class ReplayInfoTab : TabPage
     public override string TooltipText => "Replay info";
     public override Asset<Texture2D> Icon => Ass.Icon_CameraSmall;
 
-    public override float IconScale => 1.25f;
+    public override float IconScale => 1.1f;
 
     public override Vector2 IconOffset => new Vector2(0,0);
+    public override Vector2 TextOffset => new Vector2(-8,0);
 
     protected override void Populate(UIList list)
     {
@@ -93,8 +94,8 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static string GetWorldText()
         {
-            return "-";
-            //return EmptyToDash(Metadata?.WorldName);
+            //return "-";
+            return EmptyToDash(ReplayPlayback.Metadata?.WorldName);
         }
 
         private static uint GetDurationTicks()
@@ -165,7 +166,7 @@ internal sealed class ReplayInfoTab : TabPage
                 ? "No mods used in replay"
                 : "Mods used in replay:\n" + string.Join($"\n", mods.Select(x => $"[mi:{x.InternalName}]{x.DisplayName}"));
 
-            StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.Icon_CheckmarkGreen.Value, modsText, tooltip, textColor: Color.Gray, label: "Mods used:");
+            StatDrawer.DrawWorldStatPanel(sb, statBox, null, modsText, tooltip, textColor: Color.Gray, label: "Mods:");
 
             int dividerY = statBox.Bottom + 8;
             sb.Draw(TextureAssets.MagicPixel.Value, new Rectangle(box.X + 10, dividerY, box.Width - 20, 2), Color.White * 0.10f);

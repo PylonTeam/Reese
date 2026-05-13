@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using MonoMod.Cil;
 using Reese.Common.MainMenu;
+using Reese.Core.Stats;
 using System;
 using System.IO;
 using System.Reflection;
@@ -222,7 +223,7 @@ public class Recorder : ModSystem, ITicker
         isRecording = true;
     }
 
-    private void StopRecording()
+    private void StopRecording(string reason="")
     {
         if (!isRecording)
             return;
@@ -249,12 +250,11 @@ public class Recorder : ModSystem, ITicker
 
         if (!string.IsNullOrWhiteSpace(savedReplayPath))
         {
-            string message = $"Recording stopped at tick {Ticks}. Saved to {Path.GetFileNameWithoutExtension(savedReplayPath)}";
+            string message = $"Recording stopped at tick {Ticks}. Reason: {reason}. Saved to {Path.GetFileNameWithoutExtension(savedReplayPath)}";
             Log.Info(message);
             Console.WriteLine(message);
         }
     }
-
 
     private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
     {
@@ -286,7 +286,7 @@ public class Recorder : ModSystem, ITicker
             if (!isRecording && hasPlayers)
                 StartRecording();
             else if (isRecording && !hasPlayers)
-                StopRecording();
+                StopRecording("No players in server.");
         }
 
         if (isRecording)
@@ -319,13 +319,24 @@ public class Recorder : ModSystem, ITicker
 
     public class RecordCommand : ModCommand
     {
+        public override string Command => "record";
+        public override CommandType Type => CommandType.Console;
+
         public override void Action(CommandCaller caller, string input, string[] args)
         {
             ModContent.GetInstance<Recorder>().StartRecording();
         }
+    }
 
-        public override string Command => "record";
+    public class StopRecordCommand : ModCommand
+    {
+        public override string Command => "stoprecord";
         public override CommandType Type => CommandType.Console;
+
+        public override void Action(CommandCaller caller, string input, string[] args)
+        {
+            ModContent.GetInstance<Recorder>().StopRecording();
+        }
     }
 
     private class RecordRemoteAddress : RemoteAddress

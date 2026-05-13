@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
+using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
 using Terraria.GameContent;
@@ -50,14 +50,15 @@ internal sealed class UINPCCard : UIPanel
         else if (IsMouseHovering)
         {
             BackgroundColor = new Color(63, 82, 151) * 0.45f;
-            BorderColor = Colors.FancyUIFatButtonMouseOver * 0.3f;
+            BorderColor = Colors.FancyUIFatButtonMouseOver;
         }
         else
         {
-            BackgroundColor = new Color(63, 82, 151) * 0.45f;
+            //BackgroundColor = new Color(63, 82, 151) * 0.45f;
+            BackgroundColor = new Color(28, 36, 76) * 0.92f;
+            //BorderColor = new Color(116, 154, 255) * 0.75f;
             BorderColor = Color.Black;
         }
-
         base.DrawSelf(sb);
 
         if (!IsValidNPC(NPCIndex))
@@ -72,7 +73,7 @@ internal sealed class UINPCCard : UIPanel
         int shrink = (int)MathF.Round(5f * scale);
         int buttonSize = (int)MathF.Round(32f * scale);
         int buttonGap = (int)MathF.Round(2f * scale);
-        int buttonCountForLayout = 3;
+        int buttonCountForLayout = 2;
         int buttonRowHeight = buttonSize;
         int buttonRowGap = (int)MathF.Round(3f * scale);
         int buttonContentWidth = buttonSize * buttonCountForLayout + buttonGap * (buttonCountForLayout - 1);
@@ -97,7 +98,8 @@ internal sealed class UINPCCard : UIPanel
 
         Rectangle nameRect = new(infoRect.X, infoRect.Y - 2, infoRect.Width, (int)MathF.Round(24f * scale));
 
-        BiomeBackgroundDrawer.DrawMapFullscreenBackground(sb, backgroundRect, npc.Center, shrinkPadding: shrink);
+        //BiomeBackgroundDrawer.DrawMapFullscreenBackground(sb, backgroundRect, npc.Center, shrinkPadding: shrink);
+        
         EntityDrawer.DrawEntityBackground(sb, npcPreviewRect);
         EntityDrawer.DrawNPCPreview(sb, npc, npcPreviewRect);
 
@@ -114,29 +116,10 @@ internal sealed class UINPCCard : UIPanel
         StatDrawer.DrawNPCStat(sb, stat1Rect, NPCStats.Life.Build(npc), scale);
 
         Rectangle stat2Rect = new(infoRect.X, stat1Rect.Bottom + statG, infoRect.Width, statH);
-        StatDrawer.DrawNPCStat(sb, stat2Rect, NPCStats.WhoAmI.Build(npc), scale);
+        StatDrawer.DrawNPCStat(sb, stat2Rect, NPCStats.Damage.Build(npc), scale);
 
         Rectangle stat3Rect = new(infoRect.X, stat2Rect.Bottom + statG, infoRect.Width, statH);
         StatDrawer.DrawNPCStat(sb, stat3Rect, NPCStats.Defense.Build(npc), scale);
-    }
-
-    public static void TeleportToNPC(int npcIndex)
-    {
-        if (!IsValidNPC(npcIndex))
-            return;
-
-        NPC npc = Main.npc[npcIndex];
-        Player local = Main.LocalPlayer;
-
-        if (local?.active != true)
-            return;
-
-        local.Center = npc.Center - new Vector2(0f, local.height);
-        local.velocity = Vector2.Zero;
-        local.fallStart = (int)(local.position.Y / 16f);
-
-        if (Main.netMode == NetmodeID.MultiplayerClient)
-            NetMessage.SendData(MessageID.PlayerControls, -1, -1, null, local.whoAmI);
     }
 
     private readonly record struct NPCCardAction(
@@ -152,14 +135,6 @@ internal sealed class UINPCCard : UIPanel
     {
         return
         [
-            new NPCCardAction(
-                Ass.Icon_GhostTeleport,
-                Ass.Icon_GhostTeleport,
-                "Teleport to NPC",
-                "Teleport to NPC",
-                TeleportToNPC,
-                static _ => false),
-
             new NPCCardAction(
                 Ass.Icon_Eye,
                 Ass.Icon_Eye,

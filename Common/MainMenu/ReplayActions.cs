@@ -47,8 +47,7 @@ internal static class ReplayActions
             try
             {
                 ReplayPlayback.BeginPlayback(replayPath);
-                ReplayFlags.MarkViewed(replayPath);
-                ReplayFlags.MarkPlayed(replayPath);
+                ReplayFlags.MarkWatched(replayPath);
 
                 Netplay.SetRemoteIP("10.2.3.4");
                 Main.autoPass = true;

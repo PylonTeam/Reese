@@ -13,13 +13,14 @@ namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
 internal sealed class SettingsTab : TabPage
 {
     public override SpectatorTab Tab => SpectatorTab.Settings;
-    public override string HeaderText => "Options";
+    public override string HeaderText => "Settings";
     public override string TooltipText => "Fine-tune your experience";
     public override Asset<Texture2D> Icon => Ass.Icon_Gear;
 
-    public override float IconScale => 1.25f;
+    public override float IconScale => 1.1f;
 
-    public override Vector2 IconOffset => new Vector2(4, 5);
+    public override Vector2 IconOffset => new Vector2(2, 0);
+    public override Vector2 TextOffset => new Vector2(-6, 0);
 
     protected override void Populate(UIList list)
     {

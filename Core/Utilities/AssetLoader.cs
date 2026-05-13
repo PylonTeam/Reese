@@ -27,6 +27,7 @@ public static class Ass
     public static Asset<Texture2D> Icon_Reset;
     public static Asset<Texture2D> Icon_Refresh;
     public static Asset<Texture2D> Icon_Resize;
+    public static Asset<Texture2D> Icon_Sword;
     public static Asset<Texture2D> Icon_Stop;
     public static Asset<Texture2D> Icon_SpeedUp;
     public static Asset<Texture2D> Icon_SpeedDown;
@@ -39,6 +40,7 @@ public static class Ass
     // Main menu assets
     public static Asset<Texture2D> IconNewlyGenerated;
     public static Asset<Texture2D> IconPlayedBefore;
+    public static Asset<Texture2D> IconWatchedBefore;
     public static Asset<Texture2D> Icon_ArrowDown;
     public static Asset<Texture2D> Icon_ArrowUp;
     public static Asset<Texture2D> ButtonOpenFolder;

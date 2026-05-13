@@ -144,6 +144,7 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
     {
         if (Main.gameMenu || TimeScale >= 1f)
         {
+            // Index Out Of Range sometimes here when scrubbing/seeking during a replay too fast...?
             orig(self, sw);
             NotifyWorldTickAdvanced();
             return;

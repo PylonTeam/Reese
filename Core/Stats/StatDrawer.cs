@@ -1,12 +1,11 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.MainMenu;
 using ReLogic.Content;
 using ReLogic.Graphics;
 using System;
 using Terraria.GameContent;
 using Terraria.ModLoader.UI;
 
-namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
+namespace Reese.Core.Stats;
 
 public static class StatDrawer
 {
@@ -20,19 +19,20 @@ public static class StatDrawer
         DrawStat(spriteBatch, area, stat.Icon.Value, stat.IconFrame, stat.Text, scale);
     }
 
-    public static void DrawReplayStatInMainMenu(SpriteBatch spriteBatch, Rectangle area, ReplayStatSnapshot stat, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f, Color? textColor = null)
+    public static void DrawReplayStatInMainMenu(SpriteBatch spriteBatch, Rectangle area, ReplayStatSnapshot stat, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f, Color? textColor = null, bool fitTextScaleToWidth = false)
     {
-        DrawStat(spriteBatch, area, drawIcon ? stat.Icon?.Value : null, stat.IconFrame, stat.Text, scale, drawIcon, iconScale, centerText, textScaleMultiplier, textColor);
+        DrawStat(spriteBatch, area, drawIcon ? stat.Icon?.Value : null, stat.IconFrame, stat.Text, scale, drawIcon, iconScale, centerText, textScaleMultiplier, textColor, fitTextScaleToWidth);
         DrawMainMenuTooltip(area, stat.HoverText);
     }
 
     private static void DrawMainMenuTooltip(Rectangle area, string hoverText)
     {
-        // temp hot reload
+//#if DEBUG
         //if (hoverText.StartsWith("Mods"))
         //{
         //    UICommon.TooltipMouseText(hoverText);
         //}
+//#endif
 
         if (string.IsNullOrWhiteSpace(hoverText) || !area.Contains(Main.MouseScreen.ToPoint()))
             return;
@@ -75,7 +75,7 @@ public static class StatDrawer
         return ellipsis;
     }
 
-    private static void DrawStat(SpriteBatch spriteBatch, Rectangle area, Texture2D texture, Rectangle? frame, string text, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f, Color? textColor = null)
+    private static void DrawStat(SpriteBatch spriteBatch, Rectangle area, Texture2D texture, Rectangle? frame, string text, float scale = 1f, bool drawIcon = true, float iconScale = 1f, bool centerText = false, float textScaleMultiplier = 1f, Color? textColor = null, bool fitTextScaleToWidth = false)
     {
         DrawBack(spriteBatch, area, scale);
 
@@ -111,17 +111,38 @@ public static class StatDrawer
         if (centerText)
             textArea = new(area.X + rightPadding, area.Y, area.Width - rightPadding * 2, area.Height);
 
-        string truncatedText = Truncate(FontAssets.MouseText.Value, text, textArea.Width, textScale);
-        Vector2 size = FontAssets.MouseText.Value.MeasureString(truncatedText) * textScale;
-        Vector2 position = new(textArea.X, area.Y + (area.Height - size.Y) * 0.5f + 3f); // <-- hardcoded 3 because y pos looks bad otherwise
+        string displayText = text;
+
+        bool forceFitText = fitTextScaleToWidth || string.Equals(text, "Unknown", StringComparison.OrdinalIgnoreCase);
+
+        if (forceFitText)
+            textScale = FitTextScaleToWidth(FontAssets.MouseText.Value, text, textArea.Width, textScale);
+        else
+            displayText = Truncate(FontAssets.MouseText.Value, text, textArea.Width, textScale);
+
+        Vector2 size = FontAssets.MouseText.Value.MeasureString(displayText) * textScale;
+        Vector2 position = new(textArea.X, area.Y + (area.Height - size.Y) * 0.5f + 3f);
 
         if (centerText)
             position.X = textArea.X + (textArea.Width - size.X) * 0.5f;
 
-        Utils.DrawBorderString(spriteBatch, truncatedText, position, textColor ?? Color.White, textScale);
+        Utils.DrawBorderString(spriteBatch, displayText, position, textColor ?? Color.White, textScale);
 
-        if (truncatedText != text && area.Contains(Main.mouseX, Main.mouseY))
+        if (!fitTextScaleToWidth && displayText != text && area.Contains(Main.mouseX, Main.mouseY))
             UICommon.TooltipMouseText(text);
+    }
+
+    private static float FitTextScaleToWidth(DynamicSpriteFont font, string text, float maxWidth, float scale)
+    {
+        if (string.IsNullOrEmpty(text) || maxWidth <= 0f)
+            return scale;
+
+        float width = font.MeasureString(text).X;
+
+        if (width <= 0f || width * scale <= maxWidth)
+            return scale;
+
+        return Math.Max(scale * 0.65f, maxWidth / width);
     }
 
     public static void DrawWorldStatPanel(SpriteBatch spriteBatch, Rectangle area, Texture2D texture, string text, string hoverText = null, Color? textColor = null, float scale = 1f, float iconScale = 1f, string label = null)

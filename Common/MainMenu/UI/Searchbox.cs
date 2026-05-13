@@ -80,6 +80,12 @@ public class Searchbox : UIPanel
         base.LeftClick(evt);
     }
 
+    public override void OnDeactivate()
+    {
+        Unfocus();
+        base.OnDeactivate();
+    }
+
     internal void Unfocus()
     {
         if (focused)

@@ -120,6 +120,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
             float num2 = -27f;
             num2 -= (this.measurement.X - 85f) / 2f;
             Color playerHeadBordersColor = Main.GetPlayerHeadBordersColor(this.player);
+            playerHeadBordersColor = Color.White; // FIXME: Temp solution ? What about TPVPA outlines?
             Vector2 vec = new Vector2(this.namePlatePos.X, this.namePlatePos.Y - num);
             vec.X -= 22f + num2;
             vec.Y += 8f;
@@ -139,6 +140,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
             }
         }
 
+        // What??
         public void DrawLifeBar()
         {
             Vector2 vector = Main.screenPosition + this.distanceDrawPosition + new Vector2(26f, 20f);

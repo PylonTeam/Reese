@@ -9,6 +9,7 @@ namespace Reese.Common.Replayer.ReplayHud.Shared.Tabs;
 internal sealed class TabBar : UIPanel
 {
     private readonly List<TabButton> buttons = [];
+    private IReadOnlyList<ITab> tabs;
 
     public TabBar()
     {
@@ -19,6 +20,8 @@ internal sealed class TabBar : UIPanel
 
     public void BuildTabs(IReadOnlyList<ITab> tabs, Func<ITab> getCurrentTab, Action<SpectatorTab> onTabSelected, float scale = 1f)
     {
+        this.tabs = tabs;
+
         RemoveAllChildren();
         buttons.Clear();
 
@@ -34,10 +37,10 @@ internal sealed class TabBar : UIPanel
                 capturedTab.Icon,
                 capturedTab.IconScale,
                 capturedTab.IconOffset,
+                capturedTab.TextOffset,
                 () => getCurrentTab() == capturedTab,
                 () => onTabSelected(capturedTab.Tab),
                 scale);
-
             button.Left.Set(0f, i / (float)tabs.Count);
             button.Width.Set(0f, 1f / tabs.Count);
 
@@ -50,5 +53,16 @@ internal sealed class TabBar : UIPanel
     {
         foreach (TabButton button in buttons)
             button.Recalculate();
+    }
+
+    public void RefreshHeaders()
+    {
+        if (tabs == null)
+            return;
+
+        int count = Math.Min(buttons.Count, tabs.Count);
+
+        for (int i = 0; i < count; i++)
+            buttons[i].SetHeaderText(tabs[i].HeaderText);
     }
 }

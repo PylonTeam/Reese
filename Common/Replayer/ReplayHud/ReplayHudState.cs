@@ -30,9 +30,11 @@ public class ReplayHudState : UIState
 
     public void Rebuild()
     {
-        spectateHud?.Rebuild();
-        infoHud?.Rebuild();
-        playbackHud?.Rebuild();
+        RemoveAllChildren();
+        spectateHud = null;
+        infoHud = null;
+        playbackHud = null;
+        EnsureHuds();
     }
 
     public override void Update(GameTime gameTime)
@@ -68,41 +70,13 @@ public class ReplayHudState : UIState
 
     private void EnsureHuds()
     {
-        if (showSpectateHud)
-        {
-            spectateHud ??= new ReplaySpectate.SpectateHud();
+        spectateHud ??= new ReplaySpectate.SpectateHud();
+        infoHud ??= new ReplayInfo.InfoHud();
+        playbackHud ??= new ReplayControls.PlaybackHud();
 
-            if (spectateHud.Parent is null)
-                Append(spectateHud);
-        }
-        else
-        {
-            spectateHud?.Remove();
-        }
-
-        if (showInfoHud)
-        {
-            infoHud ??= new ReplayInfo.InfoHud();
-
-            if (infoHud.Parent is null)
-                Append(infoHud);
-        }
-        else
-        {
-            infoHud?.Remove();
-        }
-
-        if (showPlaybackHud)
-        {
-            playbackHud ??= new ReplayControls.PlaybackHud();
-
-            if (playbackHud.Parent is null)
-                Append(playbackHud);
-        }
-        else
-        {
-            playbackHud?.Remove();
-        }
+        if (spectateHud.Parent == null) Append(spectateHud);
+        if (infoHud.Parent == null) Append(infoHud);
+        if (playbackHud.Parent == null) Append(playbackHud);
     }
 
     private void RemoveHuds()

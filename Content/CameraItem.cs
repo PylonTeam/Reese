@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Reese.Content;
 
-internal class Icon_CameraSmall : ModItem
+internal class CameraItem : ModItem
 {
     public override void SetDefaults()
     {

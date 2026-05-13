@@ -22,8 +22,11 @@ internal sealed class SpectateCameraFade : ModSystem
     {
         Vector2 comparePosition = hasLastPosition ? lastPosition : Main.screenPosition;
 
-        if (allowFade && fadeTicksLeft <= 0 && Vector2.DistanceSquared(comparePosition, position) >= FadeDistancePixelsSq)
+        if (allowFade && fadeTicksLeft <= 0)
         {
+            //if (!Vector2.DistanceSquared(comparePosition, position) >= FadeDistancePixelsSq)
+                //return;
+
             //if (ModContent.GetInstance<ClientConfig>().ShowCameraFade)
             {
                 fadeTicksLeft = FadeTicks;

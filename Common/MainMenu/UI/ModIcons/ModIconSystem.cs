@@ -1,11 +1,15 @@
 #nullable enable
+using Reese;
 using ReLogic.Content;
 using ReLogic.Graphics;
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using Terraria.UI.Chat;
 
-namespace Reese.Common.MainMenu.UI;
+namespace Reese.Common.MainMenu.UI.ModIcons;
 
 /// <summary>
 /// Registers a new item tag for mod icons so we can display them as part of the replay stats.
@@ -122,82 +126,5 @@ internal sealed class ModIconSnippet : TextSnippet
     public override Color GetVisibleColor()
     {
         return Color.White;
-    }
-}
-
-internal readonly record struct ModIconCacheEntry(
-    Texture2D? Icon,
-    string? DisplayName
-);
-
-internal static class ModIconCache
-{
-    private static readonly Dictionary<string, ModIconCacheEntry> Cache = new(StringComparer.OrdinalIgnoreCase);
-
-    public static ModIconCacheEntry Get(string modName)
-    {
-        modName = modName.Trim();
-
-        if (string.IsNullOrWhiteSpace(modName))
-        {
-            return default;
-        }
-
-        if (Cache.TryGetValue(modName, out ModIconCacheEntry cached))
-        {
-            return cached;
-        }
-
-        ModIconCacheEntry loaded = Load(modName);
-        Cache[modName] = loaded;
-        return loaded;
-    }
-
-    public static void Clear()
-    {
-        Cache.Clear();
-    }
-
-    private static ModIconCacheEntry Load(string modName)
-    {
-        if (!ModLoader.TryGetMod(modName, out Mod mod))
-        {
-            return new ModIconCacheEntry(null, modName);
-        }
-
-        Texture2D? icon =
-            TryRequestIcon(mod, "icon_small", "icon_small.rawimg", "icon_small.png") ??
-            TryRequestIcon(mod, "icon", "icon.png", "icon.rawimg");
-
-        return new ModIconCacheEntry(icon, mod.DisplayName);
-    }
-
-    private static Texture2D? TryRequestIcon(Mod mod, string assetName, params string[] fileNames)
-    {
-        bool exists = false;
-
-        foreach (string fileName in fileNames)
-        {
-            if (mod.FileExists(fileName))
-            {
-                exists = true;
-                break;
-            }
-        }
-
-        if (!exists)
-        {
-            return null;
-        }
-
-        try
-        {
-            return mod.Assets.Request<Texture2D>(assetName, AssetRequestMode.ImmediateLoad).Value;
-        }
-        catch (Exception exception)
-        {
-            Log.Chat($"Failed to load '{assetName}' icon for mod '{mod.Name}': {exception.Message}");
-            return null;
-        }
     }
 }

@@ -137,6 +137,21 @@ Mods: {
 				DisplayName: Icon_ Camera Small
 				Tooltip: ""
 			}
+
+			CameraItem: {
+				DisplayName: Camera Item
+				Tooltip: ""
+			}
+
+			GhostItem: {
+				DisplayName: Ghost Item
+				Tooltip: ""
+			}
+
+			SmallCameraItem: {
+				DisplayName: Small Camera Item
+				Tooltip: ""
+			}
 		}
 	}
 }

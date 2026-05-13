@@ -60,13 +60,6 @@ public sealed class ReplayMetadata
     }
 
 
-    private static string[] ReadModNames(string path)
-    {
-        // Return null when metadata could not be read.
-        // Return [] only when metadata was read and there are genuinely no mods.
-        return null;
-    }
-
     private static string EmptyToError(string value)
     {
         return string.IsNullOrWhiteSpace(value) ? "Error" : value.Trim();

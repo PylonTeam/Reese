@@ -60,7 +60,7 @@ public abstract class DraggablePanel : UIElement
             Left = new StyleDimension(0f, 0f),
             Width = new StyleDimension(0f, 1f),
             Height = new StyleDimension(420f, 0f),
-            BackgroundColor = new Color(20, 20, 60) * 0.7f,
+            BackgroundColor = new Color(20, 20, 60) * 0.9f,
             BorderColor = Color.Black
         };
         ContentPanel.OverflowHidden = true;

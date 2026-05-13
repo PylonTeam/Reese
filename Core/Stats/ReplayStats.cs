@@ -1,9 +1,10 @@
-﻿using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
+﻿using Reese.Common.MainMenu;
 using ReLogic.Content;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
-namespace Reese.Common.MainMenu;
+namespace Reese.Core.Stats;
 
 /// <summary>
 /// Stats for the <see cref="ReplayListItem"/>
@@ -62,12 +63,12 @@ public static class ReplayStats
         modNames ??= [];
 
         if (modNames.Length == 0)
-            return new ReplayStatSnapshot("Mods", "Unknown", "Unknown mods used", Ass.Icon_CheckmarkGreen, null);
+            return new ReplayStatSnapshot("Mods", "Unknown", "Unknown mods used", null, null);
 
         string display = modNames.Length == 1 ? "1 mod" : $"{modNames.Length} mods";
         string hover = BuildModsHoverText(modNames);
 
-        return new ReplayStatSnapshot("Mods", display, hover, Ass.Icon_CheckmarkGreen, null);
+        return new ReplayStatSnapshot("Mods", display, hover, null, null);
     }
 
     private static string BuildModsHoverText(string[] modNames)
@@ -75,14 +76,46 @@ public static class ReplayStats
         if (modNames == null || modNames.Length == 0)
             return "Unknown mods";
 
+        string[] replayMods = modNames
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (replayMods.Length == 0)
+            return "Unknown mods";
+
+        HashSet<string> enabledMods = ModLoader.Mods
+            .Select(x => x?.Name)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        string[] enabledReplayMods = replayMods
+            .Where(x => enabledMods.Contains(x))
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        string[] missingMods = replayMods
+            .Where(x => !enabledMods.Contains(x))
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
         string text = "Mods:";
 
-        foreach (string modName in modNames)
+        foreach (string modName in enabledReplayMods)
         {
-            if (string.IsNullOrWhiteSpace(modName))
-                continue;
+            //text += $"\n[mi:{modName}][c/55ff55:{modName}]";
+            text += $"\n[mi:{modName}]{modName}";
+        }
 
-            text += $"\n[mi:{modName}]{modName.Trim()}";
+        if (missingMods.Length > 0)
+        {
+            text += "\n\nMissing mods:";
+
+            foreach (string modName in missingMods)
+                text += $"\n[mi:{modName}][c/ff5555:{modName} (disabled)]";
         }
 
         return text;
@@ -107,15 +140,29 @@ public static class ReplayStats
 
     private static string FormatFileSizeText(long bytes)
     {
-        double megabytes = bytes / 1024d / 1024d;
+#if DEBUG
+        //bytes = 1024000; // 1000 KB
+        //bytes = 10240000; // 10 000 KB
+        //bytes = 102400000; // 100 000 KB
+        //bytes = 1024000000; // 1 000 000 KB
+#endif
+        double kilobytes = bytes / 1024d;
 
-        if (megabytes >= 100d)
-            return (megabytes / 1024d).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " GB";
+        if (kilobytes < 1d)
+            return "<1 KB";
 
-        if (megabytes < 0.1d)
-            return "<0.1 MB";
+        //return kilobytes.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " KB";
+        return kilobytes.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture).Replace(",", " ") + " KB";
 
-        return megabytes.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " MB";
+        //double megabytes = bytes / 1024d / 1024d;
+
+        //if (megabytes >= 100d)
+        //    return (megabytes / 1024d).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " GB";
+
+        //if (megabytes < 0.1d)
+        //    return "<0.1 MB";
+
+        //return megabytes.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " MB";
     }
 
     private static void AddLengthPart(ref string text, int value, string unit)
@@ -143,8 +190,6 @@ public static class ReplayStats
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
-
-
 }
 
 public sealed class ReplayStatDefinition

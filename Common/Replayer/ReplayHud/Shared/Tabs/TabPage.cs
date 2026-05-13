@@ -14,7 +14,8 @@ internal abstract class TabPage : UIElement, ITab
     public abstract string TooltipText { get; }
     public abstract Asset<Texture2D> Icon { get; }
     public abstract float IconScale { get; }
-    public abstract Vector2 IconOffset { get; }
+    public virtual Vector2 IconOffset => Vector2.Zero;
+    public virtual Vector2 TextOffset => Vector2.Zero;
 
     protected virtual float ScrollbarLeft => -22f;
     protected virtual float ScrollbarTop => 14f;

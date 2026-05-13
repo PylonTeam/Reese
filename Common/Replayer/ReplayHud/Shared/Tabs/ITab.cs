@@ -10,7 +10,8 @@ internal interface ITab
     string TooltipText { get; }
     Asset<Texture2D> Icon { get; }
     float IconScale { get; }
-    Vector2 IconOffset { get; }
+    Vector2 IconOffset => Vector2.Zero;
+    Vector2 TextOffset => Vector2.Zero;
     void Refresh();
 }
 

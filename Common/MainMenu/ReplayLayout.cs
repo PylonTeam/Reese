@@ -21,13 +21,13 @@ internal static class ReplayLayout
     internal static float ListTop;
     internal static float NameColumnWidth;
     internal static float DateColumnWidth;
-    internal static float DurationColumnWidth;
+    internal static float LengthColumnWidth;
     internal static float ModsColumnWidth;
     internal static float SizeColumnWidth;
     internal static float ActionColumnWidth;
     internal static float TableWidth;
     internal static float DateLeft;
-    internal static float DurationLeft;
+    internal static float LengthLeft;
     internal static float ModsLeft;
     internal static float SizeLeft;
     internal static float StatColumnPadding;
@@ -55,10 +55,10 @@ internal static class ReplayLayout
         Set(ref TableWidth, ReplayBrowser.PanelWidth - ContentPadding * 2f - ScrollbarWidth - 4f, ref changed);
 
         const float baseNameColumnWidth = 150f;
-        const float baseDateColumnWidth = 96f;
+        const float baseDateColumnWidth = 108f;
         const float baseDurationColumnWidth = 72f;
-        const float baseModsColumnWidth = 72f;
-        const float baseSizeColumnWidth = 72f;
+        const float baseModsColumnWidth = 68f;
+        const float baseSizeColumnWidth = 92f;
 
         float baseTotalWidth = baseNameColumnWidth + baseDateColumnWidth + baseDurationColumnWidth + baseModsColumnWidth + baseSizeColumnWidth;
         float fittedNameColumnWidth = MathF.Round(baseNameColumnWidth / baseTotalWidth * TableWidth);
@@ -69,13 +69,13 @@ internal static class ReplayLayout
 
         Set(ref NameColumnWidth, fittedNameColumnWidth, ref changed);
         Set(ref DateColumnWidth, fittedDateColumnWidth, ref changed);
-        Set(ref DurationColumnWidth, fittedDurationColumnWidth, ref changed);
+        Set(ref LengthColumnWidth, fittedDurationColumnWidth, ref changed);
         Set(ref ModsColumnWidth, fittedModsColumnWidth, ref changed);
         Set(ref SizeColumnWidth, fittedSizeColumnWidth, ref changed);
 
         Set(ref DateLeft, NameColumnWidth, ref changed);
-        Set(ref DurationLeft, DateLeft + DateColumnWidth, ref changed);
-        Set(ref ModsLeft, DurationLeft + DurationColumnWidth, ref changed);
+        Set(ref LengthLeft, DateLeft + DateColumnWidth, ref changed);
+        Set(ref ModsLeft, LengthLeft + LengthColumnWidth, ref changed);
         Set(ref SizeLeft, ModsLeft + ModsColumnWidth, ref changed);
 
         return changed;

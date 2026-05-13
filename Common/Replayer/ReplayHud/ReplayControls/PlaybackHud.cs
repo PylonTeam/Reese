@@ -90,7 +90,7 @@ public sealed class PlaybackHud : DraggablePanel
             CreateTransportButton(Ass.Icon_NextFrame, "Next Frame", StepOneFrame),
             CreateTransportButton(Ass.Icon_Play, "Play", Resume),
             CreateTransportButton(Ass.Icon_Pause, "Pause", Pause),
-            CreateTransportButton(Ass.Icon_Stop, "Stop Replay", () => ReplayPlayback.End("user stopped replay")),
+            CreateTransportButton(Ass.Icon_Stop, "Stop Replay", () => ReplayPlayback.End("user stopped replay", quitPlayer: true)),
             CreateTransportButton(Ass.Icon_SpeedUp, "Go to end", GoToEnd)
         ];
 
@@ -98,12 +98,12 @@ public sealed class PlaybackHud : DraggablePanel
         RefreshVisualState();
     }
 
-    public void Rebuild()
-    {
-        ApplyLayout();
-        Recalculate();
-        RefreshVisualState();
-    }
+    //private void Rebuild()
+    //{
+    //    ApplyLayout();
+    //    Recalculate();
+    //    RefreshVisualState();
+    //}
 
     public override void Recalculate()
     {

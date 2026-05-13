@@ -1,7 +1,7 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
+using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
 using Terraria.GameContent;
@@ -13,19 +13,21 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
 internal sealed class UIPlayerCard : UIPanel
 {
-    internal static int CardWidth => 115 * 2; // biome BG scaled down
-    internal static int CardHeight => 65*2; // biome BG is 65 height
+    internal static int CardWidth => 115 * 2; // biome BG is 115 width default
+    internal static int CardHeight => 65*2; // biome BG is 65 height default
 
     public int PlayerIndex { get; }
     public int ListIndex { get; }
 
     private readonly float scale;
+    private readonly SpectateHud owner;
 
     public UIPlayerCard(int playerIndex, int listIndex, SpectateHud owner, float scale = 1f)
     {
         PlayerIndex = playerIndex;
         ListIndex = listIndex;
         this.scale = scale;
+        this.owner = owner;
 
         SetPadding(0f);
         AddActionButtons(GetPlayerCardActions());
@@ -47,12 +49,13 @@ internal sealed class UIPlayerCard : UIPanel
         else if (IsMouseHovering)
         {
             BackgroundColor = new Color(63, 82, 151) * 0.45f;
-            //BorderColor = Colors.FancyUIFatButtonMouseOver * 0.3f;
-            BorderColor = Colors.FancyUIFatButtonMouseOver*0.3f;
+            BorderColor = Colors.FancyUIFatButtonMouseOver;
         }
         else
         {
-            BackgroundColor = new Color(63, 82, 151) * 0.45f;
+            //BackgroundColor = new Color(63, 82, 151) * 0.45f;
+            BackgroundColor = new Color(28, 36, 76) * 0.92f;
+            //BorderColor = new Color(116, 154, 255) * 0.75f;
             BorderColor = Color.Black;
         }
 
@@ -76,7 +79,7 @@ internal sealed class UIPlayerCard : UIPanel
         int shrink = (int)MathF.Round(5f * scale);
         int buttonSize = (int)MathF.Round(32f * scale);
         int buttonGap = (int)MathF.Round(2f * scale);
-        int buttonCount = 3;
+        int buttonCount = 2;
         int buttonRowHeight = buttonSize;
         int buttonRowGap = (int)MathF.Round(3f * scale);
         int buttonContentWidth = buttonSize * buttonCount + buttonGap * (buttonCount - 1);
@@ -102,7 +105,7 @@ internal sealed class UIPlayerCard : UIPanel
         Rectangle nameRect = new(infoRect.X, infoRect.Y - 2, infoRect.Width, (int)MathF.Round(24f * scale));
 
         // Draw biome BG
-        BiomeBackgroundDrawer.DrawMapFullscreenBackground(sb, backgroundRect, player.Center, shrinkPadding: shrink);
+        //BiomeBackgroundDrawer.DrawMapFullscreenBackground(sb, backgroundRect, player.Center, shrinkPadding: shrink);
 
         // Draw player preview background + player preview
         EntityDrawer.DrawEntityBackground(sb, playerPreviewRect);
@@ -141,25 +144,6 @@ internal sealed class UIPlayerCard : UIPanel
         //DebugDrawer.DrawRectangle(stat1Rect, drawSize: true);
     }
 
-    private static void TeleportToPlayer(int playerIndex)
-    {
-        if (playerIndex is < 0 or >= Main.maxPlayers)
-            return;
-
-        Player target = Main.player[playerIndex];
-        Player local = Main.LocalPlayer;
-
-        if (target?.active != true || local?.active != true || target.whoAmI == local.whoAmI)
-            return;
-
-        Vector2 teleportPosition = target.Center - new Vector2(local.width, local.height) * 0.5f;
-
-        if (Main.netMode == NetmodeID.SinglePlayer)
-            local.Teleport(teleportPosition, TeleportationStyleID.RodOfDiscord);
-        else if (Main.netMode == NetmodeID.MultiplayerClient)
-            NetMessage.SendData(MessageID.TeleportEntity, -1, -1, null, 0, local.whoAmI, teleportPosition.X, teleportPosition.Y, TeleportationStyleID.PotionOfReturn);
-    }
-
     #region Action buttons
     private readonly record struct PlayerCardAction(
         Asset<Texture2D> Icon,
@@ -173,13 +157,6 @@ internal sealed class UIPlayerCard : UIPanel
     {
         return
         [
-            new PlayerCardAction(
-                Ass.Icon_GhostTeleport,
-                Ass.Icon_GhostTeleport,
-                "Teleport to player",
-                "Teleport to player",
-                TeleportToPlayer,
-                static _ => false),
             new PlayerCardAction(
                 Ass.Icon_Eye,
                 Ass.Icon_Eye,
@@ -214,7 +191,7 @@ internal sealed class UIPlayerCard : UIPanel
 
     private void AddActionButton(PlayerCardAction action, float left, float top, float size)
     {
-        PlayerCardActionButton button = new(PlayerIndex, action);
+        PlayerCardActionButton button = new(PlayerIndex, action, owner);
         button.Left.Set(left, 0f);
         button.Top.Set(top, 0f);
         button.Width.Set(size, 0f);
@@ -226,18 +203,21 @@ internal sealed class UIPlayerCard : UIPanel
     {
         private readonly int playerIndex;
         private readonly PlayerCardAction action;
+        private readonly SpectateHud owner;
 
-        public PlayerCardActionButton(int playerIndex, PlayerCardAction action)
+        public PlayerCardActionButton(int playerIndex, PlayerCardAction action, SpectateHud owner)
         {
             this.playerIndex = playerIndex;
             this.action = action;
+            this.owner = owner;
 
-            OnLeftClick += (evt, element) =>
+            OnLeftClick += (_, _) =>
             {
                 if (!IsValidPlayer())
                     return;
 
                 action.Click(playerIndex);
+                owner?.UpdateTarget();
             };
         }
 

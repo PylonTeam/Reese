@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
 using Reese.Common.Replayer.ReplayHud.Shared.Sections;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
+using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
@@ -20,7 +20,8 @@ internal sealed class WorldInfoTab : TabPage
     public override string TooltipText => "World stats";
     public override Asset<Texture2D> Icon => Ass.Icon_World;
     public override float IconScale => 1f;
-    public override Vector2 IconOffset => new Vector2(0, 0);
+    public override Vector2 IconOffset => new Vector2(-2, 0);
+    public override Vector2 TextOffset => new Vector2(-6, 0);
 
     protected override void Populate(UIList list)
     {

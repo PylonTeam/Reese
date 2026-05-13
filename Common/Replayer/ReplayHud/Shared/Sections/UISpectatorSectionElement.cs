@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.Replayer.ReplayHud.ReplayInfo;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
+using Reese.Core.Stats;
 using System;
 using System.Collections.Generic;
 using Terraria.GameContent;
@@ -65,15 +65,6 @@ internal sealed class UISpectatorSectionElement : UIPanel
         }
 
         return true;
-    }
-
-    private static void ShowHover(Rectangle area, string text)
-    {
-        if (!area.Contains(Main.MouseScreen.ToPoint()))
-            return;
-
-        Main.LocalPlayer.mouseInterface = true;
-        Main.instance.MouseText(text);
     }
 
     private sealed class UISpectatorSectionRowElement : UIElement

@@ -1,4 +1,4 @@
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.Stats;
+using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
 using System.Linq;
@@ -6,6 +6,7 @@ using Terraria.Audio;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
+using Terraria.ModLoader.UI;
 using Terraria.UI;
 
 namespace Reese.Common.MainMenu;
@@ -34,12 +35,14 @@ internal sealed class ReplayListItem : UIPanel
         BorderColor = new Color(89, 116, 213) * 0.95f;
 
         bool isNew = ReplayFlags.IsNew(metadata.FullPath);
-        bool isPlayedBefore = ReplayFlags.HasPlayed(metadata.FullPath);
+        bool isWatchedBefore = ReplayFlags.HasWatched(metadata.FullPath);
         bool isFavorite = ReplayFlags.IsFavorite(metadata.FullPath);
 
         Append(new Preview(metadata, ReplayLayout.ReplayItemHeight));
 
-        Append(new NameText(metadata.ReplayName, TextColor(metadata.DurationTicks == 0))
+        string replayUnavailableReason = GetReplayUnavailableReason(metadata);
+
+        Append(new NameText(metadata.ReplayName, TextColor(replayUnavailableReason != null), replayUnavailableReason)
         {
             Left = { Pixels = ReplayLayout.PreviewColumnWidth + ReplayLayout.StatColumnPadding + 4f },
             Top = { Pixels = 10f },
@@ -53,14 +56,14 @@ internal sealed class ReplayListItem : UIPanel
         AddStat(ReplayStats.BuildMainMenuDateStat(metadata.DateCreated), ReplayLayout.DateLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.DateColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.DateCreated == DateTime.MinValue));
 
-        AddStat(ReplayStats.BuildMainMenuLengthStat(metadata.DurationTicks), ReplayLayout.DurationLeft + ReplayLayout.StatColumnPadding,
-            ReplayLayout.DurationColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.DurationTicks == 0));
+        AddStat(ReplayStats.BuildMainMenuLengthStat(metadata.DurationTicks), ReplayLayout.LengthLeft + ReplayLayout.StatColumnPadding,
+            ReplayLayout.LengthColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.DurationTicks == 0));
 
         AddStat(ReplayStats.BuildMainMenuModsStat(metadata.ModNames), ReplayLayout.ModsLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.ModsColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.ModNames is null));
 
         AddStat(ReplayStats.BuildMainMenuSizeStat(metadata.SizeBytes), ReplayLayout.SizeLeft + ReplayLayout.StatColumnPadding,
-            ReplayLayout.SizeColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.SizeBytes <= 0));
+            ReplayLayout.SizeColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.SizeBytes <= 0), fitTextScaleToWidth: true);
 
         Asset<Texture2D> favoriteTexture = Main.Assets.Request<Texture2D>(isFavorite ? "Images/UI/ButtonFavoriteActive" : "Images/UI/ButtonFavoriteInactive");
 
@@ -89,9 +92,9 @@ internal sealed class ReplayListItem : UIPanel
                 Height = { Pixels = ReplayLayout.ActionButtonSize }
             });
         }
-        else if (isPlayedBefore)
+        else if (isWatchedBefore)
         {
-            Append(new FlagIcon(rightLabel, Ass.IconPlayedBefore.Value, "Played")
+            Append(new FlagIcon(rightLabel, Ass.Icon_CameraSmall.Value, "Watched")
             {
                 Left = { Pixels = deleteLeft },
                 Top = { Pixels = 5f },
@@ -118,9 +121,9 @@ internal sealed class ReplayListItem : UIPanel
         };
     }
 
-    private void AddStat(ReplayStatSnapshot stat, float left, float width, Color color, bool icon = false, bool center = true, float iconScale = 1f)
+    private void AddStat(ReplayStatSnapshot stat, float left, float width, Color color, bool icon = false, bool center = true, float iconScale = 1f, bool fitTextScaleToWidth = false)
     {
-        Append(new Stat(stat, 0.9f, icon, iconScale, center, color)
+        Append(new Stat(stat, 0.9f, icon, iconScale, center, color, fitTextScaleToWidth)
         {
             Left = { Pixels = left },
             Top = { Pixels = 34f },
@@ -285,17 +288,43 @@ internal sealed class ReplayListItem : UIPanel
         }
     }
 
-    private sealed class NameText(string text, Color color) : UIElement
+    private sealed class NameText(string text, Color color, string hoverText = null) : UIElement
     {
+        private const float Scale = 0.95f;
+
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
-            const float Scale = 0.95f;
-
             Rectangle area = GetDimensions().ToRectangle();
-            string value = string.IsNullOrWhiteSpace(text) ? "-" : text;
-            Vector2 size = FontAssets.MouseText.Value.MeasureString(value) * Scale;
-            Utils.DrawBorderString(spriteBatch, value, new Vector2(area.X, area.Y + (area.Height - size.Y) * 0.5f), color, Scale);
+            Rectangle textRect = GetTextRect(area);
+
+#if DEBUG
+            DebugDrawer.DrawRectangle(area, Color.Red);
+            DebugDrawer.DrawRectangle(textRect, Color.Lime);
+#endif
+
+            string value = Value;
+            Utils.DrawBorderString(spriteBatch, value, new Vector2(textRect.X, textRect.Y), color, Scale);
+
+            if (string.IsNullOrWhiteSpace(hoverText) || !textRect.Contains(Main.MouseScreen.ToPoint()))
+                return;
+
+            Main.LocalPlayer.mouseInterface = true;
+            UICommon.TooltipMouseText(hoverText);
         }
+
+        private Rectangle GetTextRect(Rectangle area)
+        {
+            Vector2 size = FontAssets.MouseText.Value.MeasureString(Value) * Scale;
+
+            return new Rectangle(
+                area.X,
+                (int)(area.Y + (area.Height - size.Y) * 0.5f),
+                (int)Math.Ceiling(size.X),
+                (int)Math.Ceiling(size.Y)
+            );
+        }
+
+        private string Value => string.IsNullOrWhiteSpace(text) ? "-" : text;
     }
 
     private sealed class ActionLabel : UIElement
@@ -324,11 +353,11 @@ internal sealed class ReplayListItem : UIPanel
         }
     }
 
-    private sealed class Stat(ReplayStatSnapshot stat, float scale, bool icon, float iconScale, bool center, Color color) : UIElement
+    private sealed class Stat(ReplayStatSnapshot stat, float scale, bool icon, float iconScale, bool center, Color color, bool fitTextScaleToWidth) : UIElement
     {
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
-            StatDrawer.DrawReplayStatInMainMenu(spriteBatch, GetDimensions().ToRectangle(), stat, scale, icon, iconScale, center, 1f, color);
+            StatDrawer.DrawReplayStatInMainMenu(spriteBatch, GetDimensions().ToRectangle(), stat, scale, icon, iconScale, center, 1f, color, fitTextScaleToWidth);
         }
     }
 
@@ -360,6 +389,9 @@ internal sealed class ReplayListItem : UIPanel
 #endif
 
             float scale = Math.Min(area.Width / (float)texture.Width, area.Height / (float)texture.Height);
+            if (texture == Ass.Icon_CameraSmall.Value)
+                scale *= 1.3f;
+
             int width = Math.Max(1, (int)Math.Round(texture.Width * scale));
             int height = Math.Max(1, (int)Math.Round(texture.Height * scale));
 
@@ -373,4 +405,66 @@ internal sealed class ReplayListItem : UIPanel
             sb.Draw(texture, target, Color.White);
         }
     }
+
+    #region Unavailable replay reason
+    private static string GetReplayUnavailableReason(ReplayMetadata metadata)
+    {
+        if (metadata.DurationTicks == 0)
+            return "Replay metadata is invalid or incomplete.";
+
+        string[] replayMods = NormalizeReplayMods(metadata.ModNames);
+        string[] enabledMods = GetEnabledModNames();
+
+        if (replayMods.SequenceEqual(enabledMods, StringComparer.OrdinalIgnoreCase))
+            return null;
+
+        string[] missingMods = replayMods
+            .Where(x => !enabledMods.Contains(x, StringComparer.OrdinalIgnoreCase))
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        string[] extraMods = enabledMods
+            .Where(x => !replayMods.Contains(x, StringComparer.OrdinalIgnoreCase))
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        string text = "";
+
+        if (missingMods.Length > 0)
+            text += "Missing mods:\n" + string.Join("\n", missingMods.Select(x => $"[mi:{x}][c/ff5555:{x} (disabled)]"));
+
+        if (extraMods.Length > 0)
+        {
+            if (text.Length > 0)
+                text += "\n\n";
+
+            text += "Extra mods:\n" + string.Join("\n", extraMods.Select(x => $"[mi:{x}][c/77ff77:{x} (enabled)]"));
+        }
+
+        return text;
+    }
+
+    private static string[] GetEnabledModNames()
+    {
+        return ModLoader.Mods
+            .Select(x => x?.Name)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string[] NormalizeReplayMods(string[] modNames)
+    {
+        return modNames?
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray() ?? [];
+    }
+    #endregion
 }

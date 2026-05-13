@@ -2,6 +2,7 @@
 using System;
 using System.IO;
 using Terraria;
+using Terraria.Localization;
 
 namespace Reese;
 
@@ -11,7 +12,7 @@ namespace Reese;
 /// </summary>
 public static class ReplayPlayback
 {
-	public const int RecordClientIndex = 254;
+    public const int RecordClientIndex = 254;
 
 	public static bool IsReplayPlayback { get; private set; }
 	public static string CurrentPath { get; private set; }
@@ -35,7 +36,7 @@ public static class ReplayPlayback
 		Log.Info($"Replay playback started: {path}");
 	}
 
-	public static void End(string reason = null)
+	public static void End(string reason = null, bool quitPlayer=false)
 	{
 		if (IsReplayPlayback)
 			Log.Info($"Replay playback ended: {reason ?? "no reason supplied"}");
@@ -43,7 +44,13 @@ public static class ReplayPlayback
 		IsReplayPlayback = false;
 		CurrentPath = null;
 		DurationTicks = 0;
-	}
+
+        if (quitPlayer)
+        {
+            Log.Info("Leaving replay world because replay has ended.");
+            WorldGen.JustQuit();
+        }
+    }
 
 	private static uint TryGetDurationTicks(string path)
 	{
@@ -77,7 +84,7 @@ public static class ReplayPlayback
     {
         int next = 1;
 
-        foreach (string path in Directory.EnumerateFiles(dir, $"{prefix}_*.reese", SearchOption.TopDirectoryOnly))
+        foreach (string path in Directory.EnumerateFiles(dir, $"{prefix}_*.reese", SearchOption.AllDirectories))
         {
             string name = Path.GetFileNameWithoutExtension(path);
             string suffix = name.Length > prefix.Length + 1 ? name[(prefix.Length + 1)..] : string.Empty;
@@ -91,9 +98,19 @@ public static class ReplayPlayback
     // Trigger rebuild when folder changes
     public static event Action OnReplayFolderChanged;
 
+    private static bool replayFolderDirty;
+
     public static void NotifyFolderChanged()
     {
+        replayFolderDirty = true;
         Main.QueueMainThreadAction(() => OnReplayFolderChanged?.Invoke());
+    }
+
+    public static bool ConsumeReplayFolderDirty()
+    {
+        bool wasDirty = replayFolderDirty;
+        replayFolderDirty = false;
+        return wasDirty;
     }
 
     #region Seeking

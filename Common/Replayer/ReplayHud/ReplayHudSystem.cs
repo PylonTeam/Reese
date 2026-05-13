@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Microsoft.Xna.Framework.Input;
+using System.Collections.Generic;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud;
@@ -34,8 +35,6 @@ public sealed class ReplayHudSystem : ModSystem
 
     public void ToggleReplayHud()
     {
-        Log.Chat("ToggleReplayHud() called");
-
         if (IsReplayHudOpen())
         {
             CloseFullHud();
@@ -52,12 +51,13 @@ public sealed class ReplayHudSystem : ModSystem
             return;
 
         replayHudInterface.SetState(replayHudState);
-        Log.Chat("Replay HUD opened.");
+        Log.Chat("Opened Replay HUD.");
     }
 
     public void CloseFullHud()
     {
         replayHudInterface?.SetState(null);
+        Log.Chat("Closed Replay HUD.");
     }
 
     public bool IsReplayHudOpen()
@@ -67,6 +67,14 @@ public sealed class ReplayHudSystem : ModSystem
 
     public override void UpdateUI(GameTime gameTime)
     {
+#if DEBUG
+        if (KeyboardHelper.Pressed(Keys.F5))
+        {
+            Log.Chat("F5 pressed, rebuilding entire Replay HUD.");
+            Rebuild();
+        }
+#endif
+
         replayHudInterface?.Update(gameTime);
     }
 

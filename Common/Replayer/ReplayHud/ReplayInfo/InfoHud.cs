@@ -1,6 +1,7 @@
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
+using Reese.Common.Replayer.ReplayHud.Shared.UI;
 using System.Collections.Generic;
 using Terraria.Audio;
 using Terraria.GameContent.UI.Elements;
@@ -35,15 +36,15 @@ internal sealed class InfoHud : UIElement
         Top.Set(TopOffset, 0f);
         Width.Set(PanelWidth, 0f);
 
-        tabs.Add(new ReplayInfoTab());
         tabs.Add(new SettingsTab());
+        tabs.Add(new ReplayInfoTab());
         tabs.Add(new WorldInfoTab());
         currentTab = tabs[0];
 
         Rebuild();
     }
 
-    public void Rebuild()
+    private void Rebuild()
     {
         RemoveAllChildren();
         TitlePanel = null;
@@ -63,7 +64,8 @@ internal sealed class InfoHud : UIElement
             Top = new StyleDimension(HeaderHeight + TabHeight, 0f),
             Width = new StyleDimension(0f, 1f),
             Height = new StyleDimension(-(HeaderHeight + TabHeight), 1f),
-            BackgroundColor = new Color(20, 20, 60) * 0.7f,
+            BackgroundColor = new Color(20, 20, 60) * 0.9f,
+            //BackgroundColor = new Color(28, 36, 76) * 0.92f,
             BorderColor = Color.Black
         };
         ContentPanel.SetPadding(0f);
@@ -115,42 +117,9 @@ internal sealed class InfoHud : UIElement
         TitlePanel.Append(titleText);
 
         // Close panel
-        UIPanel closePanel = new()
-        {
-            Height = new StyleDimension(0f, 1f),
-            Width = new StyleDimension(40f, 0f),
-            HAlign = 1f,
-            VAlign = 0.5f,
-            BackgroundColor = new Color(95, 45, 55),
-            BorderColor = Color.Black
-        };
-        closePanel.SetPadding(0f);
-
-        closePanel.OnMouseOver += (_, _) =>
-        {
-            closePanel.BackgroundColor = new Color(150, 55, 65);
-            SoundEngine.PlaySound(SoundID.MenuTick);
-        };
-
-        closePanel.OnMouseOut += (_, _) =>
-        {
-            closePanel.BackgroundColor = new Color(95, 45, 55);
-        };
-
-        closePanel.OnLeftClick += (_, _) =>
-        {
-            SoundEngine.PlaySound(SoundID.MenuClose);
-            ModContent.GetInstance<ReplayHudSystem>().CloseInfoHud();
-        };
-
-        closePanel.Append(new UIText("X", large: true, textScale: 0.55f)
-        {
-            HAlign = 0.5f,
-            VAlign = 0.5f,
-            TextColor = Color.White
-        });
-
-        TitlePanel.Append(closePanel);
+        TitlePanel.Append(new ClosePanel(
+            () => ModContent.GetInstance<ReplayHudSystem>().CloseInfoHud()
+        ));
     }
 
     private void BuildTabPanel()

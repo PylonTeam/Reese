@@ -107,5 +107,6 @@ public static class MainMenuActions
             Main.menuMode = 0;
 
         Main.blockMouse = false;
+        Main.blockInput = false;
     }
 }

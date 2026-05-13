@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Reese.Common.MainMenu.UI;
 using ReLogic.Content;
 using System;
 using Terraria;
@@ -67,18 +68,6 @@ internal sealed class MainMenuUIState : UIState
     {
         RemoveAllChildren();
 
-        replayBrowser = new ReplayBrowser
-        {
-            HAlign = 0.5f,
-            VAlign = 0.5f
-        };
-        replayBrowser.OnRefreshStarted += () =>
-        {
-            SetCurrentAsyncState(AsyncProviderState.Loading);
-            refreshLoadingUntil = DateTime.UtcNow.AddSeconds(0.2);
-        };
-        Append(replayBrowser);
-
         loaderImage = new MainMenuLoaderImage(0.5f, 0.5f, 1f)
         {
             WithBackground = false
@@ -90,10 +79,31 @@ internal sealed class MainMenuUIState : UIState
         footer.Width.Set(ReplayBrowser.PanelWidth, 0f);
         footer.Height.Set(FooterHeight, 0f);
         footer.Top.Set(ReplayBrowser.BrowserPanelHeight * 0.5f + FooterGap + FooterHeight * 0.5f, 0f);
+
+        replayBrowser = new ReplayBrowser
+        {
+            HAlign = 0.5f,
+            VAlign = 0.5f
+        };
+
+        replayBrowser.OnRefreshStarted += () =>
+        {
+            refreshLoadingUntil = DateTime.UtcNow.AddSeconds(0.2);
+            SetCurrentAsyncState(AsyncProviderState.Loading);
+        };
+
+        replayBrowser.OnRefreshFinished += () =>
+        {
+            if (DateTime.UtcNow >= refreshLoadingUntil)
+                SetCurrentAsyncState(AsyncProviderState.Completed);
+        };
+
+        SetCurrentAsyncState(AsyncProviderState.Completed);
+
+        Append(replayBrowser);
         Append(footer);
         Append(loaderImage);
 
-        SetCurrentAsyncState(AsyncProviderState.Completed);
         UpdateScreenMetrics(force: true);
     }
 
@@ -142,7 +152,7 @@ internal sealed class MainMenuUIState : UIState
         refreshButton?.SetText(loading ? "Loading" : "Refresh");
         statusBadge?.SetCurrentState(state);
         statusText = text ?? state.ToString();
-        loaderImage.Loading = loading;
+        loaderImage?.Loading = loading;
     }
 
     private static UIAutoScaleTextTextPanel<string> CreateActionButton(string text, Action onClick)
@@ -188,56 +198,6 @@ internal sealed class MainMenuUIState : UIState
         lastUiScale = Main.UIScale;
         Recalculate();
     }
-
-    private sealed class MainMenuLoaderImage : UIElement
-    {
-        public bool WithBackground;
-        public bool Loading;
-        public int FrameTick;
-        public int Frame;
-
-        private readonly float scale;
-        private readonly Asset<Texture2D> backgroundTexture;
-        private readonly Asset<Texture2D> loaderTexture;
-
-        public MainMenuLoaderImage(float hAlign, float vAlign, float scale = 1f)
-        {
-            this.scale = scale;
-            backgroundTexture = UICommon.LoaderBgTexture;
-            loaderTexture = UICommon.LoaderTexture;
-
-            Width.Set(200f * scale, 0f);
-            Height.Set(200f * scale, 0f);
-            HAlign = hAlign;
-            VAlign = vAlign;
-            IgnoresMouseInteraction = true;
-        }
-
-        protected override void DrawSelf(SpriteBatch spriteBatch)
-        {
-            if (!Loading)
-                return;
-
-            if (loaderTexture?.Value == null)
-                return;
-
-            if (++FrameTick >= 5)
-            {
-                FrameTick = 0;
-                if (++Frame >= 16)
-                    Frame = 0;
-            }
-
-            CalculatedStyle dimensions = GetDimensions();
-            Vector2 position = new((int)dimensions.X, (int)dimensions.Y);
-
-            if (WithBackground && backgroundTexture?.Value != null)
-                spriteBatch.Draw(backgroundTexture.Value, position, new Rectangle(0, 0, 200, 200), Color.White, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
-
-            Rectangle frame = new(200 * (Frame / 8), 200 * (Frame % 8), 200, 200);
-            spriteBatch.Draw(loaderTexture.Value, position, frame, Color.White, 0f, Vector2.Zero, scale, SpriteEffects.None, 0f);
-        }
-    }
 }
 
 internal sealed class MainMenuReplayBrowserUIState : UIState
@@ -249,14 +209,33 @@ internal sealed class MainMenuReplayBrowserUIState : UIState
     private int lastScreenHeight;
     private float lastUiScale;
 
-    public override void OnInitialize()
+    //public override void OnInitialize()
+    //{
+    //    replayBrowser = new ReplayBrowser
+    //    {
+    //        Left = { Pixels = -(ReplayBrowser.PanelWidth + Margin), Percent = 1f },
+    //        Top = { Pixels = Margin }
+    //    };
+    //    Append(replayBrowser);
+    //    UpdateScreenMetrics(force: true);
+    //}
+
+    public override void OnActivate()
     {
+        base.OnActivate();
+        Log.Chat("Activate MainMenuReplayBrowserUIState");
+
+        RemoveAllChildren();
+
         replayBrowser = new ReplayBrowser
         {
             Left = { Pixels = -(ReplayBrowser.PanelWidth + Margin), Percent = 1f },
             Top = { Pixels = Margin }
         };
+
         Append(replayBrowser);
+        replayBrowser.Build();
+
         UpdateScreenMetrics(force: true);
     }
 

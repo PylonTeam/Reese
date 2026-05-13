@@ -8,12 +8,15 @@ namespace Reese.Common.MainMenu;
 internal static class ReplayFlags
 {
     public static bool IsNew(string replayPath) => HasFlag(replayPath, "new");
-    public static bool HasPlayed(string replayPath) => HasFlag(replayPath, "played");
+    public static bool HasWatched(string replayPath) => HasFlag(replayPath, "watched");
     public static bool IsFavorite(string replayPath) => HasFlag(replayPath, "favorite");
 
     public static void MarkNew(string replayPath) => WriteFlag(replayPath, "new");
-    public static void MarkViewed(string replayPath) => DeleteFlag(replayPath, "new");
-    public static void MarkPlayed(string replayPath) => WriteFlag(replayPath, "played");
+    public static void MarkWatched(string replayPath)
+    {
+        DeleteFlag(replayPath, "new");
+        WriteFlag(replayPath, "watched");
+    }
     public static void ToggleFavorite(string replayPath)
     {
         if (IsFavorite(replayPath))
@@ -25,14 +28,14 @@ internal static class ReplayFlags
     public static void Delete(string replayPath)
     {
         DeleteFlag(replayPath, "new");
-        DeleteFlag(replayPath, "played");
+        DeleteFlag(replayPath, "watched");
         DeleteFlag(replayPath, "favorite");
     }
 
     public static void Move(string oldReplayPath, string newReplayPath)
     {
         MoveFlag(oldReplayPath, newReplayPath, "new");
-        MoveFlag(oldReplayPath, newReplayPath, "played");
+        MoveFlag(oldReplayPath, newReplayPath, "watched");
         MoveFlag(oldReplayPath, newReplayPath, "favorite");
     }
 

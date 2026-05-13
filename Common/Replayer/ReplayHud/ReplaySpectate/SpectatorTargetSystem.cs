@@ -184,7 +184,7 @@ public class SpectatorTargetSystem : ModSystem
     {
         TryAutoSpectateFirstPlayer();
 
-        if (ShouldCancelFollowFromMovementInput())
+        if (ShouldCancelFollowFromUserInput())
         {
             ClearTarget();
             return;
@@ -203,13 +203,21 @@ public class SpectatorTargetSystem : ModSystem
         }
     }
 
-    private static bool ShouldCancelFollowFromMovementInput()
+    private static bool ShouldCancelFollowFromUserInput()
     {
         if (!CanTarget(target) && !CanTargetNPC(npcTarget))
             return false;
 
         Player local = Main.LocalPlayer;
-        return local?.active == true && (local.controlLeft || local.controlRight || local.controlUp || local.controlDown);
+
+        if (local?.active != true)
+            return false;
+
+        return local.controlLeft ||
+            local.controlRight ||
+            local.controlUp ||
+            local.controlDown ||
+            Main.mouseRight && Main.mouseRightRelease && !local.mouseInterface;
     }
 
     private static void SnapLocalPlayerTo(Vector2 center, int direction)

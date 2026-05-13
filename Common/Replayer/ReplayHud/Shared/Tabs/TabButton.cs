@@ -1,8 +1,9 @@
-using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
+using System;
 using Terraria;
+using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.UI;
 
@@ -12,6 +13,12 @@ internal sealed class TabButton : UIPanel
 {
     private readonly Func<bool> isSelected;
     private readonly string hoverText;
+    private readonly UIText label;
+    private readonly UIElement content;
+    private readonly Texture2D iconTexture;
+    private readonly float iconScale;
+    private readonly Vector2 textOffset;
+    private readonly float scale;
 
     public TabButton(
         string headerText,
@@ -19,12 +26,17 @@ internal sealed class TabButton : UIPanel
         Asset<Texture2D> icon,
         float iconScale,
         Vector2 iconOffset,
+        Vector2 textOffset,
         Func<bool> isSelected,
         Action onClick,
         float scale)
     {
         this.isSelected = isSelected;
+        this.iconScale = iconScale;
+        this.textOffset = textOffset;
+        this.scale = scale;
         hoverText = tooltipText;
+        iconTexture = icon.Value;
 
         Height.Set(0f, 1f);
         VAlign = 0.5f;
@@ -32,44 +44,65 @@ internal sealed class TabButton : UIPanel
 
         OnLeftClick += (_, _) => onClick();
 
-        float iconSize = 20f * scale;
-        float iconLeft = 6f * scale + iconOffset.X * scale;
-        float iconTop = -5f * scale + iconOffset.Y * scale;
+        float textScale = 0.85f * scale;
+        float gap = 8f * scale;
+        float iconDrawWidth = iconTexture.Width * iconScale * scale;
+        float iconDrawHeight = iconTexture.Height * iconScale * scale;
+        Vector2 textSize = FontAssets.MouseText.Value.MeasureString(headerText) * textScale;
 
-        Append(new UIImage(icon.Value)
+        content = new UIElement
         {
-            Left = new StyleDimension(iconLeft, 0f),
-            Top = new StyleDimension(iconTop, 0f),
+            HAlign = 0.5f,
             VAlign = 0.5f,
-            Width = new StyleDimension(iconSize, 0f),
-            Height = new StyleDimension(iconSize, 0f),
+            Width = new StyleDimension(iconDrawWidth + gap + textSize.X, 0f),
+            Height = new StyleDimension(Math.Max(iconDrawHeight, textSize.Y), 0f)
+        };
+
+        Append(content);
+
+        content.Append(new UIImage(iconTexture)
+        {
+            Left = new StyleDimension(iconOffset.X * scale, 0f),
+            Top = new StyleDimension(iconOffset.Y * scale, 0f),
+            VAlign = 0.5f,
+            Width = new StyleDimension(iconDrawWidth, 0f),
+            Height = new StyleDimension(iconDrawHeight, 0f),
             ImageScale = iconScale * scale
         });
 
-        float GetLeftOffset(string text) => text switch
+        label = new UIText(headerText, textScale: textScale)
         {
-            "Options" => -5f,
-            "Settings" => 10f,
-            string s when s.StartsWith("NPCs") => 10f, 
-            string s when s.StartsWith("Players") => 10f, 
-            _ => 0f
+            Left = new StyleDimension(iconDrawWidth + gap + textOffset.X * scale, 0f),
+            Top = new StyleDimension(textOffset.Y * scale, 0f),
+            VAlign = 0.5f
         };
 
-        Log.Chat(headerText);
+        content.Append(label);
+    }
 
-        Append(new UIText(headerText, textScale: 0.85f * scale)
-        {
-            Left = new StyleDimension((38f + GetLeftOffset(headerText)) * scale, 0f),
-            VAlign = 0.5f
-        });
+    public void SetHeaderText(string text)
+    {
+        label.SetText(text);
+
+        float textScale = 0.85f * scale;
+        float gap = 8f * scale;
+        float iconDrawWidth = iconTexture.Width * iconScale * scale;
+        float iconDrawHeight = iconTexture.Height * iconScale * scale;
+        Vector2 textSize = FontAssets.MouseText.Value.MeasureString(text) * textScale;
+
+        content.Width.Set(iconDrawWidth + gap + textSize.X + Math.Abs(textOffset.X) * scale, 0f);
+        content.Height.Set(Math.Max(iconDrawHeight, textSize.Y), 0f);
+        content.Recalculate();
     }
 
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
 
-        BackgroundColor = isSelected() ? new Color(83, 97, 168) : new Color(63, 82, 151) * 0.85f;
-        BorderColor = IsMouseHovering ? Color.Yellow : isSelected() ? Color.White : Color.Black;
+        bool selected = isSelected();
+
+        BackgroundColor = selected ? new Color(83, 97, 168) : new Color(63, 82, 151) * 0.85f;
+        BorderColor = IsMouseHovering ? Color.Yellow : selected ? Color.White : Color.Black;
 
         if (IsMouseHovering)
         {

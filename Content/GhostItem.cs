@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace Reese.Content;
 
-internal class Icon_Camera : ModItem
+internal class GhostItem : ModItem
 {
     public override void SetDefaults()
     {
-        Item.width = 32;
-        Item.height = 32;
+        Item.width = 30;
+        Item.height = 40;
     }
 }
