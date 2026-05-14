@@ -110,7 +110,7 @@ internal sealed class UISortableTableColumn : UIElement
 
     private void DrawSortArrow(SpriteBatch spriteBatch, Rectangle bounds)
     {
-        Texture2D texture = (sortDirection == SortDirection.Ascending ? Ass.Icon_ArrowUp : Ass.Icon_ArrowDown).Value;
+        Texture2D texture = (sortDirection == SortDirection.Ascending ? Ass.IconArrowUp : Ass.IconArrowDown).Value;
 
         const int arrowRightPadding = 8;
         const int arrowMaxSize = 12;

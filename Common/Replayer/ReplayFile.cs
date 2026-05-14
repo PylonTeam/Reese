@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using log4net;
 
-namespace Reese;
+namespace Reese.Common.Replayer;
 
 // FIXME: Some of the bullshit we do would be better buffered instead of manually counting bytes, in both directions.
 

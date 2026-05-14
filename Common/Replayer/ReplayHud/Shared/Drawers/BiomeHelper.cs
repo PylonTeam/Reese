@@ -279,7 +279,9 @@ internal static class BiomeHelper
         // Custom shimmer
         if (biome == ShimmerBiome)
         {
-            texture = Ass.Biome_Shimmer;
+            // TODO: We're not drawing mapBGs anymore, so just return null for now!
+            texture = null;
+            //texture = Ass.Biome_Shimmer;
             source = texture.Value.Frame();
             return true;
         }
@@ -288,7 +290,7 @@ internal static class BiomeHelper
         if (biome == ForestBiome)
             biome = Biomes.Surface;
 
-        texture = Main.Assets.Request<Texture2D>("Images/UI/Bestiary/Icon_Tags_Shadow");
+        texture = Main.Assets.Request<Texture2D>("Images/UI/Bestiary/IconTags_Shadow");
         source = default;
 
         if (biome == null)

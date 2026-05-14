@@ -1,4 +1,4 @@
-using Reese.Core.Debug;
+using Reese.Common.Replayer;
 using System;
 using System.IO;
 using System.Linq;

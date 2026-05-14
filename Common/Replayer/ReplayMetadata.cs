@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Reese;
+namespace Reese.Common.Replayer;
 
 public sealed class ReplayMetadata
 {

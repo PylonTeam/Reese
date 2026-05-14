@@ -1,6 +1,6 @@
 ﻿using MonoMod.RuntimeDetour;
 using System.Reflection;
-using static Reese.Replayer;
+using static Reese.Common.Replayer.Replayer;
 
 namespace Reese.Core.Compat;
 

@@ -6,7 +6,7 @@ using Terraria.Chat;
 using Terraria.ID;
 using Terraria.Localization;
 
-namespace Reese.Core.Debug;
+namespace Reese.Core.Utilities;
 
 /// <summary>
 /// A static logging helper for Reese..

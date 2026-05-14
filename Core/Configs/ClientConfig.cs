@@ -1,7 +1,6 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Reese.Common.Replayer.ReplayHud;
-using Reese.Core.Debug;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 

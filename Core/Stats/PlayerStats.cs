@@ -18,7 +18,7 @@ internal static class PlayerStats
     public static readonly PlayerStatDefinition PlayerName = new(
         "PlayerName",
         "Player",
-        Ass.Icon_PlayerHead,
+        Ass.IconPlayerHead,
         player => player.name,
         player => $"Player: {player.name}");
 
@@ -63,13 +63,13 @@ internal static class PlayerStats
     public static readonly PlayerStatDefinition Distance = new(
         "Distance",
         "Distance",
-        Ass.Icon_Distance,
+        Ass.IconDistance,
         player => $"{Math.Round(Vector2.Distance(Main.LocalPlayer.Center, player.Center) / 16f)} tiles");
 
     //public static readonly PlayerStatDefinition SessionTime = new(
     //"SessionTime",
     //"Session",
-    //Ass.Icon_Time,
+    //Ass.IconTime,
     //player => SessionTracker.GetSessionDuration(player.whoAmI));
 
     //public static readonly PlayerStatDefinition Ping = new(
@@ -165,7 +165,7 @@ internal static class PlayerStats
         if (BiomeHelper.TryGetBestiaryIconDrawData(biome.BestiaryBiome, out Asset<Texture2D> texture, out _))
             return texture;
 
-        return Ass.Icon_Biome;
+        return Ass.IconBiome;
     }
 
     private static Rectangle? GetBiomeIconFrame(Player player)
@@ -183,7 +183,7 @@ internal static class PlayerStats
         Item item = player.HeldItem;
 
         if (item == null || item.IsAir || item.type <= ItemID.None || item.type >= TextureAssets.Item.Length)
-            return Ass.Icon_HeldItem;
+            return Ass.IconHeldItem;
 
         Main.instance.LoadItem(item.type);
         return TextureAssets.Item[item.type];

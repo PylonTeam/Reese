@@ -1,10 +1,11 @@
-﻿using Reese.Content;
+﻿using Reese.Common.Replayer;
+using Reese.Content;
 using System.IO;
 using Terraria.Chat;
 using Terraria.ID;
 using Terraria.Localization;
 
-namespace Reese;
+namespace Reese.Common.Recorder;
 
 /// <summary>
 /// Keeps track of recorder state and syncs it from server to clients.

@@ -1,5 +1,4 @@
-﻿using Reese.Core.Debug;
-using Terraria.GameContent;
+﻿using Terraria.GameContent;
 
 namespace Reese.Common.Replayer.GhostHooks;
 public class TeleportMapSystem : ModSystem

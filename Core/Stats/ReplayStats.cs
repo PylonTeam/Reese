@@ -15,13 +15,13 @@ public static class ReplayStats
     public static ReplayStatSnapshot BuildMainMenuWorldNameStat(string worldName)
     {
         worldName = string.IsNullOrWhiteSpace(worldName) ? "-" : worldName.Trim();
-        return new ReplayStatSnapshot("World", worldName, $"World: {worldName}", Ass.Icon_Biome, null);
+        return new ReplayStatSnapshot("World", worldName, $"World: {worldName}", Ass.IconBiome, null);
     }
 
     public static ReplayStatSnapshot BuildMainMenuDateStat(DateTime date)
     {
         if (date == DateTime.MinValue)
-            return new ReplayStatSnapshot("Created", "Unknown", "Unknown date", Ass.Icon_Watch, null);
+            return new ReplayStatSnapshot("Created", "Unknown", "Unknown date", null, null);
 
         // September 28th is the "stress test" date for UI layouts
         //date = new DateTime(2026, 9, 28, 12, 34, 56);
@@ -30,25 +30,25 @@ public static class ReplayStats
         //string display = date.ToString("dd/M  HH:mm", System.Globalization.CultureInfo.InvariantCulture);
         string hover = $"Date created: {date.ToString("d MMM yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)}";
 
-        return new ReplayStatSnapshot("Created", display, hover, Ass.Icon_Watch, null);
+        return new ReplayStatSnapshot("Created", display, hover, null, null);
     }
 
     public static ReplayStatSnapshot BuildMainMenuLengthStat(uint durationTicks)
     {
         if (durationTicks == 0)
-            return new ReplayStatSnapshot("Length", "Unknown", "Unknown length", Ass.Icon_Watch, null);
+            return new ReplayStatSnapshot("Length", "Unknown", "Unknown length", null, null);
 
         string display = FormatDurationText(durationTicks);
-        return new ReplayStatSnapshot("Length", display, $"Length: {FormatLengthHoverText(durationTicks)}", Ass.Icon_Watch, null);
+        return new ReplayStatSnapshot("Length", display, $"Length: {FormatLengthHoverText(durationTicks)}", null, null);
     }
 
     public static ReplayStatSnapshot BuildMainMenuSizeStat(long bytes)
     {
         if (bytes <= 0)
-            return new ReplayStatSnapshot("Size", "Unknown", "Unknown size", Ass.Icon_Watch, null);
+            return new ReplayStatSnapshot("Size", "Unknown", "Unknown size", null, null);
 
         string display = FormatFileSizeText(bytes);
-        return new ReplayStatSnapshot("Size", display, $"Size: {display}", Ass.Icon_Watch, null);
+        return new ReplayStatSnapshot("Size", display, $"Size: {display}", null, null);
     }
     private static string FormatDurationText(uint durationTicks)
     {

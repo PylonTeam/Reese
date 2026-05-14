@@ -178,7 +178,7 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
     {
         if (Main.netMode != NetmodeID.Server && ReplayPlayback.IsReplayPlayback)
         {
-            ModContent.GetInstance<global::Reese.Replayer>()?.AdvancePlaybackTick();
+            ModContent.GetInstance<global::Reese.Common.Replayer.Replayer>()?.AdvancePlaybackTick();
         }
     }
 

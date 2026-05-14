@@ -136,8 +136,8 @@ internal sealed class UINPCCard : UIPanel
         return
         [
             new NPCCardAction(
-                Ass.Icon_Eye,
-                Ass.Icon_Eye,
+                Ass.IconEye,
+                Ass.IconEye,
                 "Spectate NPC",
                 "Stop spectating",
                 static npcIndex => SpectatorTargetSystem.ToggleNPCTarget(npcIndex, moveCameraToLocal: false),

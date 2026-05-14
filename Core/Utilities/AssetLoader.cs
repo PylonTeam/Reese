@@ -1,9 +1,11 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
 using ReLogic.Content;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Terraria;
 using Terraria.ModLoader;
+using Terraria.ModLoader.Exceptions;
 
 namespace Reese.Core.Utilities;
 
@@ -15,78 +17,67 @@ namespace Reese.Core.Utilities;
 /// </summary>
 public static class Ass
 {
-    // Replay tool assets
-    public static Asset<Texture2D> Icon_Arrow;
-    public static Asset<Texture2D> Icon_Gear;
-    public static Asset<Texture2D> Icon_Camera;
-    public static Asset<Texture2D> Icon_CameraSmall;
-    public static Asset<Texture2D> Icon_Chest;
-    public static Asset<Texture2D> Icon_NextFrame;
-    public static Asset<Texture2D> Icon_Pause;
-    public static Asset<Texture2D> Icon_Play;
-    public static Asset<Texture2D> Icon_Reset;
-    public static Asset<Texture2D> Icon_Refresh;
-    public static Asset<Texture2D> Icon_Resize;
-    public static Asset<Texture2D> Icon_Sword;
-    public static Asset<Texture2D> Icon_Stop;
-    public static Asset<Texture2D> Icon_SpeedUp;
-    public static Asset<Texture2D> Icon_SpeedDown;
-    public static Asset<Texture2D> Icon_TeamAssigner;
-    public static Asset<Texture2D> Icon_Watch;
-    public static Asset<Texture2D> Slider;
-    public static Asset<Texture2D> SliderHighlight;
-    public static Asset<Texture2D> SliderGradient;
-
-    // Main menu assets
+    // Main menu
     public static Asset<Texture2D> IconNewlyGenerated;
-    public static Asset<Texture2D> IconPlayedBefore;
-    public static Asset<Texture2D> IconWatchedBefore;
-    public static Asset<Texture2D> Icon_ArrowDown;
-    public static Asset<Texture2D> Icon_ArrowUp;
+    public static Asset<Texture2D> IconArrowDown;
+    public static Asset<Texture2D> IconArrowUp;
     public static Asset<Texture2D> ButtonOpenFolder;
     public static Asset<Texture2D> ButtonRefresh;
     public static Asset<Texture2D> ButtonTableColumn;
     public static Asset<Texture2D> ButtonTableColumn_Border;
     public static Asset<Texture2D> ButtonTableColumn_Selected;
 
-    // Ghost spectate assets
-    public static Asset<Texture2D> Biome_Shimmer;
+    // Replay playback HUD
+    public static Asset<Texture2D> IconCamera;
+    public static Asset<Texture2D> IconCameraSmall;
+    public static Asset<Texture2D> IconChest;
+    public static Asset<Texture2D> IconNextFrame;
+    public static Asset<Texture2D> IconPause;
+    public static Asset<Texture2D> IconPlay;
+    public static Asset<Texture2D> IconReset;
+    public static Asset<Texture2D> IconRefresh;
+    public static Asset<Texture2D> IconResize;
+    public static Asset<Texture2D> IconStop;
+    public static Asset<Texture2D> IconSpeedUp;
+    public static Asset<Texture2D> IconSpeedDown;
+    public static Asset<Texture2D> Slider;
+    public static Asset<Texture2D> SliderHighlight;
+    public static Asset<Texture2D> SliderGradient;
+
+    // Replay spectate HUD
+    public static Asset<Texture2D> IconSword;
+    public static Asset<Texture2D> IconDead;
+    public static Asset<Texture2D> IconDistance;
     public static Asset<Texture2D> GhostRight;
     public static Asset<Texture2D> GhostLeft;
-    public static Asset<Texture2D> MapBG_Shimmer;
-    public static Asset<Texture2D> Icon_Biome;
-    public static Asset<Texture2D> Icon_CandelabraOn;
-    public static Asset<Texture2D> Icon_CandelabraOff;
-    public static Asset<Texture2D> Icon_Card1;
-    public static Asset<Texture2D> Icon_Card2;
-    public static Asset<Texture2D> Icon_Card3;
-    public static Asset<Texture2D> Icon_CheckmarkGreen;
-    public static Asset<Texture2D> Icon_Dead;
-    public static Asset<Texture2D> Icon_Distance;
-    public static Asset<Texture2D> Icon_Eye;
-    public static Asset<Texture2D> Icon_EyeOff;
-    public static Asset<Texture2D> Icon_FilmProjectorOn;
-    public static Asset<Texture2D> Icon_FilmProjectorOff;
-    public static Asset<Texture2D> Icon_GhostTeleport;
-    public static Asset<Texture2D> Icon_HeldItem;
-    public static Asset<Texture2D> Icon_InventoryOpen;
-    public static Asset<Texture2D> Icon_InventoryClosed;
-    public static Asset<Texture2D> Icon_MapOn;
-    public static Asset<Texture2D> Icon_MapOff;
-    public static Asset<Texture2D> Icon_NPC;
-    public static Asset<Texture2D> Icon_Player;
-    public static Asset<Texture2D> Icon_PlayerHead;
-    public static Asset<Texture2D> Icon_TeleportOn;
-    public static Asset<Texture2D> Icon_TeleportOff;
-    public static Asset<Texture2D> Icon_Time;
-    public static Asset<Texture2D> Icon_World;
+    public static Asset<Texture2D> IconBiome;
+    public static Asset<Texture2D> IconEye;
+    public static Asset<Texture2D> IconInventoryOpen;
+    public static Asset<Texture2D> IconInventoryClosed;
+    public static Asset<Texture2D> IconHeldItem;
+    public static Asset<Texture2D> IconNPC;
+    public static Asset<Texture2D> IconPlayer;
+
+    // Replay info HUD
+    public static Asset<Texture2D> IconArrow;
+    public static Asset<Texture2D> IconCandelabraOn;
+    public static Asset<Texture2D> IconCandelabraOff;
+    public static Asset<Texture2D> IconCheckmarkGreen;
+    public static Asset<Texture2D> IconFilmProjectorOn;
+    public static Asset<Texture2D> IconFilmProjectorOff;
+    public static Asset<Texture2D> IconGear;
+    public static Asset<Texture2D> IconMapOn;
+    public static Asset<Texture2D> IconMapOff;
+    public static Asset<Texture2D> IconPlayerHead;
+    public static Asset<Texture2D> IconTeleportOn;
+    public static Asset<Texture2D> IconTeleportOff;
+    public static Asset<Texture2D> IconWorld;
 
     // Map backgrounds
-    public static Asset<Texture2D>[] MapBG;
+    //public static Asset<Texture2D>[] MapBG;
 
     // Flag
     public static bool Initialized { get; set; }
-
 
     /// <summary>
     /// Initializes static assets
@@ -101,11 +92,12 @@ public static class Ass
         }
 
         const string ModName = "Reese";
+        List<string> missingAssets = [];
 
-        MapBG = new Asset<Texture2D>[42];
+        //MapBG = new Asset<Texture2D>[42];
 
-        for (int i = 1; i <= MapBG.Length; i++)
-            MapBG[i - 1] = RequestTexture($"MapBG{i}", $"{ModName}/Assets/MapBGs/MapBG{i}");
+        //for (int i = 1; i <= MapBG.Length; i++)
+        //    MapBG[i - 1] = RequestTexture($"MapBG{i}", $"{ModName}/Assets/MapBGs/MapBG{i}", missingAssets);
 
         FieldInfo[] fields = typeof(Ass).GetFields(BindingFlags.Public | BindingFlags.Static);
 
@@ -114,16 +106,25 @@ public static class Ass
             if (field.FieldType != typeof(Asset<Texture2D>))
                 continue;
 
-            field.SetValue(null, RequestTexture(field.Name, $"{ModName}/Assets/{field.Name}"));
+            field.SetValue(null, RequestTexture(field.Name, $"{ModName}/Assets/{field.Name}", missingAssets));
+        }
+
+        // Check if any assets failed to load, and throw a single exception if they did
+        if (missingAssets.Count > 0)
+        {
+            throw new MissingAssetException(missingAssets);
         }
 
         Initialized = true;
     }
 
-    private static Asset<Texture2D> RequestTexture(string assetName, string path)
+    private static Asset<Texture2D> RequestTexture(string assetName, string path, List<string> missingAssets)
     {
         if (!ModContent.HasAsset(path))
-            throw new MissingAssetException(assetName, [path]);
+        {
+            missingAssets.Add($"Ass.{assetName} (Searched: {path})");
+            return null; // Return null temporarily since we're going to crash shortly anyway
+        }
 
         return ModContent.Request<Texture2D>(path, AssetRequestMode.AsyncLoad);
     }
@@ -137,10 +138,10 @@ public class AssetLoader : ModSystem
     public override void Load() => _ = Ass.Initialized;
 }
 
-internal sealed class MissingAssetException : Exception
+internal sealed class MissingAssetException : MissingResourceException
 {
-    public MissingAssetException(string fieldName, string[] searchedPaths)
-        : base($"--------------\nMOD CRASH! Missing texture asset for Ass.{fieldName}. Searched: {string.Join(", ", searchedPaths)}\n")
+    public MissingAssetException(List<string> missingAssets)
+        : base($"--------------\nMOD CRASH! Missing texture assets:\n{string.Join("\n", missingAssets)}\n--------------")
     {
     }
 }

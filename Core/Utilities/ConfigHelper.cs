@@ -1,6 +1,4 @@
-﻿
-using Reese.Core.Debug;
-using System;
+﻿using System;
 using System.Reflection;
 using Terraria.UI;
 

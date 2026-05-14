@@ -1,6 +1,5 @@
 using Reese.Common.MainMenu.UI;
 using Reese.Common.Replayer;
-using Reese.Core.Debug;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -190,7 +189,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         header.SetPadding(6f);
         Append(header);
 
-        UIImage cameraIcon = new(Ass.Icon_CameraSmall)
+        UIImage cameraIcon = new(Ass.IconCameraSmall)
         {
             HAlign = 0.5f,
             VAlign = 0f,

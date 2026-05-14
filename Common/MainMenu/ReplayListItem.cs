@@ -1,3 +1,4 @@
+using Reese.Common.Replayer;
 using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
@@ -94,7 +95,7 @@ internal sealed class ReplayListItem : UIPanel
         }
         else if (isWatchedBefore)
         {
-            Append(new FlagIcon(rightLabel, Ass.Icon_CameraSmall.Value, "Watched")
+            Append(new FlagIcon(rightLabel, Ass.IconCameraSmall.Value, "Watched")
             {
                 Left = { Pixels = deleteLeft },
                 Top = { Pixels = 5f },
@@ -389,7 +390,7 @@ internal sealed class ReplayListItem : UIPanel
 #endif
 
             float scale = Math.Min(area.Width / (float)texture.Width, area.Height / (float)texture.Height);
-            if (texture == Ass.Icon_CameraSmall.Value)
+            if (texture == Ass.IconCameraSmall.Value)
                 scale *= 1.3f;
 
             int width = Math.Max(1, (int)Math.Round(texture.Width * scale));

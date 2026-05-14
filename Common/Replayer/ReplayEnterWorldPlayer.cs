@@ -1,6 +1,5 @@
 using Reese.Content;
 using Reese.Core.Configs;
-using Reese.Core.Debug;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using System.IO;
 using Terraria.Chat;

@@ -18,7 +18,7 @@ internal sealed class WorldInfoTab : TabPage
     public override SpectatorTab Tab => SpectatorTab.World;
     public override string HeaderText => "World";
     public override string TooltipText => "World stats";
-    public override Asset<Texture2D> Icon => Ass.Icon_World;
+    public override Asset<Texture2D> Icon => Ass.IconWorld;
     public override float IconScale => 1f;
     public override Vector2 IconOffset => new Vector2(-2, 0);
     public override Vector2 TextOffset => new Vector2(-6, 0);
@@ -316,7 +316,7 @@ internal sealed class WorldInfoTab : TabPage
 
         private static Texture2D GetPlayersOnlineTexture()
         {
-            return Ass.Icon_PlayerHead.Value;
+            return Ass.IconPlayerHead.Value;
         }
 
         private static Texture2D GetSpectatorsOnlineTexture()
@@ -353,7 +353,7 @@ internal sealed class WorldInfoTab : TabPage
 
             Rectangle statBox = new(box.X + ContentInset, box.Y + (int)(HeaderHeight + 4f), box.Width - ContentInset * 2, (int)RowHeight);
             string bossesDefeatedText = GetBossesDefeatedText();
-            StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.Icon_CheckmarkGreen.Value, bossesDefeatedText, $"Bosses Defeated: {bossesDefeatedText}", textColor: Color.Gray, label: "Bosses Defeated:");
+            StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.IconCheckmarkGreen.Value, bossesDefeatedText, $"Bosses Defeated: {bossesDefeatedText}", textColor: Color.Gray, label: "Bosses Defeated:");
 
             int dividerY = statBox.Bottom + 8;
             sb.Draw(TextureAssets.MagicPixel.Value, new Rectangle(box.X + 10, dividerY, box.Width - 20, 2), Color.White * 0.10f);
@@ -383,7 +383,7 @@ internal sealed class WorldInfoTab : TabPage
 
                 if (boss.Downed)
                 {
-                    Texture2D checkTexture = Ass.Icon_CheckmarkGreen.Value;
+                    Texture2D checkTexture = Ass.IconCheckmarkGreen.Value;
                     sb.Draw(checkTexture, slot.Center.ToVector2(), null, Color.White, 0f, checkTexture.Size() * 0.5f, 1f, SpriteEffects.None, 0f);
                 }
 

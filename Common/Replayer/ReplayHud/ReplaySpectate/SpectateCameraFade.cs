@@ -11,9 +11,9 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 [Autoload(Side = ModSide.Client)]
 internal sealed class SpectateCameraFade : ModSystem
 {
-    private const float FadeDistanceTiles = 70f; // the distance where fades will actually be executed
+    //private const float FadeDistanceTiles = 70f; // the distance where fades will actually be executed
     private const int FadeTicks = 42; // the number of ticks the fade will last for, 42 is 0.7 seconds at 60 fps
-    private static readonly float FadeDistancePixelsSq = FadeDistanceTiles * 16f * FadeDistanceTiles * 16f;
+    //private static readonly float FadeDistancePixelsSq = FadeDistanceTiles * 16f * FadeDistanceTiles * 16f;
 
     private static int fadeTicksLeft;
     private static bool hasLastPosition;

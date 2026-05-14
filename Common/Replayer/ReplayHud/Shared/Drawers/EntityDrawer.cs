@@ -113,7 +113,7 @@ public static class EntityDrawer
 
     private static void DrawRespawnTime(SpriteBatch sb, Player player, Rectangle area)
     {
-        DrawCenteredTexture(sb, Ass.Icon_Dead.Value, area, 1.5f);
+        DrawCenteredTexture(sb, Ass.IconDead.Value, area, 1.5f);
 
         int seconds = Math.Max(0, (int)Math.Ceiling(player.respawnTimer / 60f));
         string text = seconds.ToString();

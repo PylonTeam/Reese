@@ -1,11 +1,10 @@
-﻿using Reese.Core.Debug;
-using System;
+﻿using System;
 using System.IO;
 using Terraria;
 using Terraria.Localization;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
-namespace Reese;
+namespace Reese.Common.Replayer;
 
 /// <summary>
 /// Acts as a bridge between replayer and recorder.

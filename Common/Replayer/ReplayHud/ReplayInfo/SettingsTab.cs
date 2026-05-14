@@ -15,7 +15,7 @@ internal sealed class SettingsTab : TabPage
     public override SpectatorTab Tab => SpectatorTab.Settings;
     public override string HeaderText => "Settings";
     public override string TooltipText => "Fine-tune your experience";
-    public override Asset<Texture2D> Icon => Ass.Icon_Gear;
+    public override Asset<Texture2D> Icon => Ass.IconGear;
 
     public override float IconScale => 1.1f;
 
@@ -45,17 +45,17 @@ internal sealed class SettingsTab : TabPage
 
         private static Texture2D GetFullbrightIcon()
         {
-            return GhostFullbright.Enabled ? Ass.Icon_CandelabraOn.Value : Ass.Icon_CandelabraOff.Value;
+            return GhostFullbright.Enabled ? Ass.IconCandelabraOn.Value : Ass.IconCandelabraOff.Value;
         }
 
         private static Texture2D GetRevealMapIcon()
         {
-            return MapRevealHelper.Revealed ? Ass.Icon_MapOn.Value : Ass.Icon_MapOff.Value;
+            return MapRevealHelper.Revealed ? Ass.IconMapOn.Value : Ass.IconMapOff.Value;
         }
 
         private static Texture2D GetRightClickTeleportIcon()
         {
-            return ReplayClientSettings.RightClickTeleport ? Ass.Icon_TeleportOn.Value : Ass.Icon_TeleportOff.Value;
+            return ReplayClientSettings.RightClickTeleport ? Ass.IconTeleportOn.Value : Ass.IconTeleportOff.Value;
         }
     }
 
@@ -68,14 +68,14 @@ internal sealed class SettingsTab : TabPage
         {
             return
             [
-                new("Compact HUD:", () => $"Compact HUD: {OnOff(ReplayClientSettings.IsCompactModeOn)}", GetRightClickTeleportIcon, onLeftClick: ReplayClientSettings.ToggleCompactMode)
+                //new("Compact HUD:", () => $"Compact HUD: {OnOff(ReplayClientSettings.IsCompactModeOn)}", GetRightClickTeleportIcon, onLeftClick: ReplayClientSettings.ToggleCompactMode)
             ];
         }
 
-        private static Texture2D GetRightClickTeleportIcon()
-        {
-            return ReplayClientSettings.IsCompactModeOn ? Ass.Icon_Card1.Value : Ass.Icon_Card3.Value;
-        }
+        //private static Texture2D GetRightClickTeleportIcon()
+        //{
+        //    return ReplayClientSettings.IsCompactModeOn ? Ass.IconCard1.Value : Ass.IconCard3.Value;
+        //}
     }
 
     private sealed class DrawSettings : SettingsSection
@@ -87,10 +87,10 @@ internal sealed class SettingsTab : TabPage
         {
             return
             [
-                new("Draw Players:", () => $"Draw Players: {OnOff(ReplayClientSettings.IsDrawPlayersOn)}", () => Ass.Icon_Player.Value, onLeftClick: ReplayClientSettings.TogglePlayers, iconScale: 1.5f),
+                new("Draw Players:", () => $"Draw Players: {OnOff(ReplayClientSettings.IsDrawPlayersOn)}", () => Ass.IconPlayer.Value, onLeftClick: ReplayClientSettings.TogglePlayers, iconScale: 1.5f),
                 new("Draw Ghosts:", () => $"Draw Ghosts: {OnOff(ReplayClientSettings.IsDrawGhostsOn)}", GetGhostIcon, onLeftClick: ReplayClientSettings.ToggleGhosts, iconScale: 1.0f),
                 new("Draw Projectiles:", () => $"Draw Projectiles: {OnOff(ReplayClientSettings.IsDrawProjectilesOn)}", GetProjectileIcon, onLeftClick: ReplayClientSettings.ToggleProjectiles),
-                new("Draw NPCs:", () => $"Draw NPCs: {OnOff(ReplayClientSettings.IsDrawNPCsOn)}", () => Ass.Icon_NPC.Value, onLeftClick: ReplayClientSettings.ToggleNPCs),
+                new("Draw NPCs:", () => $"Draw NPCs: {OnOff(ReplayClientSettings.IsDrawNPCsOn)}", () => Ass.IconNPC.Value, onLeftClick: ReplayClientSettings.ToggleNPCs),
                 new("Draw Items:", () => $"Draw Items: {OnOff(ReplayClientSettings.IsDrawItemsOn)}", GetItemIcon, onLeftClick: ReplayClientSettings.ToggleItems, iconScale: 0.8f),
                 new("Draw Nameplates:", () => $"Draw Nameplates: {OnOff(ReplayClientSettings.IsNameplatesOn)}", GetNameplateIcon, onLeftClick: ReplayClientSettings.ToggleNameplates, iconScale: 0.8f)
             ];
@@ -115,17 +115,17 @@ internal sealed class SettingsTab : TabPage
 
         private static Texture2D GetProjectileIcon()
         {
-            return Ass.Icon_Arrow.Value;
+            return Ass.IconArrow.Value;
         }
 
         private static Texture2D GetItemIcon()
         {
-            return Ass.Icon_Chest.Value;
+            return Ass.IconChest.Value;
         }
 
         private static Texture2D GetNameplateIcon()
         {
-            return Ass.Icon_PlayerHead.Value;
+            return Ass.IconPlayerHead.Value;
         }
     }
 }

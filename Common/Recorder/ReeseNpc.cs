@@ -1,7 +1,7 @@
 using Terraria;
 using Terraria.ModLoader;
 
-namespace Reese;
+namespace Reese.Common.Recorder;
 
 public class ReeseNpc : GlobalNPC
 {

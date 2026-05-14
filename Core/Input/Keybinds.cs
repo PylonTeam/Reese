@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework.Input;
+using Reese.Common.Replayer;
 using Reese.Common.Replayer.ReplayHud;
 using Terraria.GameInput;
 

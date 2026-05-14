@@ -10,7 +10,7 @@ internal static class NPCStats
 {
     public static readonly NPCStatDefinition NPCName = new("NPCName", "NPC", TextureAssets.MagicPixel, npc => npc.FullName, npc => $"NPC: {npc.FullName}");
     public static readonly NPCStatDefinition Life = new("Life", "Health", TextureAssets.Heart, npc => $"{Math.Max(0, npc.life)}/{Math.Max(1, npc.lifeMax)}");
-    public static readonly NPCStatDefinition Damage = new("Damage", "Damage", Ass.Icon_Sword, npc => npc.damage.ToString());
+    public static readonly NPCStatDefinition Damage = new("Damage", "Damage", Ass.IconSword, npc => npc.damage.ToString());
     public static readonly NPCStatDefinition Defense = new("Defense", "Defense", TextureAssets.Extra[ExtrasID.DefenseShield], npc => npc.defense.ToString());
     public static readonly NPCStatDefinition KnockbackResist = new("Knockback", "Knockback Resist", TextureAssets.Item[ItemID.CobaltShield], npc => $"{npc.knockBackResist * 100f:0}%");
     public static readonly NPCStatDefinition Velocity = new("Velocity", "Velocity", TextureAssets.Item[ItemID.Aglet], npc => $"{npc.velocity.Length():0.0}");

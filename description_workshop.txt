@@ -1,14 +1,14 @@
 [h1]Reese[/h1]
-Record and replay your Terraria experience.
+Record and replay your Terraria experience
 
 Reese records and saves a replay file while you play and lets you watch that session again from the main menu. 
-Reese is built for players who wish to share their runs with other players.
+Reese is built for players and content creators who wish to share their playthroughs, boss fights, or gamemodes with other players.
 
 [h1]How to use[/h1]
 Start or host a multiplayer world and play normally. Reese starts recording when a real player joins and stops when the last real player leaves.
 
 [h1]How the recorder works[/h1]
-Reese records the server packets that Terraria sends to players. The recorder creates a fake server-side record client player with its own socket connection to the server.
+Reese records the server packets that Terraria sends to players. The recorder creates a fake server-side record client with its own socket connection to the server.
 The recorder writes server packets to that fake client. That means the replay is pretty much a server-observed replay.
 
 [h1]How the replayer works[/h1]

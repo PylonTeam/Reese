@@ -158,16 +158,16 @@ internal sealed class UIPlayerCard : UIPanel
         return
         [
             new PlayerCardAction(
-                Ass.Icon_Eye,
-                Ass.Icon_Eye,
+                Ass.IconEye,
+                Ass.IconEye,
                 "Spectate player",
                 "Stop spectating",
                 static playerIndex => SpectatorTargetSystem.TogglePlayerTarget(playerIndex, moveCameraToLocal: false),
                 static playerIndex => Main.player[playerIndex]?.active == true && SpectatorTargetSystem.IsLockedTargeting(Main.player[playerIndex])),
 
             new PlayerCardAction(
-                Ass.Icon_InventoryClosed,
-                Ass.Icon_InventoryOpen,
+                Ass.IconInventoryClosed,
+                Ass.IconInventoryOpen,
                 "Open inventory",
                 "Close inventory",
                 TeammateHudOverlay.Toggle,

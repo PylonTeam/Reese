@@ -1,3 +1,4 @@
+using Reese.Common.Recorder;
 using System.IO;
 
 namespace Reese;

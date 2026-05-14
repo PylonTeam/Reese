@@ -8,19 +8,16 @@ Mods: {
 
 				Headers: {
 					MainMenu: Main Menu
-					UI: UI
-					Chat: Chat
-					Replaying: Replays
 					Debug: Debug
 				}
 
 				AddExtraMenuState: {
-					Label: Show Reese Button
+					Label: Show [c/5ad2ff:Reese] In Main Menu
 					Tooltip: Adds the extra Reese button among the main menu, allowing you to enter the replay browser
 				}
 
 				ShowInMainMenu: {
-					Label: Show In Main Menu
+					Label: Show [i:Reese/CameraItemSmall] Browser In Main Menu
 					Tooltip: Always shows the replay browser in main menu
 				}
 
@@ -34,29 +31,14 @@ Mods: {
 					Tooltip: ""
 				}
 
-				replayHudPosition: {
-					Label: Replay Hud Position
-					Tooltip: ""
-				}
-
-				replayHudSize: {
-					Label: Replay Hud Size
-					Tooltip: ""
-				}
-
 				ShowDebugMessages: {
 					Label: Show Debug Messages
-					Tooltip: ""
-				}
-
-				IsSeekbarEnabled: {
-					Label: Is Seekbar Enabled
-					Tooltip: ""
+					Tooltip: For developers and testers
 				}
 
 				ShowDebugDrawer: {
 					Label: Show Debug Drawer
-					Tooltip: ""
+					Tooltip: For developer use only, draws debug stats in the top left corner in-game.
 				}
 			}
 
@@ -128,16 +110,6 @@ Mods: {
 		}
 
 		Items: {
-			Icon_Camera: {
-				DisplayName: Icon_ Camera
-				Tooltip: ""
-			}
-
-			Icon_CameraSmall: {
-				DisplayName: Icon_ Camera Small
-				Tooltip: ""
-			}
-
 			CameraItem: {
 				DisplayName: Camera Item
 				Tooltip: ""

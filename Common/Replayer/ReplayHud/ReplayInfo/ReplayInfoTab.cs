@@ -18,7 +18,7 @@ internal sealed class ReplayInfoTab : TabPage
     public override Shared.Tabs.SpectatorTab Tab => Shared.Tabs.SpectatorTab.Replay;
     public override string HeaderText => "Replay";
     public override string TooltipText => "Replay info";
-    public override Asset<Texture2D> Icon => Ass.Icon_CameraSmall;
+    public override Asset<Texture2D> Icon => Ass.IconCameraSmall;
 
     public override float IconScale => 1.1f;
 
@@ -210,7 +210,7 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static void DrawMissingIcon(SpriteBatch sb, Rectangle slot)
         {
-            Texture2D texture = Ass.Icon_CameraSmall.Value;
+            Texture2D texture = Ass.IconCameraSmall.Value;
             Rectangle source = texture.Bounds;
             float scale = Math.Min((slot.Width - 8f) / source.Width, (slot.Height - 8f) / source.Height);
 
@@ -275,7 +275,7 @@ internal sealed class ReplayInfoTab : TabPage
 
         private static Texture2D GetModIcon(Mod mod)
         {
-            if (TryGetModIcon(mod, "icon_small", "icon_small.png", out Texture2D smallIcon))
+            if (TryGetModIcon(mod, "Iconsmall", "Iconsmall.png", out Texture2D smallIcon))
                 return smallIcon;
 
             if (TryGetModIcon(mod, "icon", "icon.png", out Texture2D icon))

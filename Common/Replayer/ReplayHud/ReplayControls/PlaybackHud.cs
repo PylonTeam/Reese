@@ -22,7 +22,7 @@ public sealed class PlaybackHud : DraggablePanel
     private readonly HorizontalRule horizontalRule;
     private readonly VerticalRule verticalRule;
 
-    protected override Asset<Texture2D> LeftIcon => Ass.Icon_Reset;
+    protected override Asset<Texture2D> LeftIcon => Ass.IconReset;
 
     protected override void OnRightIconTitlePanelClick()
     {
@@ -97,12 +97,12 @@ public sealed class PlaybackHud : DraggablePanel
 
         transportButtons =
         [
-            CreateTransportButton(Ass.Icon_SpeedDown, "Go to start", GoToStart),
-            CreateTransportButton(Ass.Icon_NextFrame, "Next Frame", StepOneFrame),
-            CreateTransportButton(Ass.Icon_Play, "Play", Resume),
-            CreateTransportButton(Ass.Icon_Pause, "Pause", Pause),
-            CreateTransportButton(Ass.Icon_Stop, "Stop Replay", () => ReplayPlayback.End("user stopped replay", quitPlayer: true)),
-            CreateTransportButton(Ass.Icon_SpeedUp, "Go to end", GoToEnd)
+            CreateTransportButton(Ass.IconSpeedDown, "Go to start", GoToStart),
+            CreateTransportButton(Ass.IconNextFrame, "Next Frame", StepOneFrame),
+            CreateTransportButton(Ass.IconPlay, "Play", Resume),
+            CreateTransportButton(Ass.IconPause, "Pause", Pause),
+            CreateTransportButton(Ass.IconStop, "Stop Replay", () => ReplayPlayback.End("user stopped replay", quitPlayer: true)),
+            CreateTransportButton(Ass.IconSpeedUp, "Go to end", GoToEnd)
         ];
 
         ApplyLayout();

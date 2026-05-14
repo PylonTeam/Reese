@@ -1,4 +1,5 @@
 ﻿#nullable enable
+using Reese.Core.Utilities;
 using ReLogic.Content;
 using System;
 using System.Collections;
@@ -49,7 +50,7 @@ internal static class ModIconCache
     {
         if (ModLoader.TryGetMod(modName, out Mod mod))
         {
-            Texture2D? icon = TryRequestIcon(mod, "icon_small", "icon_small.png") ??
+            Texture2D? icon = TryRequestIcon(mod, "Iconsmall", "Iconsmall.png") ??
                              TryRequestIcon(mod, "icon", "icon.png");
             return new ModIconCacheEntry(icon, mod.DisplayName);
         }

@@ -752,7 +752,7 @@ internal sealed class SpectateHud : UIElement
         public SpectatorTab Tab => SpectatorTab.Players;
         public string HeaderText => $"Players ({GetPlayerTargetCount()})";
         public string TooltipText => "Spectate players";
-        public Asset<Texture2D> Icon => Ass.Icon_Player;
+        public Asset<Texture2D> Icon => Ass.IconPlayer;
         public float IconScale => 1.2f;
         public Vector2 IconOffset => new(2, 0);
         public Vector2 TextOffset => new(-12, 0);
@@ -766,7 +766,7 @@ internal sealed class SpectateHud : UIElement
         public SpectatorTab Tab => SpectatorTab.NPCs;
         public string HeaderText => $"NPCs ({GetNpcTargetCount()})";
         public string TooltipText => "Spectate NPCs";
-        public Asset<Texture2D> Icon => Ass.Icon_NPC;
+        public Asset<Texture2D> Icon => Ass.IconNPC;
         public float IconScale => 1f;
         public Vector2 IconOffset => new(-2, -4);
         public Vector2 TextOffset => new(-2, 0);

@@ -2,6 +2,7 @@
 using Microsoft.Xna.Framework;
 using MonoMod.Cil;
 using Reese.Common.MainMenu;
+using Reese.Common.Replayer;
 using Reese.Core.Stats;
 using System;
 using System.IO;
@@ -15,7 +16,7 @@ using Terraria.ModLoader;
 using Terraria.Net;
 using Terraria.Net.Sockets;
 
-namespace Reese;
+namespace Reese.Common.Recorder;
 
 // ImHex
 // #include <std/mem>

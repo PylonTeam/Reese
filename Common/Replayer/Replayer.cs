@@ -10,7 +10,7 @@ using Terraria.ModLoader;
 using Terraria.Net;
 using Terraria.Net.Sockets;
 
-namespace Reese;
+namespace Reese.Common.Replayer;
 
 [Autoload(Side = ModSide.Client)]
 public class Replayer : ModSystem, ITicker
