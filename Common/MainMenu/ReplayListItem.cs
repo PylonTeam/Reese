@@ -2,6 +2,7 @@ using Reese.Common.Replayer;
 using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Terraria.Audio;
 using Terraria.GameContent;
@@ -51,19 +52,19 @@ internal sealed class ReplayListItem : UIPanel
             Height = { Pixels = 22f }
         });
 
-        AddStat(ReplayStats.BuildMainMenuWorldNameStat(metadata.WorldName), ReplayLayout.PreviewColumnWidth + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.WorldName(metadata.WorldName), ReplayLayout.PreviewColumnWidth + ReplayLayout.StatColumnPadding,
             ReplayLayout.NameColumnWidth - ReplayLayout.PreviewColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.WorldName == "Unknown"), true, false, 1.25f);
 
-        AddStat(ReplayStats.BuildMainMenuDateStat(metadata.DateCreated), ReplayLayout.DateLeft + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.Created(metadata.DateCreated), ReplayLayout.DateLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.DateColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.DateCreated == DateTime.MinValue));
 
-        AddStat(ReplayStats.BuildMainMenuLengthStat(metadata.DurationTicks), ReplayLayout.LengthLeft + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.Length(metadata.DurationTicks), ReplayLayout.LengthLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.LengthColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.DurationTicks == 0));
 
-        AddStat(ReplayStats.BuildMainMenuModsStat(metadata.ModNames), ReplayLayout.ModsLeft + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.Mods(metadata.ModNames), ReplayLayout.ModsLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.ModsColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.ModNames is null));
 
-        AddStat(ReplayStats.BuildMainMenuSizeStat(metadata.SizeBytes), ReplayLayout.SizeLeft + ReplayLayout.StatColumnPadding,
+        AddStat(ReplayStats.Size(metadata.SizeBytes), ReplayLayout.SizeLeft + ReplayLayout.StatColumnPadding,
             ReplayLayout.SizeColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.SizeBytes <= 0), fitTextScaleToWidth: true);
 
         Asset<Texture2D> favoriteTexture = Main.Assets.Request<Texture2D>(isFavorite ? "Images/UI/ButtonFavoriteActive" : "Images/UI/ButtonFavoriteInactive");
@@ -429,20 +430,31 @@ internal sealed class ReplayListItem : UIPanel
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
-        string text = "";
+        List<string> lines =
+        [
+            "[c/ffcc66:Mod mismatch]",
+            "This replay was recorded with different mods than you have enabled."
+        ];
 
         if (missingMods.Length > 0)
-            text += "Missing mods:\n" + string.Join("\n", missingMods.Select(x => $"[mi:{x}][c/ff5555:{x} (disabled)]"));
+        {
+            lines.Add("");
+            lines.Add($"Missing mods ({missingMods.Length}):");
+
+            foreach (string modName in missingMods)
+                lines.Add($"[mi:{modName}][c/ff5555:{modName} (disabled)]");
+        }
 
         if (extraMods.Length > 0)
         {
-            if (text.Length > 0)
-                text += "\n\n";
+            lines.Add("");
+            lines.Add($"Extra enabled mods ({extraMods.Length}):");
 
-            text += "Extra mods:\n" + string.Join("\n", extraMods.Select(x => $"[mi:{x}][c/1ec2ff:{x} (disable this before playing)]"));
+            foreach (string modName in extraMods)
+                lines.Add($"[mi:{modName}][c/1ec2ff:{modName} (disable before playing)]");
         }
 
-        return text;
+        return string.Join("\n", lines);
     }
 
     private static string[] GetEnabledModNames()

@@ -9,21 +9,17 @@ Mods: {
 				Headers: {
 					MainMenu: Main Menu
 					Debug: Debug
+					Replay: Replay
 				}
 
 				AddExtraMenuState: {
 					Label: Show [c/5ad2ff:Reese] In Main Menu
-					Tooltip: Adds the extra Reese button among the main menu, allowing you to enter the replay browser
+					Tooltip: Adds the extra [c/5ad2ff:Reese] button among the main menu which shows the replay browser
 				}
 
 				ShowInMainMenu: {
-					Label: Show [i:Reese/CameraItemSmall] Browser In Main Menu
-					Tooltip: Always shows the replay browser in main menu
-				}
-
-				ShowCameraFade: {
-					Label: Show Camera Fade
-					Tooltip: Fade to black when switching camera target
+					Label: Show [i:Reese/SmallCameraItem] Browser In Main Menu
+					Tooltip: Always show the replay browser in main menu
 				}
 
 				ShowWelcomeMessageOnEnterWorld: {
@@ -39,72 +35,6 @@ Mods: {
 				ShowDebugDrawer: {
 					Label: Show Debug Drawer
 					Tooltip: For developer use only, draws debug stats in the top left corner in-game.
-				}
-			}
-
-			ReplayHUDPosition: {
-				Tooltip: ""
-
-				Top: {
-					Label: Top
-					Tooltip: ""
-				}
-
-				Bottom: {
-					Label: Bottom
-					Tooltip: ""
-				}
-			}
-
-			ReplayHUDSize: {
-				Tooltip: ""
-
-				Small: {
-					Label: Small
-					Tooltip: ""
-				}
-
-				Medium: {
-					Label: Medium
-					Tooltip: ""
-				}
-
-				Big: {
-					Label: Big
-					Tooltip: ""
-				}
-			}
-
-			ReplayHudPosition: {
-				Tooltip: ""
-
-				Top: {
-					Label: Top
-					Tooltip: ""
-				}
-
-				Bottom: {
-					Label: Bottom
-					Tooltip: ""
-				}
-			}
-
-			ReplayHudSize: {
-				Tooltip: ""
-
-				Small: {
-					Label: Small
-					Tooltip: ""
-				}
-
-				Medium: {
-					Label: Medium
-					Tooltip: ""
-				}
-
-				Large: {
-					Label: Large
-					Tooltip: ""
 				}
 			}
 		}

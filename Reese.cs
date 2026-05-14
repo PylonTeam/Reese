@@ -20,6 +20,27 @@ namespace Reese;
 
 public class Reese : Mod
 {
+    public override object Call(params object[] args)
+    {
+        if (args is null || args.Length == 0 || args[0] is not string command)
+            return null;
+
+        switch (command)
+        {
+            case "StartRecording":
+                ModContent.GetInstance<Recorder>().StartRecordingPublic();
+                return true;
+
+            case "StopRecording":
+                // allow them to pass a reason, default to "Cross-mod call"
+                string reason = args.Length > 1 && args[1] is string r ? r : "Cross-mod call";
+                ModContent.GetInstance<Recorder>().StopRecordingPublic(reason);
+                return true;
+        }
+
+        return null;
+    }
+
     public override void HandlePacket(BinaryReader reader, int whoAmI)
     {
         ReesePacketType packetType = (ReesePacketType)reader.ReadByte();

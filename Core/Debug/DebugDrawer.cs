@@ -5,7 +5,7 @@ using Terraria.GameContent;
 
 namespace Reese.Core.Debug;
 
-#if DEBUG
+//#if DEBUG
 internal static class DebugDrawer
 {
     // Structs
@@ -226,4 +226,4 @@ internal static class DebugDrawer
     }
 
 }
-#endif
+//#endif

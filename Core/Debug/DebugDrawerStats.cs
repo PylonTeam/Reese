@@ -1,4 +1,7 @@
-﻿using Reese.Common.Replayer.ReplayHud;
+﻿using Reese.Common.Recorder;
+using Reese.Common.Replayer;
+using Reese.Common.Replayer.ReplayHud;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,7 +12,7 @@ using Terraria.ModLoader;
 
 namespace Reese.Core.Debug;
 
-#if DEBUG
+//#if DEBUG
 /// <summary>
 /// Layout / content list for the debug stats shown by DebugDrawer. Each stat group has a name, color, toggle function, and list of rows (strings).
 /// </summary>
@@ -34,15 +37,19 @@ internal static class DebugDrawerStats
     {
         List<string> rows = [];
 
-        rows.Add($"Has status: {RecorderStatus.HasStatus}");
+        string elapsed = TimeSpan.FromSeconds(RecorderStatus.Tick / 60.0).ToString(@"hh\:mm\:ss");
+        double kb = RecorderStatus.TotalBytesSent / 1024.0;
+        double bps = RecorderStatus.Tick > 0 ? RecorderStatus.TotalBytesSent / (RecorderStatus.Tick / 60.0) : 0;
+        string msgName = MessageIDCache.GetName(RecorderStatus.LastPacketMessageId);
+
         rows.Add($"Recording: {RecorderStatus.IsRecording}");
-        rows.Add($"Replay: {NullDash(RecorderStatus.ReplayName)}");
-        rows.Add($"Tick: {RecorderStatus.Tick}");
-        rows.Add($"Packets sent: {RecorderStatus.TotalPacketsSent}");
-        rows.Add($"Bytes sent: {RecorderStatus.TotalBytesSent}");
-        rows.Add($"Last packet tick: {RecorderStatus.LastPacketTick}");
-        rows.Add($"Last packet bytes: {RecorderStatus.LastPacketBytes}");
-        rows.Add($"Last packet id: {RecorderStatus.LastPacketMessageId}");
+        rows.Add($"Filename: {RecorderStatus.ReplayName}.reese");
+        rows.Add($"Ticks: {RecorderStatus.Tick}");
+        rows.Add($"Length: {elapsed}");
+        rows.Add($"Size:  {kb:F0} KB");
+        rows.Add($"Packets: {RecorderStatus.TotalPacketsSent:N0}");
+        rows.Add($"Bytes per second: {bps:F0} B/s");
+        rows.Add($"Last packet: {msgName}");
 
         //rows.Add($"Recording active: {Recorder.IsRecordingActive}");
         //rows.Add($"File: {GetFileNameOrNone(Recorder.CurrentReplayPath)}");
@@ -92,9 +99,19 @@ internal static class DebugDrawerStats
     {
         List<string> rows = [];
 
+        string currentTime = TimeSpan.FromSeconds(ReplayPlayback.CurrentTick/ 60.0).ToString(@"mm\:ss");
+        string totalTime = TimeSpan.FromSeconds(ReplayPlayback.DurationTicks / 60.0).ToString(@"mm\:ss");
+        float progressPct = ReplayPlayback.DurationTicks > 0 ? (ReplayPlayback.CurrentTick / (float)ReplayPlayback.DurationTicks) * 100f : 0f;
+        float timeScale = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
+
         rows.Add($"Playback active: {ReplayPlayback.IsReplayPlayback}");
-        rows.Add($"File: {GetFileNameOrNone(ReplayPlayback.CurrentPath)}");
-        rows.Add($"Replayer tick: {GetReplayerTickText()}");
+        if (ReplayPlayback.IsReplayPlayback)
+        {
+            rows.Add($"File: {GetFileNameOrDash(ReplayPlayback.CurrentPath)}");
+            rows.Add($"Playback: {currentTime} / {totalTime} ({progressPct:F1}%)");
+            rows.Add($"Tick: {ReplayPlayback.CurrentTick} / {ReplayPlayback.DurationTicks}");
+            rows.Add($"Speed: {timeScale:F2}x");
+        }
 
         //rows.Add($"Active: {DebugReplayerDiagnostics.IsActive}");
         //rows.Add($"Socket active: {Replayer.IsPlaybackSocketActive}");
@@ -232,9 +249,9 @@ internal static class DebugDrawerStats
         groups.Add(new DebugDrawer.DebugStatGroup("Debug Misc", new Color(190, 190, 190), () => DebugDrawer.ShowDebugMiscStats, [.. rows]));
     }
 
-    private static string GetFileNameOrNone(string path)
+    private static string GetFileNameOrDash(string path)
     {
-        return string.IsNullOrWhiteSpace(path) ? "<none>" : Path.GetFileName(path);
+        return string.IsNullOrWhiteSpace(path) ? "-" : Path.GetFileName(path);
     }
 
     private static string GetReplayProgressText()
@@ -380,4 +397,4 @@ internal static class DebugDrawerStats
         return string.IsNullOrWhiteSpace(value) ? "-" : value;
     }
 }
-#endif
+//#endif

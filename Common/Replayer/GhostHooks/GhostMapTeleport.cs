@@ -1,7 +1,7 @@
 ﻿using Terraria.GameContent;
 
 namespace Reese.Common.Replayer.GhostHooks;
-public class TeleportMapSystem : ModSystem
+public class GhostMapTeleport : ModSystem
 {
     // variables
 

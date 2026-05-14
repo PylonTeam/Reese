@@ -115,7 +115,7 @@ internal sealed class SettingsTab : TabPage
 
         private static Texture2D GetProjectileIcon()
         {
-            return Ass.IconArrow.Value;
+            return Ass.IconVenomArrow.Value;
         }
 
         private static Texture2D GetItemIcon()

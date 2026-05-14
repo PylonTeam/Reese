@@ -21,6 +21,11 @@ internal class GhostFullbright : ModSystem
         On_TileLightScanner.GetTileLight += HackLight;
     }
 
+    public override void Unload()
+    {
+        On_TileLightScanner.GetTileLight -= HackLight;
+    }
+
     private void HackLight(
     On_TileLightScanner.orig_GetTileLight orig,
     TileLightScanner self, int x, int y,

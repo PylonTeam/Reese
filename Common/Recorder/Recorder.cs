@@ -56,7 +56,7 @@ public class Recorder : ModSystem, ITicker
             BindingFlags.NonPublic | BindingFlags.Static);
         //_netPlayKickClient = typeof(Netplay).GetMethod("KickClient", BindingFlags.NonPublic | BindingFlags.Static);
 
-        On_Netplay.InitializeServer += OnNetplayInitializeServer;
+        //On_Netplay.InitializeServer += OnNetplayInitializeServer;
 
         // Don't "run one update" on the dedicated server when starting, before entering the main loop.
         // I think TML wants to remove this anyway? Or is going to soon?
@@ -76,19 +76,12 @@ public class Recorder : ModSystem, ITicker
         // FIXME: This should only be done for the replay client, not ALL clients!
         // Always broadcast DamageNPC regardless of distance to the client's player.
         IL_NetMessage.SendData += EditNetMessageSendData;
+    }
 
-        // IL_Main.DoUpdate += il =>
-        // {
-        //     var cursor = new ILCursor(il);
-        //     cursor.GotoNext(i => i.MatchStsfld<Main>("drawSkip"));
-        //     // cursor.Index += 1;
-        //     cursor.EmitDelegate(() =>
-        //     {
-        //         Ticks++;
-        //         if ((Ticks % 60) == 0)
-        //             Mod.Logger.Info("Tick!");
-        //     });
-        // };
+    public override void Unload()
+    {
+        //On_Netplay.InitializeServer -= OnNetplayInitializeServer;
+        IL_NetMessage.SendData -= EditNetMessageSendData;
     }
 
     public void StartRecordingPublic() => StartRecording();
@@ -274,10 +267,10 @@ public class Recorder : ModSystem, ITicker
         }
     }
 
-    private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
-    {
-        orig();
-    }
+    //private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
+    //{
+    //    orig();
+    //}
 
     // FIXME: This is a shitty edit I think?
     private void EditNetMessageSendData(ILContext il)
@@ -309,13 +302,19 @@ public class Recorder : ModSystem, ITicker
 
         if (isRecording)
         {
+            // Advance tick!
             Ticks++;
             RecorderStatus.UpdateTick(Ticks);
             RecorderStatus.SyncToClients();
 
-            if (Ticks % (60 * 5) == 0)
+            // Logging at 1 tick, 5 seconds, 10 seconds, and every 30 minutes thereafter
+            if (Ticks == 1 || Ticks == 300 || Ticks == 600 || Ticks % (30 * 60 * 60) == 0)
             {
-                string message = $"Server tick: {Ticks} | Recording to: {Path.GetFileNameWithoutExtension(currentReplayPath)}";
+                string timeString = TimeSpan.FromSeconds(Ticks / 60.0).ToString(@"hh\:mm\:ss");
+                string message = $"[Reese] Recording to: \"{Path.GetFileNameWithoutExtension(currentReplayPath)}\" | Length: {timeString} | Packets: {RecorderStatus.TotalPacketsSent} | Size: {RecorderStatus.TotalBytesSent / 1024.0:F0} KB";
+
+                if (Ticks==600)
+                    message += "\n[Reese] Recording has been running for more than 10 seconds and will now only log every 30 minutes. Use /recordstatus to view status.";
                 Console.WriteLine(message);
                 Log.Info(message);
             }

@@ -231,7 +231,7 @@ public class EncryptEverything : ModSystem
     {
         orig();
 
-        Mod.Logger.Info("okay gonna kick disconnect and close all remote clients");
+        Log.Info("okay gonna kick disconnect and close all remote clients");
         foreach (var remoteClient in Netplay.Clients)
         {
             if (!remoteClient.IsActive)
@@ -262,7 +262,7 @@ public class EncryptEverything : ModSystem
     {
         if (Netplay.Connection.Socket is SslSocket)
         {
-            Mod.Logger.Error(
+            Log.Error(
                 "We are unloading while the Netplay.Connection socket is an SslSocket! surely THIS IS WRONG!");
         }
     }

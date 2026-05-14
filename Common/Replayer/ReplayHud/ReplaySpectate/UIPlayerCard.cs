@@ -128,15 +128,15 @@ internal sealed class UIPlayerCard : UIPanel
 
         // Stat 1: Life
         Rectangle stat1Rect = new(infoRect.X, nameRect.Bottom + (int)MathF.Round(2f * scale), infoRect.Width, statH);
-        StatDrawer.DrawPlayerStat(sb, stat1Rect, PlayerStats.Life.Build(player), scale);
+        StatDrawer.DrawPlayerStat(sb, stat1Rect, PlayerStats.Life(player), scale);
 
         // Stat 2: Mana
         Rectangle stat2Rect = new(infoRect.X, stat1Rect.Bottom + statG, infoRect.Width, statH);
-        StatDrawer.DrawPlayerStat(sb, stat2Rect, PlayerStats.Mana.Build(player), scale);
+        StatDrawer.DrawPlayerStat(sb, stat2Rect, PlayerStats.Mana(player), scale);
 
         // Stat 3: Defense
         Rectangle stat3Rect = new(infoRect.X, stat2Rect.Bottom + statG, infoRect.Width, statH);
-        StatDrawer.DrawPlayerStat(sb, stat3Rect, PlayerStats.Biome.Build(player), scale);
+        StatDrawer.DrawPlayerStat(sb, stat3Rect, PlayerStats.Biome(player), scale);
 
         // Debug draw rectangles
         //DebugDrawer.DrawRectangle(playerPreviewRect, drawSize: true);

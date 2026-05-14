@@ -19,6 +19,7 @@ Saved replays appear in the Reese replay browser on the main menu. Pick a replay
 [h1]Server console commands[/h1]
 /record Starts recording
 /stoprecording Stops recording
+/recordstatus Shows the current recording status
 
 [h2]Planned[/h2]
 Backwards seek compatibility (you can still go to start and seek forwards and set speed)

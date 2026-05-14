@@ -10,19 +10,6 @@ public class ClientConfig : ModConfig
 {
     public override ConfigScope Mode => ConfigScope.ClientSide;
 
-    public enum ReplayHudPosition
-    {
-        Top,
-        Bottom,
-    }
-
-    public enum ReplayHudSize
-    {
-        Small,
-        Medium,
-        Large,
-    }
-
     [Header("MainMenu")]
 
     [BackgroundColor(30, 150, 30)]
@@ -33,22 +20,9 @@ public class ClientConfig : ModConfig
     [DefaultValue(true)]
     public bool ShowInMainMenu = true;
 
-    //[Header("Replaying")]
-
-    //[BackgroundColor(200, 60, 60, 230)]
-    //[DefaultValue(true)]
-    //public bool ShowCameraFade = true;
-
-    //[Header("UI")]
-    //[BackgroundColor(30, 150, 150)]
-    //[DefaultValue(ReplayHudPosition.Top)]
-    //[JsonConverter(typeof(StringEnumConverter))]
-    //public ReplayHudPosition replayHudPosition;
-
-    //[BackgroundColor(30, 150, 150)]
-    //[DefaultValue(ReplayHudSize.Medium)]
-    //[JsonConverter(typeof(StringEnumConverter))]
-    //public ReplayHudSize replayHudSize;
+    [Header("Replay")]
+    [BackgroundColor(250, 60, 60, 150)]
+    [DefaultValue(true)] public bool ShowWelcomeMessageOnEnterWorld;
 
     [Header("Debug")]
     [BackgroundColor(150, 150, 150, 150)]
@@ -56,14 +30,6 @@ public class ClientConfig : ModConfig
 
     [BackgroundColor(150, 150, 150, 150)]
     [DefaultValue(false)] public bool ShowDebugDrawer;
-
-    // Temporary options set to false to hide them from users until they are ready to be used.
-    // These will likely be removed in the future once the features they relate to are fully implemented and ready for use.
-    //[BackgroundColor(150, 150, 150, 150)]
-    //[DefaultValue(false)] public bool IsSeekbarEnabled;
-
-    [BackgroundColor(150, 150, 150, 150)]
-    [DefaultValue(true)] public bool ShowWelcomeMessageOnEnterWorld;
 
     #region Methods
     public override void OnChanged()

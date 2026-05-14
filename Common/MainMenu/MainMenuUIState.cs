@@ -152,7 +152,8 @@ internal sealed class MainMenuUIState : UIState
         refreshButton?.SetText(loading ? "Loading" : "Refresh");
         statusBadge?.SetCurrentState(state);
         statusText = text ?? state.ToString();
-        loaderImage?.Loading = loading;
+        if (loaderImage != null)
+            loaderImage.Loading = loading;
     }
 
     private static UIAutoScaleTextTextPanel<string> CreateActionButton(string text, Action onClick)

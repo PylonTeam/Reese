@@ -113,13 +113,13 @@ internal sealed class UINPCCard : UIPanel
         int statG = (int)MathF.Round(3f * scale);
 
         Rectangle stat1Rect = new(infoRect.X, nameRect.Bottom + (int)MathF.Round(2f * scale), infoRect.Width, statH);
-        StatDrawer.DrawNPCStat(sb, stat1Rect, NPCStats.Life.Build(npc), scale);
+        StatDrawer.DrawNPCStat(sb, stat1Rect, NPCStats.Life(npc), scale);
 
         Rectangle stat2Rect = new(infoRect.X, stat1Rect.Bottom + statG, infoRect.Width, statH);
-        StatDrawer.DrawNPCStat(sb, stat2Rect, NPCStats.Damage.Build(npc), scale);
+        StatDrawer.DrawNPCStat(sb, stat2Rect, NPCStats.Damage(npc), scale);
 
         Rectangle stat3Rect = new(infoRect.X, stat2Rect.Bottom + statG, infoRect.Width, statH);
-        StatDrawer.DrawNPCStat(sb, stat3Rect, NPCStats.Defense.Build(npc), scale);
+        StatDrawer.DrawNPCStat(sb, stat3Rect, NPCStats.Defense(npc), scale);
     }
 
     private readonly record struct NPCCardAction(

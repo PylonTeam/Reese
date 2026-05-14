@@ -2,178 +2,61 @@
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 namespace Reese.Core.Stats;
 
 /// <summary>
-/// Stats for the <see cref="ReplayListItem"/>
-/// Uses <see cref="StatDrawer"/>
+/// Uses <see cref="StatDrawer"/> to draw stats in the <see cref="ReplayListItem"/>
 /// </summary>
+
 public static class ReplayStats
 {
-    public static ReplayStatSnapshot BuildMainMenuWorldNameStat(string worldName)
+    public static ReplayStatSnapshot WorldName(string worldName)
     {
-        worldName = string.IsNullOrWhiteSpace(worldName) ? "-" : worldName.Trim();
-        return new ReplayStatSnapshot("World", worldName, $"World: {worldName}", Ass.IconBiome, null);
+        string text = string.IsNullOrWhiteSpace(worldName) ? "-" : worldName.Trim();
+        return new("World", text, $"World: {text}", Ass.IconBiome, null);
     }
 
-    public static ReplayStatSnapshot BuildMainMenuDateStat(DateTime date)
+    public static ReplayStatSnapshot Created(DateTime date)
     {
         if (date == DateTime.MinValue)
-            return new ReplayStatSnapshot("Created", "Unknown", "Unknown date", null, null);
+            return Unknown("Created", "Unknown date");
 
-        // September 28th is the "stress test" date for UI layouts
-        //date = new DateTime(2026, 9, 28, 12, 34, 56);
+        string text = date.ToString("d MMM HH:mm", CultureInfo.InvariantCulture);
+        string hoverText = $"Date created: {date.ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture)}";
 
-        string display = date.ToString("d MMM HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-        //string display = date.ToString("dd/M  HH:mm", System.Globalization.CultureInfo.InvariantCulture);
-        string hover = $"Date created: {date.ToString("d MMM yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)}";
-
-        return new ReplayStatSnapshot("Created", display, hover, null, null);
+        return new("Created", text, hoverText, null, null);
     }
 
-    public static ReplayStatSnapshot BuildMainMenuLengthStat(uint durationTicks)
+    public static ReplayStatSnapshot Length(uint durationTicks)
     {
         if (durationTicks == 0)
-            return new ReplayStatSnapshot("Length", "Unknown", "Unknown length", null, null);
+            return Unknown("Length", "Unknown length");
 
-        string display = FormatDurationText(durationTicks);
-        return new ReplayStatSnapshot("Length", display, $"Length: {FormatLengthHoverText(durationTicks)}", null, null);
+        string text = FormatDurationText(durationTicks);
+        return new("Length", text, $"Length: {FormatLengthHoverText(durationTicks)}", null, null);
     }
 
-    public static ReplayStatSnapshot BuildMainMenuSizeStat(long bytes)
+    public static ReplayStatSnapshot Mods(string[] modNames)
     {
-        if (bytes <= 0)
-            return new ReplayStatSnapshot("Size", "Unknown", "Unknown size", null, null);
-
-        string display = FormatFileSizeText(bytes);
-        return new ReplayStatSnapshot("Size", display, $"Size: {display}", null, null);
-    }
-    private static string FormatDurationText(uint durationTicks)
-    {
-        TimeSpan timeSpan = TimeSpan.FromSeconds(durationTicks / 60d);
-
-        return timeSpan.TotalHours >= 1d
-            ? $"{(int)timeSpan.TotalHours:00}:{timeSpan.Minutes:00}"
-            : $"{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
-    }
-    public static ReplayStatSnapshot BuildMainMenuModsStat(string[] modNames)
-    {
-        modNames ??= [];
-
-        if (modNames.Length == 0)
-            return new ReplayStatSnapshot("Mods", "Unknown", "Unknown mods used", null, null);
-
-        string display = modNames.Length == 1 ? "1 mod" : $"{modNames.Length} mods";
-        string hover = BuildModsHoverText(modNames);
-
-        return new ReplayStatSnapshot("Mods", display, hover, null, null);
-    }
-
-    private static string BuildModsHoverText(string[] modNames)
-    {
-        if (modNames == null || modNames.Length == 0)
-            return "Unknown mods";
-
-        string[] replayMods = modNames
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x.Trim())
-            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        string[] replayMods = CleanModNames(modNames);
 
         if (replayMods.Length == 0)
-            return "Unknown mods";
+            return Unknown("Mods", "Unknown mods used");
 
-        HashSet<string> enabledMods = ModLoader.Mods
-            .Select(x => x?.Name)
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        string[] enabledReplayMods = replayMods
-            .Where(x => enabledMods.Contains(x))
-            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        string[] missingMods = replayMods
-            .Where(x => !enabledMods.Contains(x))
-            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        string text = "Mods:";
-
-        foreach (string modName in enabledReplayMods)
-        {
-            //text += $"\n[mi:{modName}][c/55ff55:{modName}]";
-            text += $"\n[mi:{modName}]{modName}";
-        }
-
-        if (missingMods.Length > 0)
-        {
-            text += "\n\nMissing mods:";
-
-            foreach (string modName in missingMods)
-                text += $"\n[mi:{modName}][c/ff5555:{modName} (disabled)]";
-        }
-
-        return text;
+        string text = replayMods.Length == 1 ? "1 mod" : $"{replayMods.Length} mods";
+        return new("Mods", text, BuildModsHoverText(replayMods), null, null);
     }
 
-    private static string FormatLengthHoverText(uint durationTicks)
+    public static ReplayStatSnapshot Size(long bytes)
     {
-        TimeSpan length = TimeSpan.FromSeconds(durationTicks / 60d);
-        int hours = (int)length.TotalHours;
-        int minutes = length.Minutes;
-        int seconds = length.Seconds;
-        string text = "";
+        if (bytes <= 0)
+            return Unknown("Size", "Unknown size");
 
-        AddLengthPart(ref text, hours, "hour");
-        AddLengthPart(ref text, minutes, "minute");
-
-        if (seconds > 0 || text.Length == 0)
-            AddLengthPart(ref text, seconds, "second");
-
-        return text;
-    }
-
-    private static string FormatFileSizeText(long bytes)
-    {
-#if DEBUG
-        //bytes = 1024000; // 1000 KB
-        //bytes = 10240000; // 10 000 KB
-        //bytes = 102400000; // 100 000 KB
-        //bytes = 1024000000; // 1 000 000 KB
-#endif
-        double kilobytes = bytes / 1024d;
-
-        if (kilobytes < 1d)
-            return "<1 KB";
-
-        //return kilobytes.ToString("0", System.Globalization.CultureInfo.InvariantCulture) + " KB";
-        return kilobytes.ToString("#,0", System.Globalization.CultureInfo.InvariantCulture).Replace(",", " ") + " KB";
-
-        //double megabytes = bytes / 1024d / 1024d;
-
-        //if (megabytes >= 100d)
-        //    return (megabytes / 1024d).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " GB";
-
-        //if (megabytes < 0.1d)
-        //    return "<0.1 MB";
-
-        //return megabytes.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture) + " MB";
-    }
-
-    private static void AddLengthPart(ref string text, int value, string unit)
-    {
-        if (value <= 0)
-            return;
-
-        if (text.Length > 0)
-            text += ", ";
-
-        text += $"{value} {unit}{(value == 1 ? "" : "s")}";
+        string text = FormatFileSizeText(bytes);
+        return new("Size", text, $"Size: {text}", null, null);
     }
 
     public static string GetCurrentWorldName()
@@ -190,24 +73,97 @@ public static class ReplayStats
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
-}
 
-public sealed class ReplayStatDefinition
-{
-    public string Id { get; }
-    public string Label { get; }
-    public Func<Player, Asset<Texture2D>> GetIcon { get; }
-    public Func<Player, string> GetText { get; }
-    public Func<Player, string> GetHoverText { get; }
-    public Func<Player, Rectangle?> GetIconFrame { get; }
-
-    public ReplayStatSnapshot Build(Player player)
+    private static ReplayStatSnapshot Unknown(string label, string hoverText)
     {
-        string text = GetText(player);
-        string hoverText = GetHoverText == null ? $"{Label}: {text}" : GetHoverText(player);
-        Rectangle? iconFrame = GetIconFrame == null ? null : GetIconFrame(player);
+        return new(label, "Unknown", hoverText, null, null);
+    }
 
-        return new ReplayStatSnapshot(Label, text, hoverText, GetIcon(player), iconFrame);
+    private static string FormatDurationText(uint durationTicks)
+    {
+        TimeSpan time = TimeSpan.FromSeconds(durationTicks / 60d);
+
+        if (time.TotalHours >= 1d)
+            return $"{(int)time.TotalHours:00}:{time.Minutes:00}";
+
+        return $"{time.Minutes:00}:{time.Seconds:00}";
+    }
+
+    private static string FormatLengthHoverText(uint durationTicks)
+    {
+        TimeSpan time = TimeSpan.FromSeconds(durationTicks / 60d);
+        List<string> parts = [];
+
+        AddLengthPart(parts, (int)time.TotalHours, "hour");
+        AddLengthPart(parts, time.Minutes, "minute");
+
+        if (time.Seconds > 0 || parts.Count == 0)
+            AddLengthPart(parts, time.Seconds, "second");
+
+        return string.Join(", ", parts);
+    }
+
+    private static void AddLengthPart(List<string> parts, int value, string unit)
+    {
+        if (value <= 0)
+            return;
+
+        parts.Add($"{value} {unit}{(value == 1 ? "" : "s")}");
+    }
+
+    private static string FormatFileSizeText(long bytes)
+    {
+        double kilobytes = bytes / 1024d;
+
+        if (kilobytes < 1d)
+            return "<1 KB";
+
+        return kilobytes.ToString("#,0", CultureInfo.InvariantCulture).Replace(",", " ") + " KB";
+    }
+
+    private static string[] CleanModNames(string[] modNames)
+    {
+        if (modNames is null || modNames.Length == 0)
+            return [];
+
+        return modNames
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Select(x => x.Trim())
+            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
+    private static string BuildModsHoverText(string[] replayMods)
+    {
+        if (replayMods.Length == 0)
+            return "Unknown mods";
+
+        HashSet<string> enabledMods = ModLoader.Mods
+            .Select(x => x?.Name)
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        string[] enabledReplayMods = replayMods.Where(enabledMods.Contains).ToArray();
+        string[] missingMods = replayMods.Where(x => !enabledMods.Contains(x)).ToArray();
+
+        List<string> lines = ["Mods:"];
+
+        foreach (string modName in enabledReplayMods)
+            lines.Add($"[mi:{modName}]{modName}");
+
+        if (missingMods.Length > 0)
+        {
+            lines.Add("");
+            lines.Add("Missing mods:");
+
+            foreach (string modName in missingMods)
+                lines.Add($"[mi:{modName}][c/ff5555:{modName} (disabled)]");
+        }
+
+        return string.Join("\n", lines);
     }
 }
 

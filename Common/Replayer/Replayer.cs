@@ -22,22 +22,11 @@ public class Replayer : ModSystem, ITicker
     public override void Load()
     {
         On_Netplay.ClientLoopSetup += OnClientLoopSetup;
+    }
 
-        //IL_Main.DoUpdate += il =>
-        //{
-        //    var cursor = new ILCursor(il);
-        //    cursor.GotoNext(i => i.MatchStsfld<Main>("drawSkip"));
-        //    // cursor.Index += 1;
-        //    cursor.EmitDelegate(() =>
-        //    {
-        //        if (!ReplayPlayback.IsReplayPlayback || !Main.gameMenu)
-        //            return;
-
-        //        Ticks++;
-        //        if ((Ticks % 60) == 0)
-        //            Mod.Logger.Info("Tick: " + Ticks);
-        //    });
-        //};
+    public override void Unload()
+    {
+        On_Netplay.ClientLoopSetup -= OnClientLoopSetup;
     }
 
     private void OnClientLoopSetup(On_Netplay.orig_ClientLoopSetup orig, RemoteAddress address)
@@ -48,7 +37,7 @@ public class Replayer : ModSystem, ITicker
         if (address.GetIdentifier() == "10.2.3.4")
         {
             Ticks = 0;
-            Mod.Logger.Info("Connecting to magic replay IP thingy!");
+            Log.Info("Connecting to magic replay IP thingy!");
             Netplay.Connection = new RemoteServer();
             Netplay.Connection.ReadBuffer = new byte[ushort.MaxValue]; // TML: 1024 -> ushort.MaxValue
             //Netplay.Connection.Socket = new ReplaySocket(this, ReplayFile.Read(File.OpenRead("record.bin")));
@@ -57,13 +46,13 @@ public class Replayer : ModSystem, ITicker
 
             if (string.IsNullOrWhiteSpace(replayPath) || !File.Exists(replayPath))
             {
-                Mod.Logger.Error($"Replay path missing or invalid: {replayPath ?? "<null>"}");
+                Log.Error($"Replay path missing or invalid: {replayPath ?? "<null>"}");
                 ReplayPlayback.End("missing replay path");
                 Main.menuMode = 0;
                 return;
             }
 
-            Mod.Logger.Info($"Opening replay file: {replayPath}");
+            Log.Info($"Opening replay file: {replayPath}");
 
             FileStream stream = File.Open(replayPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
             Netplay.Connection.Socket = new ReplaySocket(this, ReplayFile.Read(stream));
@@ -78,10 +67,13 @@ public class Replayer : ModSystem, ITicker
         if (ReplayPlayback.DurationTicks > 0 && Ticks >= ReplayPlayback.DurationTicks)
             return;
 
+        // Advance tick!
         Ticks++;
-        if ((Ticks % (60*5)) == 0)
+
+        // Logging at 1 tick, 5 seconds, 10 seconds, and every 30 minutes thereafter
+        if (Ticks == 1 || Ticks == 300 || Ticks == 600 || Ticks % (30 * 60 * 60) == 0)
         {
-            Log.Info("Client replay tick: " + Ticks);
+            Log.Chat("Client replay tick: " + Ticks);
         }
     }
 

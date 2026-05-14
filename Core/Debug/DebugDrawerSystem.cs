@@ -5,7 +5,7 @@ using Terraria.UI;
 
 namespace Reese.Core.Debug;
 
-#if DEBUG
+//#if DEBUG
 internal sealed class DebugDrawerSystem : ModSystem
 {
     private UserInterface debugInterface;
@@ -68,4 +68,4 @@ internal sealed class DebugDrawerSystem : ModSystem
             InterfaceScaleType.UI));
     }
 }
-#endif
+//#endif
