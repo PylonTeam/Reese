@@ -3,6 +3,7 @@ using System.IO;
 using Terraria;
 using Terraria.Localization;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
+using Reese.Core.Configs;
 
 namespace Reese.Common.Replayer;
 
@@ -126,8 +127,26 @@ public static class ReplayPlayback
         if (DurationTicks > 0)
             tick = Math.Min(tick, DurationTicks);
 
-        if (tick <= replayer.Ticks)
+        if (tick == replayer.Ticks)
             return;
+
+        if (tick < replayer.Ticks)
+        {
+            if (ModContent.GetInstance<ClientConfig>()?.EnableBackwardsSeeking != true)
+                return;
+
+            Replayer.ReplaySocket socket = CurrentReplaySocket;
+
+            if (socket?.ResetToStart() != true)
+            {
+                Log.Chat("Unable to seek backwards: stream reset failed.");
+                return;
+            }
+
+            replayer.SetTicks(0);
+            ResetReplayStateForStart();
+            SpectatorTargetSystem.ResetForReplayStart();
+        }
 
         replayer.SetTicks(tick);
 

@@ -22,10 +22,21 @@ internal static class DebugDrawer
     internal static bool ShowDebugMiscStats { get; private set; } = false;
     internal static bool ShowChat { get; private set; } = true;
     internal static bool ShowRectangles { get; private set; } = true;
+    private static bool? showDebugButtonsOverride;
 
     // Content
     private static readonly List<(Rectangle rect, Color color)> Rectangles = [];
     private static readonly List<(string text, Vector2 pos, Color color, float scale)> Texts = [];
+
+    internal static bool AreDebugButtonsVisible(bool showDebugDrawer)
+    {
+        return showDebugButtonsOverride ?? showDebugDrawer;
+    }
+
+    internal static void ToggleDebugButtons(bool showDebugDrawer)
+    {
+        showDebugButtonsOverride = !AreDebugButtonsVisible(showDebugDrawer);
+    }
     
     internal static void DrawRectangle(Rectangle rect, Color? color = null, bool drawSize = false)
     {

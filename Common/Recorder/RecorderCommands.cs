@@ -16,7 +16,7 @@ public class RecordCommand : ModCommand
             return;
         }
 
-        ModContent.GetInstance<Recorder>().StartRecordingPublic();
+        ModContent.GetInstance<Recorder>().StartRecording();
         caller.Reply("[Reese] Recording started successfully.");
     }
 }
@@ -35,7 +35,7 @@ public class StopRecordCommand : ModCommand
             return;
         }
 
-        ModContent.GetInstance<Recorder>().StopRecordingPublic("Stopped via command");
+        ModContent.GetInstance<Recorder>().StopRecording("Stopped via command");
         caller.Reply("[Reese] Recording stopped.");
     }
 }

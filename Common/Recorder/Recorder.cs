@@ -1,18 +1,14 @@
-﻿using log4net;
-using Microsoft.Xna.Framework;
-using MonoMod.Cil;
+﻿using MonoMod.Cil;
 using Reese.Common.MainMenu;
 using Reese.Common.Replayer;
 using Reese.Core.Stats;
 using System;
 using System.IO;
 using System.Reflection;
-using Terraria;
 using Terraria.GameContent.Creative;
 using Terraria.GameContent.Events;
 using Terraria.ID;
 using Terraria.Localization;
-using Terraria.ModLoader;
 using Terraria.Net;
 using Terraria.Net.Sockets;
 
@@ -84,8 +80,11 @@ public class Recorder : ModSystem, ITicker
         IL_NetMessage.SendData -= EditNetMessageSendData;
     }
 
-    public void StartRecordingPublic() => StartRecording();
-    private void StartRecording()
+    public void StartRecording()
+    {
+        StartRecordingInner();
+    }
+    private void StartRecordingInner()
     {
         if (isRecording)
             return;
@@ -101,7 +100,7 @@ public class Recorder : ModSystem, ITicker
         currentReplayPath = Path.Combine(dir, $"{ReplayFilePrefix}_{ReplayPlayback.GetNextReplayNumber(dir, ReplayFilePrefix):0000}.reese");
         RecorderStatus.Start(currentReplayPath);
 
-        Console.WriteLine($"Server ({RecordClientIndex}) started recording for {Path.GetFileName(currentReplayPath)}");
+        Console.WriteLine($"[Reese] Client {RecordClientIndex} started recording to: \"{Path.GetFileName(currentReplayPath)}\"");
 
         var replayFile = ReplayFile.Write(File.Open(currentReplayPath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite));
 
@@ -226,8 +225,11 @@ public class Recorder : ModSystem, ITicker
         }
     }
 
-    public void StopRecordingPublic(string reason="") => StopRecording(reason);
-    private void StopRecording(string reason="")
+    public void StopRecording(string reason = "")
+    {
+        StopRecordingInner(reason);
+    }
+    private void StopRecordingInner(string reason="")
     {
         if (!isRecording)
             return;
@@ -261,7 +263,7 @@ public class Recorder : ModSystem, ITicker
 
         if (!string.IsNullOrWhiteSpace(savedReplayPath))
         {
-            string message = $"Recording stopped at tick {Ticks}. Reason: {reason}. Saved to {Path.GetFileNameWithoutExtension(savedReplayPath)}";
+            string message = $"[Reese] Recording stopped at tick {Ticks}. Reason: {reason}. Saved to {Path.GetFileNameWithoutExtension(savedReplayPath)}";
             Log.Info(message);
             Console.WriteLine(message);
         }
@@ -295,9 +297,9 @@ public class Recorder : ModSystem, ITicker
         {
             bool hasPlayers = ReplayPlayback.HasActivePlayers();
             if (!isRecording && hasPlayers)
-                StartRecording();
+                StartRecordingInner();
             else if (isRecording && !hasPlayers)
-                StopRecording("No players in server");
+                StopRecordingInner("No players in server");
         }
 
         if (isRecording)
@@ -311,10 +313,13 @@ public class Recorder : ModSystem, ITicker
             if (Ticks == 1 || Ticks == 300 || Ticks == 600 || Ticks % (30 * 60 * 60) == 0)
             {
                 string timeString = TimeSpan.FromSeconds(Ticks / 60.0).ToString(@"hh\:mm\:ss");
-                string message = $"[Reese] Recording to: \"{Path.GetFileNameWithoutExtension(currentReplayPath)}\" | Length: {timeString} | Packets: {RecorderStatus.TotalPacketsSent} | Size: {RecorderStatus.TotalBytesSent / 1024.0:F0} KB";
+                string fileName = $"{Path.GetFileNameWithoutExtension(currentReplayPath)}";
+                string message = $"[Reese] Reese is currently recording! Filename: {fileName} | Length: {timeString} | Packets: {RecorderStatus.TotalPacketsSent} | Size: {RecorderStatus.TotalBytesSent / 1024.0:F0} KB";
 
                 if (Ticks==600)
-                    message += "\n[Reese] Recording has been running for more than 10 seconds and will now only log every 30 minutes. Use /recordstatus to view status.";
+                {
+                    message += "\n[Reese] The recording has passed 10 seconds! Future logs will now be sent once every 30 minutes. Use /recordstatus to view current recording status info (length, packets, size).";
+                }
                 Console.WriteLine(message);
                 Log.Info(message);
             }
@@ -325,7 +330,7 @@ public class Recorder : ModSystem, ITicker
     {
         if (Main.dedServ)
         {
-            StopRecording("Server shutting down due to world unload");
+            StopRecordingInner("Server shutting down due to world unload");
 
             // Guess our shit isn't closed when the server dies. Would be nice to do it to everyone, but that's a big
             // change from status-quo, so just do it for ourselves.

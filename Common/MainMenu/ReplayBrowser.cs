@@ -40,22 +40,7 @@ internal sealed class ReplayBrowser : UIElement
         Append(browserPanel);
         browserPanel.Build();
 
-        ReplayPlayback.OnReplayFolderChanged += HandleReplayFolderChanged;
-
-        if (ReplayPlayback.ConsumeReplayFolderDirty())
-            HandleReplayFolderChanged();
-
         Log.Chat("Build ReplayBrowser");
-    }
-
-    public override void OnDeactivate()
-    {
-        ReplayPlayback.OnReplayFolderChanged -= HandleReplayFolderChanged;
-    }
-
-    private void HandleReplayFolderChanged()
-    {
-        browserPanel?.Refresh(showLoading: false, retryIncomplete: true);
     }
 
     public void Refresh()
@@ -66,9 +51,6 @@ internal sealed class ReplayBrowser : UIElement
 
 internal sealed class ReplayBrowserPanel : UIElement
 {
-    private const int MaxMetadataRefreshRetries = 8;
-    private const int MetadataRefreshRetryDelayMs = 250;
-
     private enum SortColumn
     {
         None, // (default) Sort by date, newest first
@@ -178,7 +160,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         container.Append(scrollbar);
         list.SetScrollbar(scrollbar);
 
-        UITextPanel<string> header = new("Reese", 0.66f, true)
+        UITextPanel<string> header = new(GetHeaderText(), 0.66f, true)
         {
             BackgroundColor = new Color(73, 94, 171),
             BorderColor = Color.Black
@@ -194,7 +176,7 @@ internal sealed class ReplayBrowserPanel : UIElement
             HAlign = 0.5f,
             VAlign = 0f,
             Top = { Pixels = 0f },
-            Left = { Pixels = -66f }
+            Left = { Pixels = -88f }
         };
         cameraIcon.ImageScale = 1.5f;
         cameraIcon.Width.Set(30f, 0f);
@@ -283,7 +265,13 @@ internal sealed class ReplayBrowserPanel : UIElement
         ModContent.GetInstance<MainMenuSystem>().OpenClientConfig();
     }
 
-    public void Refresh(bool showLoading = true, bool retryIncomplete = true, int retryAttempt = 0)
+    private static string GetHeaderText()
+    {
+        string version = ModContent.GetInstance<global::Reese.Reese>()?.Version?.ToString();
+        return string.IsNullOrWhiteSpace(version) ? "Reese" : $"Reese v{version}";
+    }
+
+    public void Refresh(bool showLoading = true)
     {
         if (list == null)
             return;
@@ -317,11 +305,7 @@ internal sealed class ReplayBrowserPanel : UIElement
                 }
 
                 cachedEntries = task.Result;
-                LogReplayRefresh(generation, cachedEntries, retryIncomplete, retryAttempt);
                 ApplyCurrentFilter();
-
-                if (retryIncomplete && retryAttempt < MaxMetadataRefreshRetries && HasIncompleteMetadata(cachedEntries))
-                    ScheduleMetadataRetry(retryAttempt + 1);
 
                 OnRefreshFinished?.Invoke();
             });
@@ -396,38 +380,6 @@ internal sealed class ReplayBrowserPanel : UIElement
 
         Log.Info($"Replay metadata load finished: entries={entries.Count}/{files.Length}, ms={watch.ElapsedMilliseconds}");
         return [.. entries];
-    }
-
-    private void ScheduleMetadataRetry(int retryAttempt)
-    {
-        Log.Info($"Replay metadata incomplete after refresh; scheduling retry {retryAttempt}/{MaxMetadataRefreshRetries}");
-
-        System.Threading.Tasks.Task.Delay(MetadataRefreshRetryDelayMs).ContinueWith(_ =>
-        {
-            Main.QueueMainThreadAction(() => Refresh(showLoading: false, retryIncomplete: true, retryAttempt));
-        });
-    }
-
-    private static bool HasIncompleteMetadata(ReplayMetadata[] entries)
-    {
-        foreach (ReplayMetadata metadata in entries)
-        {
-            if (!HasMetadata(metadata))
-                return true;
-        }
-
-        return false;
-    }
-
-    private static bool HasMetadata(ReplayMetadata metadata)
-    {
-        return metadata != null && metadata.DurationTicks > 0 && metadata.ModNames != null;
-    }
-
-    private static void LogReplayRefresh(int generation, ReplayMetadata[] entries, bool retryIncomplete, int retryAttempt)
-    {
-        int incompleteMetadataCount = entries.Count(x => !HasMetadata(x));
-        Log.Info($"Replay browser refreshed: generation={generation}, entries={entries.Length}, retryIncomplete={retryIncomplete}, retryAttempt={retryAttempt}, incompleteMetadata={incompleteMetadataCount}");
     }
 
     private ReplayMetadata[] SortEntries(ReplayMetadata[] entries)

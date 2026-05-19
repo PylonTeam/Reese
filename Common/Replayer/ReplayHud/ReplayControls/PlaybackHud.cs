@@ -72,9 +72,11 @@ public sealed class PlaybackHud : DraggablePanel
         positionSlider.OnDrag += ratio =>
         {
             uint targetTick = RatioToTick(ratio);
-            if (targetTick <= ReplayPlayback.CurrentTick)
+            if (targetTick < ReplayPlayback.CurrentTick)
             {
-                RefreshPositionSlider();
+                if (!IsBackwardsSeekingEnabled())
+                    RefreshPositionSlider();
+
                 return;
             }
 
@@ -82,8 +84,12 @@ public sealed class PlaybackHud : DraggablePanel
         };
         positionSlider.OnRelease += ratio =>
         {
-            if (RatioToTick(ratio) < ReplayPlayback.CurrentTick)
-                Main.NewText("You cannot go backwards in a replay. Use Go to Start instead.", Color.OrangeRed);
+            uint targetTick = RatioToTick(ratio);
+
+            if (targetTick < ReplayPlayback.CurrentTick && !IsBackwardsSeekingEnabled())
+                Main.NewText("You cannot go backwards in a replay. Enable Backwards Seeking in the debug config to allow it.", Color.OrangeRed);
+            else
+                ReplayPlayback.SeekToTick(targetTick);
 
             RefreshPositionSlider();
         };
@@ -272,8 +278,10 @@ public sealed class PlaybackHud : DraggablePanel
         float speed = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
         bool paused = speed <= 0f;
 
-        RefreshPositionSlider(currentTick, durationTicks);
-        positionSlider.HighlightColor = IsHoveringBackwardPosition() ? Color.Red : Main.OurFavoriteColor;
+        if (!positionSlider.IsHeld)
+            RefreshPositionSlider(currentTick, durationTicks);
+
+        positionSlider.HighlightColor = !IsBackwardsSeekingEnabled() && IsHoveringBackwardPosition() ? Color.Red : Main.OurFavoriteColor;
         positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
         speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
         transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Tick: {currentTick}");
@@ -326,6 +334,11 @@ public sealed class PlaybackHud : DraggablePanel
             return false;
 
         return RatioToTick(positionSlider.GetMouseRatio()) < ReplayPlayback.CurrentTick;
+    }
+
+    private static bool IsBackwardsSeekingEnabled()
+    {
+        return ModContent.GetInstance<ClientConfig>()?.EnableBackwardsSeeking == true;
     }
 
     private static string FormatSpeedButton(float speed)

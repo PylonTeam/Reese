@@ -36,6 +36,11 @@ Mods: {
 					Label: Show Debug Drawer
 					Tooltip: For developer use only, draws debug stats in the top left corner in-game.
 				}
+
+				EnableBackwardsSeeking: {
+					Label: Enable Backwards Seeking
+					Tooltip: ""
+				}
 			}
 		}
 

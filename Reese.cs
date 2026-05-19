@@ -28,13 +28,13 @@ public class Reese : Mod
         switch (command)
         {
             case "StartRecording":
-                ModContent.GetInstance<Recorder>().StartRecordingPublic();
+                ModContent.GetInstance<Recorder>().StartRecording();
                 return true;
 
             case "StopRecording":
                 // allow them to pass a reason, default to "Cross-mod call"
                 string reason = args.Length > 1 && args[1] is string r ? r : "Cross-mod call";
-                ModContent.GetInstance<Recorder>().StopRecordingPublic(reason);
+                ModContent.GetInstance<Recorder>().StopRecording(reason);
                 return true;
         }
 

@@ -31,6 +31,9 @@ public class ClientConfig : ModConfig
     [BackgroundColor(150, 150, 150, 150)]
     [DefaultValue(false)] public bool ShowDebugDrawer;
 
+    [BackgroundColor(150, 150, 150, 150)]
+    [DefaultValue(false)] public bool EnableBackwardsSeeking;
+
     #region Methods
     public override void OnChanged()
     {

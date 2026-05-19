@@ -29,6 +29,11 @@ internal sealed class DebugDrawerSystem : ModSystem
 
     public override void UpdateUI(GameTime gameTime)
     {
+        bool showDebugDrawer = ModContent.GetInstance<ClientConfig>().ShowDebugDrawer;
+
+        if (KeyboardHelper.Pressed(Keys.F6))
+            DebugDrawer.ToggleDebugButtons(showDebugDrawer);
+
 #if DEBUG
         if (KeyboardHelper.Pressed(Keys.NumPad0))
         {
@@ -44,8 +49,10 @@ internal sealed class DebugDrawerSystem : ModSystem
 
     public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
-        // 1. Check if the config allows the drawer to run
-        if (!ModContent.GetInstance<ClientConfig>().ShowDebugDrawer)
+        bool showDebugDrawer = ModContent.GetInstance<ClientConfig>().ShowDebugDrawer;
+        bool showDebugButtons = DebugDrawer.AreDebugButtonsVisible(showDebugDrawer);
+
+        if (!showDebugDrawer && !showDebugButtons)
             return;
 
         int index = layers.FindIndex(layer => layer.Name.Equals("Vanilla: Mouse Text"));
@@ -59,8 +66,12 @@ internal sealed class DebugDrawerSystem : ModSystem
             {
                 debugInterface?.Draw(Main.spriteBatch, new GameTime());
 
-                DebugDrawer.DrawButtons();
-                DebugDrawer.DrawDebugInfo();
+                if (showDebugButtons)
+                    DebugDrawer.DrawButtons();
+
+                if (showDebugDrawer)
+                    DebugDrawer.DrawDebugInfo();
+
                 DebugDrawer.Flush(Main.spriteBatch);
 
                 return true;
