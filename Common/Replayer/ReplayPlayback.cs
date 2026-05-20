@@ -16,6 +16,7 @@ public static class ReplayPlayback
     public const int RecordClientIndex = 254;
 
 	public static bool IsReplayPlayback { get; private set; }
+	public static bool HasEnteredReplayWorld { get; private set; }
 	public static string CurrentPath { get; private set; }
 	public static uint DurationTicks { get; private set; }
     public static uint CurrentTick => ModContent.GetInstance<Replayer>().Ticks;
@@ -28,15 +29,25 @@ public static class ReplayPlayback
                player.whoAmI == RecordClientIndex;
     }
 
-    public static void BeginPlayback(string path)
+	public static void BeginPlayback(string path)
 	{
         IsReplayPlayback = true;
         CurrentPath = path;
+		HasEnteredReplayWorld = false;
         Metadata = ReplayMetadata.FromFile(path);
         DurationTicks = Metadata?.DurationTicks ?? 0;
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
         Log.Info($"Replay playback started: {path}");
 	}
+
+    public static void MarkEnteredReplayWorld()
+    {
+        if (!IsReplayPlayback || HasEnteredReplayWorld)
+            return;
+
+        HasEnteredReplayWorld = true;
+        Log.Info($"Replay world entered; bootstrap tick advancement stopping at replay tick {CurrentTick}.");
+    }
 
 	public static void End(string reason = null, bool quitPlayer=false)
 	{
@@ -45,6 +56,7 @@ public static class ReplayPlayback
 
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 		IsReplayPlayback = false;
+		HasEnteredReplayWorld = false;
 		CurrentPath = null;
 		DurationTicks = 0;
 

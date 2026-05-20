@@ -21,6 +21,7 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
         if (!ReplayPlayback.IsReplayPlayback)
             return;
 
+        ReplayPlayback.MarkEnteredReplayWorld();
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 
         string fileName = string.IsNullOrWhiteSpace(ReplayPlayback.CurrentPath)

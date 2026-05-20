@@ -36,6 +36,8 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
     private bool stepOneFrameRequested;
     private bool consumedWorldStep;
     private bool consumedTimeStep;
+    private bool bootstrapTickAdvancementActive;
+    private uint bootstrapTicksAdvanced;
 
     public override void Load()
     {
@@ -117,6 +119,7 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
     private void HookDoUpdate(On_Main.orig_DoUpdate orig, Main self, ref GameTime gameTime)
     {
         orig(self, ref gameTime);
+        TryAdvanceReplayBootstrapTick();
 
         if (runningExtraUpdates || Main.gameMenu || TimeScale <= 1f)
             return;
@@ -140,6 +143,46 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
         {
             runningExtraUpdates = false;
         }
+    }
+
+    private void TryAdvanceReplayBootstrapTick()
+    {
+        if (!ReplayPlayback.IsReplayPlayback)
+        {
+            ResetBootstrapTickAdvancement();
+            return;
+        }
+
+        if (ReplayPlayback.HasEnteredReplayWorld)
+        {
+            ResetBootstrapTickAdvancement();
+            return;
+        }
+
+        if (Main.netMode != NetmodeID.MultiplayerClient)
+            return;
+
+        if (Netplay.Connection?.Socket is not global::Reese.Common.Replayer.Replayer.ReplaySocket)
+            return;
+
+        if (!bootstrapTickAdvancementActive)
+        {
+            bootstrapTickAdvancementActive = true;
+            bootstrapTicksAdvanced = 0;
+            Log.Info($"Replay bootstrap tick advancement started at replay tick {ReplayPlayback.CurrentTick}.");
+        }
+
+        ModContent.GetInstance<global::Reese.Common.Replayer.Replayer>()?.AdvancePlaybackTick();
+        bootstrapTicksAdvanced++;
+
+        if (bootstrapTicksAdvanced % 60 == 0)
+            Log.Info($"Replay bootstrap tick advancement has run for {bootstrapTicksAdvanced} ticks; current replay tick is {ReplayPlayback.CurrentTick}.");
+    }
+
+    private void ResetBootstrapTickAdvancement()
+    {
+        bootstrapTickAdvancementActive = false;
+        bootstrapTicksAdvanced = 0;
     }
 
     private void HookDoUpdateInWorld(On_Main.orig_DoUpdateInWorld orig, Main self, Stopwatch sw)
