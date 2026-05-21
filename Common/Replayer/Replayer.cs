@@ -3,7 +3,9 @@ using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using Terraria;
 using Terraria.ModLoader;
@@ -64,11 +66,18 @@ public class Replayer : ModSystem, ITicker
         if (!ReplayPlayback.IsReplayPlayback)
             return;
 
+        if (ReplayPlayback.IsSeeking && Ticks >= ReplayPlayback.SeekTargetTick)
+        {
+            ReplayPlayback.TryCompleteSeek(Ticks);
+            return;
+        }
+
         if (ReplayPlayback.DurationTicks > 0 && Ticks >= ReplayPlayback.DurationTicks)
             return;
 
         // Advance tick!
         Ticks++;
+        ReplayPlayback.NotifyPlaybackTickAdvanced(Ticks);
 
         // Logging at 1 tick, 5 seconds, 10 seconds, and every 30 minutes thereafter
         if (Ticks == 1 || Ticks == 300 || Ticks == 600 || Ticks % (30 * 60 * 60) == 0)
@@ -96,6 +105,14 @@ public class Replayer : ModSystem, ITicker
         private static readonly ILog Logger = LogManager.GetLogger(typeof(ReplaySocket));
         private readonly ReplayRemoteAddress _remoteAddress = new();
         private readonly object replayFileLock = new();
+        public IReadOnlyList<ReplayBaselineEntry> Baselines
+        {
+            get
+            {
+                lock (replayFileLock)
+                    return replayFile.Baselines.ToArray();
+            }
+        }
 
         public void Close()
         {
@@ -122,6 +139,32 @@ public class Replayer : ModSystem, ITicker
                 Log.Error($"Failed to reset replay stream: {e.Message}");
                 return false;
             }
+        }
+
+        public ReplayBaselineEntry? GetNearestBaselineBefore(uint targetTick)
+        {
+            lock (replayFileLock)
+                return replayFile.GetNearestBaselineBefore(targetTick);
+        }
+
+        public bool SeekToBaseline(ReplayBaselineEntry baseline)
+        {
+            try
+            {
+                lock (replayFileLock)
+                    return replayFile.SeekToBaseline(baseline);
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Failed to seek replay stream to baseline at tick {baseline.Tick}: {e.Message}");
+                return false;
+            }
+        }
+
+        public bool HasPendingDataAtOrBefore(uint targetTick)
+        {
+            lock (replayFileLock)
+                return replayFile.HasPendingDataAtOrBefore(targetTick);
         }
 
         public bool IsConnected() => true;

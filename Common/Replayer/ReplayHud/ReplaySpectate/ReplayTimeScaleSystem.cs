@@ -18,6 +18,8 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 internal sealed class ReplayTimeScaleSystem : ModSystem
 {
     public static readonly float[] SnapValues = [0f, 0.125f, 0.25f, 0.5f, 0.75f, 1f, 2f, 4f, 8f, 16f, 32f];
+    private const int MaxSeekUpdatesPerFrame = 128;
+    private const double MaxSeekMillisecondsPerFrame = 8.0;
 
     /// <summary>
     /// Gets the current time scale factor applied to time-dependent operations.
@@ -121,7 +123,16 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
         orig(self, ref gameTime);
         TryAdvanceReplayBootstrapTick();
 
-        if (runningExtraUpdates || Main.gameMenu || TimeScale <= 1f)
+        if (runningExtraUpdates || Main.gameMenu)
+            return;
+
+        if (ReplayPlayback.IsSeeking)
+        {
+            RunSeekUpdates(orig, self, ref gameTime);
+            return;
+        }
+
+        if (TimeScale <= 1f)
             return;
 
         double extraUpdatesToRun = TimeScale - 1d;
@@ -138,6 +149,28 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
         {
             for (int i = 0; i < extraWholeUpdates; i++)
                 orig(self, ref gameTime);
+        }
+        finally
+        {
+            runningExtraUpdates = false;
+        }
+    }
+
+    private void RunSeekUpdates(On_Main.orig_DoUpdate orig, Main self, ref GameTime gameTime)
+    {
+        Stopwatch stopwatch = Stopwatch.StartNew();
+        runningExtraUpdates = true;
+
+        try
+        {
+            for (int i = 0; i < MaxSeekUpdatesPerFrame && ReplayPlayback.IsSeeking; i++)
+            {
+                if (stopwatch.Elapsed.TotalMilliseconds >= MaxSeekMillisecondsPerFrame)
+                    break;
+
+                global::Reese.Common.Replayer.Replayer.ReplaySocket.ResetTimeoutTimer();
+                orig(self, ref gameTime);
+            }
         }
         finally
         {
@@ -187,7 +220,7 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
 
     private void HookDoUpdateInWorld(On_Main.orig_DoUpdateInWorld orig, Main self, Stopwatch sw)
     {
-        if (Main.gameMenu || TimeScale >= 1f)
+        if (Main.gameMenu || ReplayPlayback.IsSeeking || TimeScale >= 1f)
         {
             // Index Out Of Range sometimes here when scrubbing/seeking during a replay too fast...?
             orig(self, sw);
@@ -227,7 +260,7 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
 
     private void HookUpdateTime(On_Main.orig_UpdateTime orig)
     {
-        if (Main.gameMenu || TimeScale >= 1f)
+        if (Main.gameMenu || ReplayPlayback.IsSeeking || TimeScale >= 1f)
         {
             orig();
             return;

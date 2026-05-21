@@ -59,6 +59,7 @@ public static class ReplayPlayback
 		HasEnteredReplayWorld = false;
 		CurrentPath = null;
 		DurationTicks = 0;
+        CancelSeek();
 
         if (quitPlayer)
         {
@@ -118,7 +119,15 @@ public static class ReplayPlayback
     }
 
     #region Seeking
+    public static bool IsSeeking { get; private set; }
+    public static uint SeekTargetTick { get; private set; }
+
     public static void SeekToTick(uint tick)
+    {
+        BeginSeekToTick(tick);
+    }
+
+    public static void BeginSeekToTick(uint targetTick)
     {
         if (!IsReplayPlayback)
             return;
@@ -126,36 +135,75 @@ public static class ReplayPlayback
         Replayer replayer = ModContent.GetInstance<Replayer>();
 
         if (DurationTicks > 0)
-            tick = Math.Min(tick, DurationTicks);
+            targetTick = Math.Min(targetTick, DurationTicks);
 
-        if (tick == replayer.Ticks)
-            return;
-
-        if (tick < replayer.Ticks)
+        if (targetTick == replayer.Ticks)
         {
-            if (ModContent.GetInstance<ClientConfig>()?.EnableBackwardsSeeking != true)
-                return;
-
-            Replayer.ReplaySocket socket = CurrentReplaySocket;
-
-            if (socket?.ResetToStart() != true)
-            {
-                Log.Chat("Unable to seek backwards: stream reset failed.");
-                return;
-            }
-
-            replayer.SetTicks(0);
-            ResetReplayStateForStart();
-            SpectatorTargetSystem.ResetForReplayStart();
+            CancelSeek();
+            return;
         }
 
-        replayer.SetTicks(tick);
+        if (targetTick < replayer.Ticks && ModContent.GetInstance<ClientConfig>()?.EnableBackwardsSeeking != true)
+            return;
+
+        Replayer.ReplaySocket socket = CurrentReplaySocket;
+        if (socket == null)
+        {
+            Log.Chat("Unable to seek: replay socket is unavailable.");
+            return;
+        }
+
+        uint currentTick = replayer.Ticks;
+        ReplayBaselineEntry? baseline = socket.GetNearestBaselineBefore(targetTick);
+        bool canContinueFromCurrent = targetTick > currentTick;
+        bool useCurrentState = canContinueFromCurrent &&
+                               (!baseline.HasValue || targetTick - currentTick <= targetTick - baseline.Value.Tick);
+
+        uint startTick;
+        string startDescription;
+
+        if (useCurrentState)
+        {
+            startTick = currentTick;
+            startDescription = "current state";
+        }
+        else if (baseline.HasValue)
+        {
+            ReplayBaselineEntry entry = baseline.Value;
+            if (!socket.SeekToBaseline(entry))
+            {
+                Log.Chat($"Unable to seek to baseline at tick {entry.Tick}; falling back to replay start.");
+                if (!ResetReplayToStart(socket, replayer))
+                    return;
+
+                startTick = 0;
+                startDescription = "start";
+            }
+            else
+            {
+                replayer.SetTicks(entry.Tick);
+                ResetReplayStateForBaseline();
+                startTick = entry.Tick;
+                startDescription = $"baseline tick {entry.Tick}";
+            }
+        }
+        else
+        {
+            if (!ResetReplayToStart(socket, replayer))
+                return;
+
+            startTick = 0;
+            startDescription = "start";
+        }
 
         if (Netplay.Connection != null)
             Netplay.Connection.StatusText = string.Empty;
 
+        IsSeeking = true;
+        SeekTargetTick = targetTick;
         Replayer.ReplaySocket.ResetTimeoutTimer();
-        Log.Chat($"Seeking to tick {tick}...");
+        Log.Chat($"Seeking to tick {targetTick} from {startDescription}...");
+        Log.Info($"Seeking to tick {targetTick} from {startDescription}; start tick {startTick}.");
     }
 
     public static void SeekToStart()
@@ -172,9 +220,9 @@ public static class ReplayPlayback
             return;
         }
 
+        CancelSeek();
         replayer.SetTicks(0);
-        ResetReplayStateForStart();
-        SpectatorTargetSystem.ResetForReplayStart();
+        ResetReplayStateForBaseline();
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 
         if (Netplay.Connection != null)
@@ -189,9 +237,54 @@ public static class ReplayPlayback
         SeekToTick(DurationTicks);
     }
 
+    public static void NotifyPlaybackTickAdvanced(uint currentTick)
+    {
+        TryCompleteSeek(currentTick);
+    }
+
+    public static bool TryCompleteSeek(uint currentTick)
+    {
+        if (!IsSeeking)
+            return false;
+
+        if (currentTick < SeekTargetTick)
+            return false;
+
+        Replayer.ReplaySocket socket = CurrentReplaySocket;
+        if (socket != null && socket.HasPendingDataAtOrBefore(SeekTargetTick))
+            return false;
+
+        uint targetTick = SeekTargetTick;
+        IsSeeking = false;
+        SeekTargetTick = 0;
+        Replayer.ReplaySocket.ResetTimeoutTimer();
+        Log.Chat($"Seek complete at tick {currentTick}.");
+        Log.Info($"Seek to tick {targetTick} completed at replay tick {currentTick}.");
+        return true;
+    }
+
+    public static void CancelSeek()
+    {
+        IsSeeking = false;
+        SeekTargetTick = 0;
+    }
+
     private static Replayer.ReplaySocket CurrentReplaySocket => Netplay.Connection?.Socket as Replayer.ReplaySocket;
 
-    private static void ResetReplayStateForStart()
+    private static bool ResetReplayToStart(Replayer.ReplaySocket socket, Replayer replayer)
+    {
+        if (socket?.ResetToStart() != true)
+        {
+            Log.Chat("Unable to seek: stream reset failed.");
+            return false;
+        }
+
+        replayer.SetTicks(0);
+        ResetReplayStateForBaseline();
+        return true;
+    }
+
+    private static void ResetReplayStateForBaseline()
     {
         for (int i = 0; i < Main.maxPlayers; i++)
         {
@@ -216,6 +309,8 @@ public static class ReplayPlayback
             if (Main.item[i] != null)
                 Main.item[i].active = false;
         }
+
+        SpectatorTargetSystem.ResetForReplayStart();
     }
     #endregion
 }

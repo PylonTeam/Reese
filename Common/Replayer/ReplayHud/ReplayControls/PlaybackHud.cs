@@ -53,15 +53,10 @@ public sealed class PlaybackHud : DraggablePanel
         positionSlider.OnDrag += ratio =>
         {
             uint targetTick = RatioToTick(ratio);
-            if (targetTick < ReplayPlayback.CurrentTick)
-            {
-                if (!IsBackwardsSeekingEnabled())
-                    RefreshPositionSlider();
-
-                return;
-            }
-
-            ReplayPlayback.SeekToTick(targetTick);
+            if (targetTick < ReplayPlayback.CurrentTick && !IsBackwardsSeekingEnabled())
+                RefreshPositionSlider();
+            else
+                positionLabel.SetText($"Time: {FormatTime(targetTick)} / {FormatTime(GetDurationTicks())}");
         };
         positionSlider.OnRelease += ratio =>
         {
@@ -318,6 +313,7 @@ public sealed class PlaybackHud : DraggablePanel
     {
         uint durationTicks = GetDurationTicks();
         uint currentTick = Math.Min(ReplayPlayback.CurrentTick, durationTicks);
+        uint displayTick = positionSlider.IsHeld ? RatioToTick(positionSlider.Ratio) : currentTick;
         float speed = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
         bool paused = speed <= 0f;
 
@@ -329,7 +325,7 @@ public sealed class PlaybackHud : DraggablePanel
                 RefreshPositionSlider(currentTick, durationTicks);
 
             positionSlider.HighlightColor = !IsBackwardsSeekingEnabled() && IsHoveringBackwardPosition() ? Color.Red : Main.OurFavoriteColor;
-            positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
+            positionLabel.SetText($"Time: {FormatTime(displayTick)} / {FormatTime(durationTicks)}");
         }
 
         if (ReplayClientSettings.ShowReplayHudSpeed)
@@ -410,6 +406,9 @@ public sealed class PlaybackHud : DraggablePanel
 
     private static string GetReplayStatus(uint currentTick, uint durationTicks, bool paused)
     {
+        if (ReplayPlayback.IsSeeking)
+            return "Seeking";
+
         if (durationTicks > 1 && currentTick >= durationTicks)
             return "End";
 
