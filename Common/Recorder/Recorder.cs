@@ -306,13 +306,17 @@ public class Recorder : ModSystem, ITicker
 
         const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
         string savedReplayPath = currentReplayPath;
+        string worldName = ReplayStats.GetCurrentWorldName();
+        string[] modNames = ReplayStats.GetCurrentModNames();
+        bool savedReplayFinished = false;
 
         var recordClient = Netplay.Clients[RecordClientIndex];
 
         if (recordClient?.Socket is RecordSocket recordSocket)
         {
-            recordSocket.Finish(ReplayStats.GetCurrentWorldName(), ReplayStats.GetCurrentModNames(), Ticks, ReplayFileFlags.New);
+            recordSocket.Finish(Ticks, ReplayStats.GetCurrentWorldName(), ReplayStats.GetCurrentModNames(), ReplayFileFlags.New);
             recordSocket.Close();
+            savedReplayFinished = !string.IsNullOrWhiteSpace(savedReplayPath) && File.Exists(savedReplayPath);
         }
 
         if (recordClient != null)
@@ -330,6 +334,9 @@ public class Recorder : ModSystem, ITicker
             string message = $"[Reese] Recording stopped at tick {Ticks}. Reason: {reason}. Saved to {Path.GetFileNameWithoutExtension(savedReplayPath)}";
             Log.Info(message);
             Console.WriteLine(message);
+
+            if (savedReplayFinished)
+                RecorderEvents.RaiseRecordingFinished(savedReplayPath, worldName, modNames, Ticks, reason);
         }
     }
 

@@ -1,4 +1,5 @@
 using Reese.Common.Recorder;
+using System;
 using System.IO;
 
 namespace Reese;
@@ -36,9 +37,34 @@ public class Reese : Mod
                 string reason = args.Length > 1 && args[1] is string r ? r : "Cross-mod call";
                 ModContent.GetInstance<Recorder>().StopRecording(reason);
                 return true;
+
+            case "RegisterRecordingFinishedCallback":
+                if (args.Length > 1 && args[1] is Action<string, string, string[], uint, string> registerCallback)
+                {
+                    RecorderEvents.RegisterRecordingFinishedCallback(registerCallback);
+                    return true;
+                }
+
+                Log.Warn("RegisterRecordingFinishedCallback expected Action<string, string, string[], uint, string>");
+                return false;
+
+            case "UnregisterRecordingFinishedCallback":
+                if (args.Length > 1 && args[1] is Action<string, string, string[], uint, string> unregisterCallback)
+                {
+                    RecorderEvents.UnregisterRecordingFinishedCallback(unregisterCallback);
+                    return true;
+                }
+
+                Log.Warn("UnregisterRecordingFinishedCallback expected Action<string, string, string[], uint, string>");
+                return false;
         }
 
         return null;
+    }
+
+    public override void Unload()
+    {
+        RecorderEvents.ClearSubscribers();
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
