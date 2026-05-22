@@ -27,6 +27,11 @@ Mods: {
 					Tooltip: ""
 				}
 
+				AutoStartRecordingOnEnterWorld: {
+					Label: Auto Start Recording On Enter World
+					Tooltip: When disabled, recordings only start when the record console command is used.
+				}
+
 				ShowDebugMessages: {
 					Label: Show Debug Messages
 					Tooltip: For developers and testers

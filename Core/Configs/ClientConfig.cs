@@ -24,6 +24,9 @@ public class ClientConfig : ModConfig
     [BackgroundColor(250, 60, 60, 150)]
     [DefaultValue(true)] public bool ShowWelcomeMessageOnEnterWorld;
 
+    [BackgroundColor(250, 60, 60, 150)]
+    [DefaultValue(true)] public bool AutoStartRecordingOnEnterWorld = true;
+
     [Header("Debug")]
     [BackgroundColor(150, 150, 150, 150)]
     [DefaultValue(false)] public bool ShowDebugMessages;

@@ -1,5 +1,6 @@
 ﻿using MonoMod.Cil;
 using Reese.Common.Replayer;
+using Reese.Core.Configs;
 using Reese.Core.Stats;
 using System;
 using System.Collections.Generic;
@@ -359,7 +360,8 @@ public class Recorder : ModSystem, ITicker
         if (Main.netMode == NetmodeID.Server)
         {
             bool hasPlayers = ReplayPlayback.HasActivePlayers();
-            if (!isRecording && hasPlayers)
+            bool autoStartRecording = ModContent.GetInstance<ClientConfig>()?.AutoStartRecordingOnEnterWorld ?? true;
+            if (!isRecording && hasPlayers && autoStartRecording)
                 StartRecordingInner();
             else if (isRecording && !hasPlayers)
                 StopRecordingInner("No players in server");
