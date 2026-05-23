@@ -14,6 +14,7 @@ internal sealed class UIStatusPanel : UIPanel
 {
     private string lastText = "";
     private bool lastGhost;
+    private float lastWidth = -1f;
     private readonly float scale;
 
     public UIStatusPanel(float scale)
@@ -29,11 +30,14 @@ internal sealed class UIStatusPanel : UIPanel
 
     public void SetStatus(string text, bool showGhost)
     {
-        if (text == lastText && showGhost == lastGhost)
+        float width = GetDimensions().Width;
+
+        if (text == lastText && showGhost == lastGhost && Math.Abs(width - lastWidth) < 0.5f)
             return;
 
         lastText = text;
         lastGhost = showGhost;
+        lastWidth = width;
 
         RemoveAllChildren();
 

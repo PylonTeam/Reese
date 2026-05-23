@@ -50,17 +50,6 @@ internal static class TeammateHudOverlay
         return IsValidPlayerIndex(targetPlayerIndex) && playerIndex == targetPlayerIndex;
     }
 
-    public static void Toggle(Player player)
-    {
-        if (player?.active != true)
-        {
-            Clear();
-            return;
-        }
-
-        playerIndex = IsOpen(player) ? -1 : player.whoAmI;
-    }
-
     public static void Toggle(int targetPlayerIndex)
     {
         if (!IsValidPlayerIndex(targetPlayerIndex))
@@ -70,6 +59,17 @@ internal static class TeammateHudOverlay
         }
 
         playerIndex = IsOpen(targetPlayerIndex) ? -1 : targetPlayerIndex;
+    }
+
+    public static void Open(int targetPlayerIndex)
+    {
+        if (!IsValidPlayerIndex(targetPlayerIndex))
+        {
+            Clear();
+            return;
+        }
+
+        playerIndex = targetPlayerIndex;
     }
 
     public static void Clear()

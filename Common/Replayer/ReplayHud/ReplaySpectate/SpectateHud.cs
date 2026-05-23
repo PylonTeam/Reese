@@ -1,14 +1,14 @@
 ﻿using Microsoft.Xna.Framework.Input;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
 using Reese.Common.Replayer.ReplayHud.Shared.UI;
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
-using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
+using Terraria.ModLoader.UI.Elements;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
@@ -22,20 +22,22 @@ internal sealed class SpectateHud : UIElement
     // Layout
     private const float HeaderHeight = 32f;
     private const float TabHeight = 36f;
-    private const float NavButtonGap = 6f;
     private const float ContentGap = 6f;
+    private const float DetailStatusGap = 6f;
+    private const float ScrollbarWidth = 18f;
 
     // Card display logic
-    private const int MaxVisibleCards = 3;
-
-    private int visiblePlayerStart; // index of the first visible player target in the list of all targets, used for pagination
-    private int visibleNpcStart; // index of the first visible NPC target in the list of all targets, used for pagination
+    private const int MinCardsPerRow = 3;
+    private static int CardsPerRow => SpectateHudClientSettings.PlayersPerRow;
+    private static int MaxVisibleCards => CardsPerRow * SpectateHudClientSettings.RowsVisible;
 
     // Targeting
     private int locked = -1; // currently locked spectated player index, -1 means no locked target
     private int lockedNpc = -1; // currently locked spectated NPC index, -1 means no locked NPC target
     private int hovered = -1; // currently hovered spectated player index, -1 means no hovered target
-    private float panelWidth;
+    private float currentContentHeight;
+    private float playerCardScale = GetPlayerCardScale();
+    private int settingsRevision = SpectateHudClientSettings.Revision;
     
     // Content
     private readonly List<ITab> tabs = [];
@@ -44,6 +46,10 @@ internal sealed class SpectateHud : UIElement
     private UIPanel headerPanel;
     private UIPanel contentPanel;
     private UIStatusPanel statusPanel;
+    private UIGrid targetGrid;
+    private UIElement detailPanel;
+    private int detailPlayer = -2;
+    private int detailNpc = -2;
 
     // Reflection
     private static readonly FieldInfo elementsField = typeof(UIElement).GetField("Elements", BindingFlags.Instance | BindingFlags.NonPublic);
@@ -57,7 +63,7 @@ internal sealed class SpectateHud : UIElement
         Left.Set(0, 0f);
         Top.Set(IsPvPAdventureLoaded ? 40 : 4 , 0f); 
         Width.Set(ReplayInfo.InfoHud.PanelWidth, 0f);
-        Height.Set(GetPanelHeight(), 0f);
+        Height.Set(GetPanelHeight(GetGridContentHeight(0), false, SpectateHudClientSettings.ShowDescription), 0f);
 
         tabs.Add(new PlayersTab());
         tabs.Add(new NPCsTab());
@@ -71,21 +77,22 @@ internal sealed class SpectateHud : UIElement
         //Log.Chat("Rebuilding SpectateHud...");
 
         RemoveAllChildren();
+        targetGrid = null;
+        detailPanel = null;
+        statusPanel = null;
+        detailPlayer = -2;
+        detailNpc = -2;
 
         // Layout
         float scale = GetScale();
         float headerHeight = GetHeaderHeight();
         float tabHeight = GetTabHeight();
         float playerPanelPadding = GetPlayerPanelPadding();
-        float navButtonWidth = GetNavButtonWidth();
-        float cardGap = GetCardGap();
-        float cardWidth = GetCardWidth();
-        float cardHeight = GetCardHeight();
-        float contentHeight = GetContentHeight();
+        float contentHeight = currentContentHeight = GetActiveContentHeight();
 
         currentTab ??= tabs.Count > 0 ? tabs[0] : null;
 
-        Height.Set(GetPanelHeight(), 0f);
+        Height.Set(GetPanelHeight(contentHeight, ShouldShowDetail(), SpectateHudClientSettings.ShowDescription), 0f);
 
         // Header
         headerPanel = BuildHeaderPanel(headerHeight);
@@ -110,10 +117,6 @@ internal sealed class SpectateHud : UIElement
         contentPanel.BorderColor = Color.Black;
         Append(contentPanel);
 
-        statusPanel = new UIStatusPanel(scale);
-        statusPanel.Top.Set(headerHeight + tabHeight + contentHeight + GetContentGap(), 0f);
-        Append(statusPanel);
-
         RefreshTargets();
     }
 
@@ -124,12 +127,7 @@ internal sealed class SpectateHud : UIElement
 
         //Log.Chat("Refreshing SpectateHud...");
 
-        float scale = GetScale();
         float playerPanelPadding = GetPlayerPanelPadding();
-        float navButtonWidth = GetNavButtonWidth();
-        float cardGap = GetCardGap();
-        float cardWidth = GetCardWidth();
-        float cardHeight = GetCardHeight();
 
         List<int> playerTargets = GetPlayerTargets();
         List<int> npcTargets = GetNpcTargets();
@@ -143,26 +141,20 @@ internal sealed class SpectateHud : UIElement
         if (!npcTargets.Contains(lockedNpc))
             lockedNpc = -1;
 
-        int playerCards = Math.Min(MaxVisibleCards, playerTargets.Count);
-        int npcCards = Math.Min(MaxVisibleCards, npcTargets.Count);
-
-        visiblePlayerStart = ClampVisibleStart(visiblePlayerStart, playerTargets.Count, playerCards);
-        visibleNpcStart = ClampVisibleStart(visibleNpcStart, npcTargets.Count, npcCards);
-
         bool showingNpcs = currentTab?.Tab == SpectatorTab.NPCs;
-        int activeRealCards = showingNpcs ? npcCards : playerCards;
-        int activeDisplayCards = Math.Max(1, activeRealCards);
-        int activeTargetCount = showingNpcs ? npcTargets.Count : playerTargets.Count;
-        bool showButtons = activeTargetCount > activeDisplayCards;
-        float cardsStart = showButtons ? navButtonWidth + NavButtonGap * scale : 0f;
+        int activeCount = showingNpcs ? npcTargets.Count : playerTargets.Count;
+        currentContentHeight = GetGridContentHeight(activeCount);
 
-        panelWidth = GetPanelWidth(activeDisplayCards, cardWidth, showButtons);
-        Width.Set(panelWidth, 0f);
+        bool showDetail = ShouldShowDetail();
+        bool showDescription = SpectateHudClientSettings.ShowDescription;
+        Width.Set(GetPanelWidthWithBottom(GetGridPanelWidth(activeCount), showDetail, showDescription), 0f);
+        Height.Set(GetPanelHeight(currentContentHeight, showDetail, showDescription), 0f);
+        contentPanel.Height.Set(currentContentHeight, 0f);
+        contentPanel.SetPadding(playerPanelPadding);
 
         tabBar?.RefreshHeaders();
-        BuildContent(playerTargets, npcTargets, playerCards, npcCards, playerPanelPadding, navButtonWidth, cardGap, cardWidth, cardHeight, cardsStart, showButtons);
+        BuildContent(playerTargets, npcTargets);
 
-        Recalculate();
         UpdateStatusText();
     }
 
@@ -206,8 +198,6 @@ internal sealed class SpectateHud : UIElement
         });
 
         Color normalColor = panel.BackgroundColor;
-        Color hoverColor = new Color(95, 45, 55);
-
         panel.Append(new ClosePanel(
             () => ModContent.GetInstance<ReplayHudSystem>().CloseSpectateHud(),
             scale,
@@ -217,25 +207,16 @@ internal sealed class SpectateHud : UIElement
         return panel;
     }
 
-    private void BuildContent(
-        List<int> playerTargets,
-        List<int> npcTargets,
-        int playerCards,
-        int npcCards,
-        float playerPanelPadding,
-        float navButtonWidth,
-        float cardGap,
-        float cardWidth,
-        float cardHeight,
-        float cardsStart,
-        bool showButtons)
+    private void BuildContent(List<int> playerTargets, List<int> npcTargets)
     {
         if (contentPanel == null)
             return;
 
         contentPanel.RemoveAllChildren();
+        targetGrid = null;
 
         float scale = GetScale();
+        float cardScale = scale * playerCardScale;
 
         if (currentTab?.Tab == SpectatorTab.Players)
         {
@@ -251,33 +232,24 @@ internal sealed class SpectateHud : UIElement
                 return;
             }
 
-            if (showButtons)
-                AddPrevButton(contentPanel, playerPanelPadding, navButtonWidth, cardHeight, () => NavigateTarget(-1), "Go to previous player");
-
-            for (int i = 0; i < playerCards; i++)
+            BuildEntityGrid(playerTargets.Count, i =>
             {
-                int playerIndex = playerTargets[visiblePlayerStart + i];
-
-                UIPlayerCard playerCard = new(playerIndex, i, this, scale);
-                playerCard.Width.Set(cardWidth, 0f);
-                playerCard.Height.Set(cardHeight, 0f);
-                playerCard.Left.Set(cardsStart + i * (cardWidth + cardGap), 0f);
-                playerCard.OnLeftClick += (evt, _) =>
+                int playerIndex = playerTargets[i];
+                UIPlayerCard card = new(playerIndex, i, cardScale);
+                card.OnLeftClick += (evt, _) =>
                 {
-                    if (evt.Target != playerCard)
+                    if (evt.Target != card || !IsMouseInTargetGridViewport())
                         return;
 
                     SpectatorTargetSystem.TogglePlayerTarget(playerIndex);
+                    if (TeammateHudOverlay.IsAnyOpen)
+                        TeammateHudOverlay.Open(playerIndex);
                     UpdateTarget();
                     UpdateStatusText();
                 };
 
-                contentPanel.Append(playerCard);
-            }
-
-            if (showButtons)
-                AddNextButton(contentPanel, playerPanelPadding, navButtonWidth, cardHeight, () => NavigateTarget(1), "Go to next player");
-
+                return card;
+            });
             return;
         }
 
@@ -296,34 +268,105 @@ internal sealed class SpectateHud : UIElement
             return;
         }
 
-        if (showButtons)
-            AddPrevButton(contentPanel, playerPanelPadding, navButtonWidth, cardHeight, () => NavigateNpcTarget(-1), "Go to previous NPC");
-
-        for (int i = 0; i < npcCards; i++)
+        BuildEntityGrid(npcTargets.Count, i =>
         {
-            int npcIndex = npcTargets[visibleNpcStart + i];
-
-            UINPCCard npcCard = new(npcIndex, i, scale);
-            npcCard.Width.Set(cardWidth, 0f);
-            npcCard.Height.Set(cardHeight, 0f);
-            npcCard.Left.Set(cardsStart + i * (cardWidth + cardGap), 0f);
-            npcCard.OnLeftClick += (_, _) =>
+            int npcIndex = npcTargets[i];
+            UINPCCard card = new(npcIndex, i, cardScale);
+            card.OnLeftClick += (evt, _) =>
             {
+                if (evt.Target != card || !IsMouseInTargetGridViewport())
+                    return;
+
+                SpectatorTargetSystem.ToggleNPCTarget(npcIndex);
                 UpdateTarget();
                 UpdateStatusText();
             };
 
-            contentPanel.Append(npcCard);
+            return card;
+        });
+    }
+
+    private void BuildEntityGrid(int targetCount, Func<int, UIElement> buildCard)
+    {
+        float cardWidth = GetCardWidth();
+        float cardHeight = GetCardHeight();
+        float cardGap = GetCardGap();
+        bool showScrollbar = targetCount > MaxVisibleCards;
+        int columns = GetVisibleColumns(targetCount);
+        int visibleRows = GetVisibleRows(targetCount);
+        float gridWidth = GetGridWidth(columns);
+        float gridHeight = GetGridHeight(visibleRows);
+        float scrollbarLeft = gridWidth + cardGap + 2f;
+
+        targetGrid = new UIGrid
+        {
+            ListPadding = cardGap,
+            OverflowHidden = true,
+            ManualSortMethod = static _ => { }
+        };
+        targetGrid.Width.Set(gridWidth, 0f);
+        targetGrid.Height.Set(gridHeight, 0f);
+
+        UIElement gridHost = new() { HAlign = 0.5f };
+        gridHost.Width.Set(showScrollbar ? scrollbarLeft + GetScrollbarWidth() : gridWidth, 0f);
+        gridHost.Height.Set(gridHeight, 0f);
+        gridHost.Append(targetGrid);
+        contentPanel.Append(gridHost);
+
+        List<UIElement> items = [];
+
+        for (int rowStart = 0; rowStart < targetCount; rowStart += CardsPerRow)
+        {
+            int rowCards = Math.Min(CardsPerRow, targetCount - rowStart);
+            AddCenteredRowSpacer(items, columns, rowCards, cardWidth, cardHeight, cardGap);
+
+            for (int i = 0; i < rowCards; i++)
+            {
+                UIElement card = buildCard(rowStart + i);
+                card.Width.Set(cardWidth, 0f);
+                card.Height.Set(cardHeight, 0f);
+                items.Add(card);
+            }
         }
 
-        if (showButtons)
-            AddNextButton(contentPanel, playerPanelPadding, navButtonWidth, cardHeight, () => NavigateNpcTarget(1), "Go to next NPC");
+        targetGrid.AddRange(items);
+
+        if (!showScrollbar)
+            return;
+
+        UIScrollbar scrollbar = new();
+        scrollbar.Width.Set(GetScrollbarWidth(), 0f);
+        scrollbar.Height.Set(gridHeight, 0f);
+        scrollbar.Left.Set(scrollbarLeft, 0f);
+        gridHost.Append(scrollbar);
+        targetGrid.SetScrollbar(scrollbar);
+    }
+
+    private static void AddCenteredRowSpacer(List<UIElement> items, int columns, int rowCards, float cardWidth, float cardHeight, float cardGap)
+    {
+        if (rowCards >= columns)
+            return;
+
+        float rowWidth = GetGridWidth(columns, cardWidth, cardGap);
+        float cardsWidth = rowCards * cardWidth + Math.Max(0, rowCards - 1) * cardGap;
+        float spacerWidth = (rowWidth - cardsWidth) * 0.5f - cardGap;
+
+        if (spacerWidth <= 0f)
+            return;
+
+        UIElement spacer = new();
+        spacer.IgnoresMouseInteraction = true;
+        spacer.Width.Set(spacerWidth, 0f);
+        spacer.Height.Set(cardHeight, 0f);
+        items.Add(spacer);
     }
 
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
 
+        UpdatePlayerCardScale();
+        RefreshSettingsIfNeeded();
         RefreshTargetsIfNeeded();
         UpdateTarget();
 
@@ -372,10 +415,15 @@ internal sealed class SpectateHud : UIElement
 
     private int GetHoveredSlot()
     {
-        if (!ContainsPoint(Main.MouseScreen) || contentPanel == null)
+        if (!ContainsPoint(Main.MouseScreen) || contentPanel == null || !IsMouseInTargetGridViewport())
             return -1;
 
         return GetHoveredSlot(contentPanel);
+    }
+
+    private bool IsMouseInTargetGridViewport()
+    {
+        return targetGrid?.GetDimensions().ToRectangle().Contains(Main.MouseScreen.ToPoint()) == true;
     }
 
     private static int GetHoveredSlot(UIElement element)
@@ -438,11 +486,107 @@ internal sealed class SpectateHud : UIElement
 
     private void UpdateStatusText()
     {
-        if (statusPanel == null)
+        UpdateBottomPanels();
+        Recalculate();
+
+        if (!SpectateHudClientSettings.ShowDescription || statusPanel == null)
             return;
 
         bool showGhost = hovered < 0 && locked < 0 && lockedNpc < 0 && Main.LocalPlayer?.ghost == true;
         statusPanel.SetStatus(GetStatusText(), showGhost);
+    }
+
+    private void UpdateBottomPanels()
+    {
+        bool showDetail = ShouldShowDetail();
+        bool showDescription = SpectateHudClientSettings.ShowDescription;
+        bool showBottom = showDetail || showDescription;
+        float bottomTop = showBottom ? GetBottomTop(currentContentHeight) : 0f;
+        float scale = GetScale();
+
+        if (showDetail)
+        {
+            if (detailPanel == null || detailPlayer != locked || detailNpc != lockedNpc)
+            {
+                if (detailPanel?.Parent != null)
+                    RemoveChild(detailPanel);
+
+                detailPanel = locked >= 0
+                    ? new UIPlayerDetailPanel(locked, scale)
+                    : new UINPCDetailPanel(lockedNpc, scale);
+                detailPlayer = locked;
+                detailNpc = lockedNpc;
+                Append(detailPanel);
+            }
+
+            detailPanel.Top.Set(bottomTop, 0f);
+            detailPanel.Width.Set(GetDetailWidth(), 0f);
+            detailPanel.Height.Set(GetDetailHeight(), 0f);
+        }
+        else
+        {
+            if (detailPanel?.Parent != null)
+                RemoveChild(detailPanel);
+
+            detailPanel = null;
+            detailPlayer = -2;
+            detailNpc = -2;
+        }
+
+        if (showDescription)
+        {
+            statusPanel ??= new UIStatusPanel(scale);
+
+            if (statusPanel.Parent == null)
+                Append(statusPanel);
+
+            float statusLeft = showDetail ? GetDetailWidth() + GetDetailStatusGap() : 0f;
+            statusPanel.Left.Set(statusLeft, 0f);
+            statusPanel.Top.Set(bottomTop, 0f);
+            statusPanel.Width.Set(-statusLeft, 1f);
+            statusPanel.Height.Set(GetStatusHeight(), 0f);
+        }
+        else
+        {
+            if (statusPanel?.Parent != null)
+                RemoveChild(statusPanel);
+
+            statusPanel = null;
+        }
+
+        Width.Set(GetPanelWidthWithBottom(GetActivePanelWidth(), showDetail, showDescription), 0f);
+        Height.Set(GetPanelHeight(currentContentHeight, showDetail, showDescription), 0f);
+    }
+
+    private bool IsShowingDetail()
+    {
+        return locked >= 0 && locked < Main.maxPlayers && Main.player[locked]?.active == true ||
+            lockedNpc >= 0 && lockedNpc < Main.maxNPCs && Main.npc[lockedNpc]?.active == true;
+    }
+
+    private bool ShouldShowDetail()
+    {
+        return SpectateHudClientSettings.ShowPlayerDetails && IsShowingDetail();
+    }
+
+    private void UpdatePlayerCardScale()
+    {
+        float nextScale = GetPlayerCardScale();
+
+        if (Math.Abs(playerCardScale - nextScale) < 0.001f)
+            return;
+
+        playerCardScale = nextScale;
+        RefreshTargets();
+    }
+
+    private void RefreshSettingsIfNeeded()
+    {
+        if (settingsRevision == SpectateHudClientSettings.Revision)
+            return;
+
+        settingsRevision = SpectateHudClientSettings.Revision;
+        RefreshTargets();
     }
 
     private static bool IsTargetValid(int playerIndex)
@@ -501,7 +645,6 @@ internal sealed class SpectateHud : UIElement
             return;
         }
 
-        int oldVisiblePlayerStart = visiblePlayerStart;
         int currentIndex = targets.IndexOf(locked);
         int nextIndex = currentIndex < 0 ? direction < 0 ? targets.Count - 1 : 0 : currentIndex + direction;
 
@@ -516,12 +659,13 @@ internal sealed class SpectateHud : UIElement
         SpectatorTargetSystem.SetPlayerTarget(playerIndex);
         locked = playerIndex;
         lockedNpc = -1;
-        visiblePlayerStart = MakeVisible(visiblePlayerStart, nextIndex, targets.Count);
+        ScrollToPlayer(playerIndex);
+        UpdateStatusText();
+    }
 
-        if (visiblePlayerStart != oldVisiblePlayerStart)
-            Rebuild();
-        else
-            UpdateStatusText();
+    private void ScrollToPlayer(int playerIndex)
+    {
+        targetGrid?.Goto(element => element is UIPlayerCard card && card.PlayerIndex == playerIndex, center: true);
     }
 
     private void NavigateNpcTarget(int direction)
@@ -536,7 +680,6 @@ internal sealed class SpectateHud : UIElement
             return;
         }
 
-        int oldVisibleNpcStart = visibleNpcStart;
         int currentIndex = targets.IndexOf(lockedNpc);
         int nextIndex = currentIndex < 0 ? direction < 0 ? targets.Count - 1 : 0 : currentIndex + direction;
 
@@ -551,31 +694,13 @@ internal sealed class SpectateHud : UIElement
         SpectatorTargetSystem.SetNPCTarget(npcIndex);
         lockedNpc = npcIndex;
         locked = -1;
-        visibleNpcStart = MakeVisible(visibleNpcStart, nextIndex, targets.Count);
-
-        if (visibleNpcStart != oldVisibleNpcStart)
-            Rebuild();
-        else
-            UpdateStatusText();
+        ScrollToNpc(npcIndex);
+        UpdateStatusText();
     }
 
-    private static int ClampVisibleStart(int start, int targetCount, int visibleCards)
+    private void ScrollToNpc(int npcIndex)
     {
-        return Math.Clamp(start, 0, Math.Max(0, targetCount - visibleCards));
-    }
-
-    private static int MakeVisible(int start, int targetIndex, int targetCount)
-    {
-        int visibleCards = Math.Min(MaxVisibleCards, targetCount);
-        start = ClampVisibleStart(start, targetCount, visibleCards);
-
-        if (targetIndex < start)
-            return ClampVisibleStart(targetIndex, targetCount, visibleCards);
-
-        if (targetIndex >= start + visibleCards)
-            return ClampVisibleStart(targetIndex - visibleCards + 1, targetCount, visibleCards);
-
-        return start;
+        targetGrid?.Goto(element => element is UINPCCard card && card.NPCIndex == npcIndex, center: true);
     }
 
     #endregion
@@ -672,78 +797,100 @@ internal sealed class SpectateHud : UIElement
 
     #region Layout Helpers
     private static float GetScale() => 0.85f;
+    private static float GetPlayerCardScale() => 0.8f;
     private static float GetHeaderHeight() => HeaderHeight * GetScale();
     private static float GetTabHeight() => TabHeight * GetScale();
     private static float GetPlayerPanelPadding() => 10f * GetScale();
-    private static float GetNavButtonWidth() => 24f * GetScale();
     private static float GetCardGap() => 6f * GetScale();
     private static float GetContentGap() => ContentGap * GetScale();
-    private static float GetCardWidth() => UIPlayerCard.CardWidth * GetScale();
-    private static float GetCardHeight() => UIPlayerCard.CardHeight * GetScale();
-    private static float GetContentHeight()
+    private static float GetDetailStatusGap() => DetailStatusGap * GetScale();
+    private static float GetScrollbarWidth() => 20;
+    private static float GetCardScale() => GetScale() * GetPlayerCardScale();
+    private static float GetCardWidth() => UIPlayerCard.CardWidth * GetCardScale();
+    private static float GetCardHeight()
     {
-        return GetCardHeight() + GetPlayerPanelPadding() * 2f;
+        float scale = GetCardScale();
+        float height = 12f * scale;
+
+        if (SpectateHudClientSettings.ShowPlayer)
+            height += 90f * scale;
+
+        if (SpectateHudClientSettings.ShowPlayerName)
+            height += 24f * scale;
+
+        if (SpectateHudClientSettings.ShowPlayerDistance)
+            height += 22f * scale;
+
+        if (SpectateHudClientSettings.ShowPlayer && (SpectateHudClientSettings.ShowPlayerName || SpectateHudClientSettings.ShowPlayerDistance))
+            height += scale;
+
+        return Math.Max(34f * scale, height);
     }
+    private static float GetDetailWidth() => UIPlayerCard.DetailWidth * GetScale();
+    private static float GetDetailHeight() => UIPlayerCard.DetailHeight * GetScale();
+    private static int GetVisibleColumns(int count) => Math.Max(MinCardsPerRow, Math.Min(CardsPerRow, count));
+    private static int GetVisibleRows(int count) => Math.Max(1, Math.Min(SpectateHudClientSettings.RowsVisible, (count + CardsPerRow - 1) / CardsPerRow));
+    private static float GetGridWidth(int columns) => GetGridWidth(columns, GetCardWidth(), GetCardGap());
+    private static float GetGridWidth(int columns, float cardWidth, float cardGap) => columns * cardWidth + Math.Max(0, columns - 1) * cardGap;
+    private static float GetGridHeight(int rows) => rows * GetCardHeight() + Math.Max(0, rows - 1) * GetCardGap();
+    private static float GetGridContentHeight(int count) => GetGridHeight(GetVisibleRows(count)) + GetPlayerPanelPadding() * 2f;
 
     private static float GetStatusHeight()
     {
         return 44f * GetScale();
     }
 
-    private static float GetPanelHeight()
+    private float GetActiveContentHeight()
     {
-        return GetHeaderHeight() + GetTabHeight() + GetContentHeight() + GetContentGap() + GetStatusHeight();
+        return GetGridContentHeight(currentTab?.Tab == SpectatorTab.NPCs ? GetNpcTargetCount() : GetPlayerTargetCount());
     }
 
-    private static float GetPanelWidth(int shownCards, float cardWidth, bool showButtons)
-    {
-        float cardsWidth = shownCards * cardWidth + Math.Max(0, shownCards - 1) * GetCardGap();
-        float contentWidth = cardsWidth;
+    private static float GetMinimumStatusWidth() => 260f * GetScale();
 
-        if (showButtons)
-        {
-            contentWidth += GetNavButtonWidth() * 2f + 6 * GetScale() * 2f;
-        }
+    private float GetActivePanelWidth()
+    {
+        return GetGridPanelWidth(currentTab?.Tab == SpectatorTab.NPCs ? GetNpcTargetCount() : GetPlayerTargetCount());
+    }
+
+    private static float GetPanelWidthWithBottom(float width, bool showDetail, bool showDescription)
+    {
+        if (showDetail && showDescription)
+            return Math.Max(width, GetDetailWidth() + GetDetailStatusGap() + GetMinimumStatusWidth());
+
+        return showDetail ? Math.Max(width, GetDetailWidth()) : width;
+    }
+
+    private static float GetBottomTop(float contentHeight)
+    {
+        return GetHeaderHeight() + GetTabHeight() + contentHeight + GetContentGap();
+    }
+
+    private static float GetBottomHeight(bool showDetail, bool showDescription)
+    {
+        if (showDetail && showDescription)
+            return Math.Max(GetStatusHeight(), GetDetailHeight());
+
+        if (showDetail)
+            return GetDetailHeight();
+
+        return showDescription ? GetStatusHeight() : 0f;
+    }
+
+    private static float GetPanelHeight(float contentHeight, bool showDetail, bool showDescription)
+    {
+        float bottomHeight = GetBottomHeight(showDetail, showDescription);
+        float height = GetHeaderHeight() + GetTabHeight() + contentHeight;
+        return bottomHeight > 0f ? height + GetContentGap() + bottomHeight : height;
+    }
+
+    private static float GetGridPanelWidth(int count)
+    {
+        float contentWidth = GetGridWidth(GetVisibleColumns(count));
+
+        if (count > MaxVisibleCards)
+            contentWidth += GetCardGap() + GetScrollbarWidth();
 
         return contentWidth + GetPlayerPanelPadding() * 2f;
-    }
-
-    private void AddPrevButton(UIPanel playersPanel, float playerPanelPadding, float navButtonWidth, float cardHeight, Action onClick, string hoverText)
-    {
-        float scale = GetScale();
-        float buttonHeight = 30f * scale;
-        UIAutoScaleTextTextPanel<string> prevButton = new("<");
-        prevButton.SetPadding(0f);
-        prevButton.Top.Set(playerPanelPadding + cardHeight * 0.5f - buttonHeight * 0.5f, 0f);
-        prevButton.Height.Set(buttonHeight, 0f);
-        prevButton.Width.Set(navButtonWidth, 0f);
-        prevButton.BackgroundColor = new Color(55, 48, 92) * 0.9f;
-        prevButton.BorderColor = Color.Black;
-        prevButton.OnLeftClick += (_, _) => onClick();
-        prevButton.OnMouseOver += (_, _) => prevButton.BorderColor = Color.Yellow;
-        prevButton.OnMouseOut += (_, _) => prevButton.BorderColor = Color.Black;
-
-        playersPanel.Append(prevButton);
-    }
-
-    private void AddNextButton(UIPanel playersPanel, float playerPanelPadding, float navButtonWidth, float cardHeight, Action onClick, string hoverText)
-    {
-        float scale = GetScale();
-        float buttonHeight = 30f * scale;
-
-        UIAutoScaleTextTextPanel<string> nextButton = new(">");
-        nextButton.SetPadding(0f);
-        nextButton.HAlign = 1f;
-        nextButton.Top.Set(playerPanelPadding + cardHeight * 0.5f - buttonHeight * 0.5f, 0f);
-        nextButton.Height.Set(buttonHeight, 0f);
-        nextButton.Width.Set(navButtonWidth, 0f);
-        nextButton.BackgroundColor = new Color(55, 48, 92) * 0.9f;
-        nextButton.BorderColor = Color.Black;
-        nextButton.OnLeftClick += (_, _) => onClick();
-        nextButton.OnMouseOver += (_, _) => nextButton.BorderColor = Color.Yellow;
-        nextButton.OnMouseOut += (_, _) => nextButton.BorderColor = Color.Black;
-
-        playersPanel.Append(nextButton);
     }
     #endregion
 

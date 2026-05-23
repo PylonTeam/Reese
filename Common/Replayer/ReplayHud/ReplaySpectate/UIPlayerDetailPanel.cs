@@ -1,10 +1,9 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
-using System.Globalization;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
@@ -12,123 +11,58 @@ using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
-internal sealed class UIPlayerCard : UIPanel
+internal sealed class UIPlayerDetailPanel : UIPanel
 {
-    internal static int CardWidth => 150;
-    internal static int CardHeight => 150;
-    internal static int DetailWidth => 115 * 2; // biome BG is 115 width default
-    internal static int DetailHeight => 65 * 2; // biome BG is 65 height default
-
     public int PlayerIndex { get; }
-    public int ListIndex { get; }
 
     private readonly float scale;
 
-    public UIPlayerCard(int playerIndex, int listIndex, float scale = 1f)
+    public UIPlayerDetailPanel(int playerIndex, float scale)
     {
         PlayerIndex = playerIndex;
-        ListIndex = listIndex;
         this.scale = scale;
 
         SetPadding(0f);
+        float buttonSize = 32f * scale;
+        UIPlayerCard.AddActionButtons(this, playerIndex, scale, 5f * scale, UIPlayerCard.DetailHeight * scale - 5f * scale - buttonSize);
     }
 
     protected override void DrawSelf(SpriteBatch sb)
     {
-        // Update border and background color if this player card is selected
-        bool isSelected = PlayerIndex >= 0 &&
-            PlayerIndex < Main.maxPlayers &&
-            Main.player[PlayerIndex]?.active == true &&
-            SpectatorTargetSystem.IsLockedTargeting(Main.player[PlayerIndex]);
-
-        if (isSelected)
-        {
-            BackgroundColor = new Color(28, 36, 76) * 0.92f;
-            BorderColor = Color.Yellow;
-        }
-        else if (IsMouseHovering)
-        {
-            BackgroundColor = new Color(63, 82, 151) * 0.45f;
-            BorderColor = Colors.FancyUIFatButtonMouseOver;
-        }
-        else
-        {
-            //BackgroundColor = new Color(63, 82, 151) * 0.45f;
-            BackgroundColor = new Color(28, 36, 76) * 0.92f;
-            //BorderColor = new Color(116, 154, 255) * 0.75f;
-            BorderColor = Color.Black;
-        }
-
+        BackgroundColor = new Color(28, 36, 76) * 0.92f;
+        BorderColor = Color.Yellow;
         base.DrawSelf(sb);
 
-        // Null checks
-        if (PlayerIndex is < 0 or >= Main.maxPlayers)
+        if (PlayerIndex is < 0 or >= Main.maxPlayers || Main.player[PlayerIndex]?.active != true)
             return;
 
         Player player = Main.player[PlayerIndex];
-
-        if (player is null || !player.active)
-            return;
-
         Rectangle rect = GetDimensions().ToRectangle();
-
-        if (rect.Width <= 0 || rect.Height <= 0)
-            return;
-
-        // Layout
-        int shrink = (int)MathF.Round(6f * scale);
-        int textGap = (int)MathF.Round(1f * scale);
+        int shrink = (int)MathF.Round(5f * scale);
+        int buttonSize = (int)MathF.Round(32f * scale);
+        int buttonGap = (int)MathF.Round(2f * scale);
+        int previewWidth = buttonSize * 2 + buttonGap;
         Rectangle contentRect = new(rect.X + shrink, rect.Y + shrink, rect.Width - shrink * 2, rect.Height - shrink * 2);
-        bool showPlayer = SpectateHudClientSettings.ShowPlayer;
-        bool showName = SpectateHudClientSettings.ShowPlayerName;
-        bool showDistance = SpectateHudClientSettings.ShowPlayerDistance;
-        int nameHeight = showName ? (int)MathF.Round(24f * scale) : 0;
-        int distanceHeight = showDistance ? (int)MathF.Round(22f * scale) : 0;
-        int y = contentRect.Y;
+        Rectangle previewRect = new(contentRect.X, contentRect.Y, previewWidth, contentRect.Height - buttonSize - (int)MathF.Round(3f * scale));
+        Rectangle infoRect = new(previewRect.Right + (int)MathF.Round(6f * scale), contentRect.Y + (int)MathF.Round(6f * scale), contentRect.Right - previewRect.Right - (int)MathF.Round(14f * scale), contentRect.Height);
+        Rectangle nameRect = new(infoRect.X, infoRect.Y - 2, infoRect.Width, (int)MathF.Round(24f * scale));
 
-        if (showPlayer)
-        {
-            int previewHeight = Math.Max(0, contentRect.Height - nameHeight - distanceHeight - (showName || showDistance ? textGap : 0));
-            Rectangle playerPreviewRect = new(contentRect.X, y, contentRect.Width, previewHeight);
-            EntityDrawer.DrawEntityBackground(sb, playerPreviewRect);
-            EntityDrawer.DrawPlayerCardPreview(sb, player, playerPreviewRect);
-            y = playerPreviewRect.Bottom + (showName || showDistance ? textGap : 0);
-        }
+        EntityDrawer.DrawEntityBackground(sb, previewRect);
+        EntityDrawer.DrawPlayerCardPreview(sb, player, previewRect);
 
-        Color textColor = GetPlayerTextColor(player);
+        string displayName = StatDrawer.Truncate(FontAssets.MouseText.Value, player.name, nameRect.Width, scale);
+        Vector2 nameSize = FontAssets.MouseText.Value.MeasureString(displayName) * scale;
+        Utils.DrawBorderString(sb, displayName, new Vector2(nameRect.X, nameRect.Y + (nameRect.Height - nameSize.Y) * 0.5f + 4f), UIPlayerCard.GetPlayerTextColor(player), scale);
 
-        if (showName)
-        {
-            Rectangle nameRect = new(contentRect.X, y, contentRect.Width, nameHeight);
-            string name = PlayerIndex == Main.myPlayer ? "You" : player.name;
-            DrawCenteredText(sb, StatDrawer.Truncate(FontAssets.MouseText.Value, name, nameRect.Width, 0.95f * scale), nameRect, 1.2f * scale, textColor);
-            y = nameRect.Bottom;
-        }
+        int statH = (int)MathF.Round(27f * scale);
+        int statG = (int)MathF.Round(3f * scale);
+        Rectangle lifeRect = new(infoRect.X, nameRect.Bottom + (int)MathF.Round(2f * scale), infoRect.Width, statH);
+        Rectangle manaRect = new(infoRect.X, lifeRect.Bottom + statG, infoRect.Width, statH);
+        Rectangle biomeRect = new(infoRect.X, manaRect.Bottom + statG, infoRect.Width, statH);
 
-        if (showDistance)
-        {
-            Rectangle distanceRect = new(contentRect.X, y, contentRect.Width, distanceHeight);
-            DrawCenteredText(sb, GetDistanceText(player), distanceRect, 0.9f * scale, textColor);
-        }
-    }
-
-    internal static string GetDistanceText(Player player)
-    {
-        Player local = Main.LocalPlayer;
-        float feet = local?.active == true ? Vector2.Distance(local.Center, player.Center) / 8f : 0f;
-        return $"({feet.ToString("F0", CultureInfo.InvariantCulture)} ft)";
-    }
-
-    internal static Color GetPlayerTextColor(Player player)
-    {
-        return player.team > 0 ? Main.teamColor[player.team] : Color.White;
-    }
-
-    private static void DrawCenteredText(SpriteBatch sb, string text, Rectangle area, float scale, Color color)
-    {
-        Vector2 size = FontAssets.MouseText.Value.MeasureString(text) * scale;
-        Vector2 position = new(area.X + (area.Width - size.X) * 0.5f, area.Y + (area.Height - size.Y) * 0.5f + 3f * scale);
-        Utils.DrawBorderString(sb, text, position, color, scale);
+        StatDrawer.DrawPlayerStat(sb, lifeRect, PlayerStats.Life(player), scale);
+        StatDrawer.DrawPlayerStat(sb, manaRect, PlayerStats.Mana(player), scale);
+        StatDrawer.DrawPlayerStat(sb, biomeRect, PlayerStats.Biome(player), scale);
     }
 
     #region Action buttons

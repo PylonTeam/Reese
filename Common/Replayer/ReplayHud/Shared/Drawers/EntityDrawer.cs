@@ -144,7 +144,7 @@ public static class EntityDrawer
     private static float GetPlayerScale()
     {
         ClientConfig clientConfig = ModContent.GetInstance<ClientConfig>();
-        return 1f;
+        return 0.8f;
 
         //float scale = clientConfig.replayHudSize switch
         //{
@@ -161,7 +161,7 @@ public static class EntityDrawer
     {
         ClientConfig clientConfig = ModContent.GetInstance<ClientConfig>();
 
-        return 2f;
+        return -8f;
         //float scale = clientConfig.replayHudSize switch
         //{
         //    ClientConfig.ReplayHudSize.Small => 5f,

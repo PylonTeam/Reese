@@ -26,6 +26,7 @@ internal sealed class SettingsTab : TabPage
     {
         AddSection(list, new GhostSettings());
         AddSection(list, new DrawSettings());
+        AddSection(list, new SpectateHudSettingsSection());
         //AddSection(list, new DisplaySettings());
     }
     private sealed class GhostSettings : SettingsSection
@@ -126,6 +127,26 @@ internal sealed class SettingsTab : TabPage
         private static Texture2D GetNameplateIcon()
         {
             return Ass.IconPlayerHead.Value;
+        }
+    }
+
+    private sealed class SpectateHudSettingsSection : SettingsSection
+    {
+        public override string HeaderText => "Spectate HUD Settings";
+        public override float Height => 278f;
+
+        public override IReadOnlyList<SpectatorSectionRow> GetRows()
+        {
+            return
+            [
+                new("Rows Visible:", () => $"Rows Visible: {SpectateHudClientSettings.RowsVisible}", () => Ass.IconResize.Value, onLeftClick: SpectateHudClientSettings.CycleRowsVisible),
+                new("Players Per Row:", () => $"Players Per Row: {SpectateHudClientSettings.PlayersPerRow}", () => Ass.IconPlayer.Value, onLeftClick: SpectateHudClientSettings.CyclePlayersPerRow, iconScale: 1.5f),
+                new("Show Player:", () => $"Show Player: {OnOff(SpectateHudClientSettings.ShowPlayer)}", () => Ass.IconPlayer.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayer, iconScale: 1.5f),
+                new("Show Player Name:", () => $"Show Player Name: {OnOff(SpectateHudClientSettings.ShowPlayerName)}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerName, iconScale: 0.8f),
+                new("Show Player Distance:", () => $"Show Player Distance: {OnOff(SpectateHudClientSettings.ShowPlayerDistance)}", () => Ass.IconMapOn.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerDistance),
+                new("Show Player Details:", () => $"Show Player Details: {OnOff(SpectateHudClientSettings.ShowPlayerDetails)}", () => Ass.IconInventoryOpen.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerDetails),
+                new("Show Description:", () => $"Show Description: {OnOff(SpectateHudClientSettings.ShowDescription)}", () => Ass.IconEye.Value, onLeftClick: SpectateHudClientSettings.ToggleShowDescription)
+            ];
         }
     }
 }

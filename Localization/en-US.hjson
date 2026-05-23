@@ -13,12 +13,12 @@ Mods: {
 				}
 
 				AddExtraMenuState: {
-					Label: Show [c/5ad2ff:Reese] In Main Menu
-					Tooltip: Adds the extra [c/5ad2ff:Reese] button among the main menu which shows the replay browser
+					Label: Show [c/5ad2ff:Reese] Button
+					Tooltip: Adds the [c/5ad2ff:Reese] button that opens a state with the replay browser
 				}
 
 				ShowInMainMenu: {
-					Label: Show [i:Reese/SmallCameraItem] Browser In Main Menu
+					Label: Show Replay Browser In Main Menu
 					Tooltip: Always show the replay browser in main menu
 				}
 
@@ -38,7 +38,7 @@ Mods: {
 				}
 
 				EnableBackwardsSeeking: {
-					Label: Enable Backwards Seeking
+					Label: Enable Backwards Seeking (experimental)
 					Tooltip: ""
 				}
 			}
