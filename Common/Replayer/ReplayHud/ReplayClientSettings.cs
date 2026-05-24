@@ -2,6 +2,20 @@ namespace Reese.Common.Replayer.ReplayHud;
 
 internal static class ReplayClientSettings
 {
+    // HUD settings
+    public static bool ShowSpectateHud { get; private set; } = true;
+    public static bool ShowPlaybackHud { get; private set; } = true;
+    public static bool ShowReplayHudSpeed { get; private set; } = true;
+    public static bool ShowReplayHudPlaybackControls { get; private set; } = true;
+    public static bool ShowReplayHudSeekbar { get; private set; } = true;
+    public static int HudRevision { get; private set; }
+
+    public static void ToggleShowSpectateHud() { ShowSpectateHud = !ShowSpectateHud; TouchHud(); }
+    public static void ToggleShowPlaybackHud() { ShowPlaybackHud = !ShowPlaybackHud; TouchHud(); }
+    public static void ToggleShowReplayHudSpeed() { ShowReplayHudSpeed = !ShowReplayHudSpeed; TouchHud(); }
+    public static void ToggleShowReplayHudPlaybackControls() { ShowReplayHudPlaybackControls = !ShowReplayHudPlaybackControls; TouchHud(); }
+    public static void ToggleShowReplayHudSeekbar() { ShowReplayHudSeekbar = !ShowReplayHudSeekbar; TouchHud(); }
+
     // Ghost settings
     public static bool RightClickTeleport { get; set; } = true;
     public static void ToggleRightClickTeleport() => RightClickTeleport = !RightClickTeleport;
@@ -26,5 +40,10 @@ internal static class ReplayClientSettings
     // More settings
     public static bool IsNameplatesOn { get; set; } = true;
     public static void ToggleNameplates() => IsNameplatesOn = !IsNameplatesOn;
+
+    private static void TouchHud()
+    {
+        HudRevision++;
+    }
 
 }

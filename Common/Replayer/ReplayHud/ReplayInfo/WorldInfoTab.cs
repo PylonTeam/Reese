@@ -339,7 +339,7 @@ internal sealed class WorldInfoTab : TabPage
             Width.Set(0f, 1f);
             Height.Set(276f, 0f);
             SetPadding(0f);
-            BackgroundColor = new Color(28, 36, 76) * 0.92f;
+            BackgroundColor = new Color(20, 27, 62) * 0.95f;
             BorderColor = new Color(116, 154, 255) * 0.75f;
         }
 

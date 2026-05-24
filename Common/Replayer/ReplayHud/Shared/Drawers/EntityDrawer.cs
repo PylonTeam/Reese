@@ -71,7 +71,16 @@ public static class EntityDrawer
     #region Player
     public static void DrawPlayerCardPreview(SpriteBatch sb, Player player, Rectangle area)
     {
-        DrawPlayerPreview(sb, player, area);
+        //PlayerOutlines.ForcePreviewOutline = true;
+
+        try
+        {
+            DrawPlayerPreview(sb, player, area);
+        }
+        finally
+        {
+            //PlayerOutlines.ForcePreviewOutline = false;
+        }
 
         //switch (SpectatorClientSettings.DrawPlayers)
         //{

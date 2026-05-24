@@ -25,7 +25,7 @@ internal sealed class UINPCDetailPanel : UIPanel
 
     protected override void DrawSelf(SpriteBatch sb)
     {
-        BackgroundColor = new Color(28, 36, 76) * 0.92f;
+        BackgroundColor = new Color(20, 27, 62) * 0.95f;
         BorderColor = Color.Yellow;
         base.DrawSelf(sb);
 

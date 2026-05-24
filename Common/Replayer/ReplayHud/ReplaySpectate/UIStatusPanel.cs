@@ -10,7 +10,7 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 /// "spectating player/NPC" or 
 /// "ghost mode enabled"
 /// </summary>
-internal sealed class UIStatusPanel : UIPanel
+internal sealed class UIStatusPanel : UIElement
 {
     private string lastText = "";
     private bool lastGhost;
@@ -22,10 +22,6 @@ internal sealed class UIStatusPanel : UIPanel
         this.scale = scale;
         Width.Set(0, 1f);
         Height.Set(44f * scale, 0f);
-        SetPadding(3f * scale);
-        //BackgroundColor = new Color(35, 54, 96) * 0.85f;
-        BackgroundColor = new Color(28, 36, 76) * 0.92f;
-        BorderColor = Color.Black;
     }
 
     public void SetStatus(string text, bool showGhost)
@@ -77,8 +73,6 @@ internal sealed class UIStatusPanel : UIPanel
     public override void Draw(SpriteBatch spriteBatch)
     {
         base.Draw(spriteBatch);
-        var rect = GetDimensions().ToRectangle();
-        //DebugDrawer.DrawRectangle(rect, drawSize: true);
     }
 
     private class GhostIcon : UIElement

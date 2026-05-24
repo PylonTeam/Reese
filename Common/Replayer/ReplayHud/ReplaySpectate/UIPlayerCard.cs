@@ -43,18 +43,18 @@ internal sealed class UIPlayerCard : UIPanel
 
         if (isSelected)
         {
-            BackgroundColor = new Color(28, 36, 76) * 0.92f;
+            BackgroundColor = new Color(20, 27, 62) * 0.95f;
             BorderColor = Color.Yellow;
         }
         else if (IsMouseHovering)
         {
-            BackgroundColor = new Color(63, 82, 151) * 0.45f;
+            BackgroundColor = new Color(47, 61, 125) * 0.55f;
             BorderColor = Colors.FancyUIFatButtonMouseOver;
         }
         else
         {
             //BackgroundColor = new Color(63, 82, 151) * 0.45f;
-            BackgroundColor = new Color(28, 36, 76) * 0.92f;
+            BackgroundColor = new Color(20, 27, 62) * 0.95f;
             //BorderColor = new Color(116, 154, 255) * 0.75f;
             BorderColor = Color.Black;
         }

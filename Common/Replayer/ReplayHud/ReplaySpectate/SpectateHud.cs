@@ -20,16 +20,13 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 internal sealed class SpectateHud : UIElement
 {
     // Layout
-    private const float HeaderHeight = 32f;
     private const float TabHeight = 36f;
     private const float ContentGap = 6f;
     private const float DetailStatusGap = 6f;
-    private const float ScrollbarWidth = 18f;
 
     // Card display logic
     private const int MinCardsPerRow = 3;
-    private static int CardsPerRow => SpectateHudClientSettings.PlayersPerRow;
-    private static int MaxVisibleCards => CardsPerRow * SpectateHudClientSettings.RowsVisible;
+    private const int MaxCardsPerRow = 5;
 
     // Targeting
     private int locked = -1; // currently locked spectated player index, -1 means no locked target
@@ -43,7 +40,7 @@ internal sealed class SpectateHud : UIElement
     private readonly List<ITab> tabs = [];
     private ITab currentTab;
     private TabBar tabBar;
-    private UIPanel headerPanel;
+    private UIPanel backgroundPanel;
     private UIPanel contentPanel;
     private UIStatusPanel statusPanel;
     private UIGrid targetGrid;
@@ -80,12 +77,12 @@ internal sealed class SpectateHud : UIElement
         targetGrid = null;
         detailPanel = null;
         statusPanel = null;
+        backgroundPanel = null;
         detailPlayer = -2;
         detailNpc = -2;
 
         // Layout
         float scale = GetScale();
-        float headerHeight = GetHeaderHeight();
         float tabHeight = GetTabHeight();
         float playerPanelPadding = GetPlayerPanelPadding();
         float contentHeight = currentContentHeight = GetActiveContentHeight();
@@ -94,27 +91,33 @@ internal sealed class SpectateHud : UIElement
 
         Height.Set(GetPanelHeight(contentHeight, ShouldShowDetail(), SpectateHudClientSettings.ShowDescription), 0f);
 
-        // Header
-        headerPanel = BuildHeaderPanel(headerHeight);
-        Append(headerPanel);
+        backgroundPanel = new UIPanel
+        {
+            Width = new StyleDimension(0f, 1f),
+            Height = new StyleDimension(0f, 1f),
+            BackgroundColor = new Color(12, 18, 42) * 0.96f,
+            BorderColor = Color.Black,
+            IgnoresMouseInteraction = true
+        };
+        backgroundPanel.SetPadding(0f);
+        Append(backgroundPanel);
 
         // Tabs
         tabBar = new TabBar();
-        tabBar.Top.Set(headerHeight, 0f);
+        tabBar.Top.Set(0f, 0f);
         tabBar.Width.Set(0f, 1f);
         tabBar.Height.Set(tabHeight, 0f);
-        tabBar.BuildTabs(tabs, () => currentTab, ShowTab, scale);
+        tabBar.BuildTabs(tabs, () => currentTab, ShowTab, 1f);
         Append(tabBar);
 
         // Content
         contentPanel = new UIPanel();
         contentPanel.SetPadding(playerPanelPadding);
-        contentPanel.Top.Set(headerHeight + tabHeight, 0f);
+        contentPanel.Top.Set(tabHeight, 0f);
         contentPanel.Width.Set(0f, 1f);
         contentPanel.Height.Set(contentHeight, 0f);
-        //contentPanel.BackgroundColor = UICommon.DefaultUIBlueMouseOver * 0.9f;
-        contentPanel.BackgroundColor = new Color(20, 20, 60) * 0.9f;
-        contentPanel.BorderColor = Color.Black;
+        contentPanel.BackgroundColor = Color.Transparent;
+        contentPanel.BorderColor = Color.Transparent;
         Append(contentPanel);
 
         RefreshTargets();
@@ -125,7 +128,6 @@ internal sealed class SpectateHud : UIElement
         if (contentPanel == null)
             return;
 
-        //Log.Chat("Refreshing SpectateHud...");
 
         float playerPanelPadding = GetPlayerPanelPadding();
 
@@ -151,6 +153,7 @@ internal sealed class SpectateHud : UIElement
         Height.Set(GetPanelHeight(currentContentHeight, showDetail, showDescription), 0f);
         contentPanel.Height.Set(currentContentHeight, 0f);
         contentPanel.SetPadding(playerPanelPadding);
+
 
         tabBar?.RefreshHeaders();
         BuildContent(playerTargets, npcTargets);
@@ -180,33 +183,6 @@ internal sealed class SpectateHud : UIElement
         return null;
     }
 
-    private UIPanel BuildHeaderPanel(float height)
-    {
-        float scale = GetScale();
-
-        UIPanel panel = new();
-        panel.Height.Set(height, 0f);
-        panel.Width.Set(0f, 1f);
-        panel.SetPadding(0f);
-        panel.BackgroundColor = new Color(63, 82, 151);
-        panel.BorderColor = Color.Black;
-
-        panel.Append(new UIText("Spectate", large: false, textScale: 1f * scale)
-        {
-            HAlign = 0.5f,
-            VAlign = 0.5f
-        });
-
-        Color normalColor = panel.BackgroundColor;
-        panel.Append(new ClosePanel(
-            () => ModContent.GetInstance<ReplayHudSystem>().CloseSpectateHud(),
-            scale,
-            normalColor
-        ));
-
-        return panel;
-    }
-
     private void BuildContent(List<int> playerTargets, List<int> npcTargets)
     {
         if (contentPanel == null)
@@ -217,6 +193,8 @@ internal sealed class SpectateHud : UIElement
 
         float scale = GetScale();
         float cardScale = scale * playerCardScale;
+
+        //Log.Chat($"BuildContent update={Main.GameUpdateCount} tab={(currentTab?.Tab.ToString() ?? "null")} playerTargets={playerTargets.Count} npcTargets={npcTargets.Count} cardScale={cardScale:0.##}");
 
         if (currentTab?.Tab == SpectatorTab.Players)
         {
@@ -291,12 +269,14 @@ internal sealed class SpectateHud : UIElement
         float cardWidth = GetCardWidth();
         float cardHeight = GetCardHeight();
         float cardGap = GetCardGap();
-        bool showScrollbar = targetCount > MaxVisibleCards;
         int columns = GetVisibleColumns(targetCount);
+        bool showScrollbar = targetCount > GetMaxVisibleCards(columns);
         int visibleRows = GetVisibleRows(targetCount);
         float gridWidth = GetGridWidth(columns);
         float gridHeight = GetGridHeight(visibleRows);
         float scrollbarLeft = gridWidth + cardGap + 2f;
+
+        //Log.Chat($"BuildEntityGrid update={Main.GameUpdateCount} targetCount={targetCount} columns={columns} rows={visibleRows} showScrollbar={showScrollbar} gridHeight={gridHeight:0.##}");
 
         targetGrid = new UIGrid
         {
@@ -313,23 +293,30 @@ internal sealed class SpectateHud : UIElement
         gridHost.Append(targetGrid);
         contentPanel.Append(gridHost);
 
-        List<UIElement> items = [];
+        List<UIElement> rows = [];
 
-        for (int rowStart = 0; rowStart < targetCount; rowStart += CardsPerRow)
+        for (int rowStart = 0; rowStart < targetCount; rowStart += columns)
         {
-            int rowCards = Math.Min(CardsPerRow, targetCount - rowStart);
-            AddCenteredRowSpacer(items, columns, rowCards, cardWidth, cardHeight, cardGap);
+            int rowCards = Math.Min(columns, targetCount - rowStart);
+            float cardsWidth = rowCards * cardWidth + Math.Max(0, rowCards - 1) * cardGap;
+            float left = (gridWidth - cardsWidth) * 0.5f;
+            UIElement row = new();
+            row.Width.Set(gridWidth, 0f);
+            row.Height.Set(cardHeight, 0f);
 
             for (int i = 0; i < rowCards; i++)
             {
                 UIElement card = buildCard(rowStart + i);
+                card.Left.Set(left + i * (cardWidth + cardGap), 0f);
                 card.Width.Set(cardWidth, 0f);
                 card.Height.Set(cardHeight, 0f);
-                items.Add(card);
+                row.Append(card);
             }
+
+            rows.Add(row);
         }
 
-        targetGrid.AddRange(items);
+        targetGrid.AddRange(rows);
 
         if (!showScrollbar)
             return;
@@ -340,25 +327,6 @@ internal sealed class SpectateHud : UIElement
         scrollbar.Left.Set(scrollbarLeft, 0f);
         gridHost.Append(scrollbar);
         targetGrid.SetScrollbar(scrollbar);
-    }
-
-    private static void AddCenteredRowSpacer(List<UIElement> items, int columns, int rowCards, float cardWidth, float cardHeight, float cardGap)
-    {
-        if (rowCards >= columns)
-            return;
-
-        float rowWidth = GetGridWidth(columns, cardWidth, cardGap);
-        float cardsWidth = rowCards * cardWidth + Math.Max(0, rowCards - 1) * cardGap;
-        float spacerWidth = (rowWidth - cardsWidth) * 0.5f - cardGap;
-
-        if (spacerWidth <= 0f)
-            return;
-
-        UIElement spacer = new();
-        spacer.IgnoresMouseInteraction = true;
-        spacer.Width.Set(spacerWidth, 0f);
-        spacer.Height.Set(cardHeight, 0f);
-        items.Add(spacer);
     }
 
     public override void Update(GameTime gameTime)
@@ -487,7 +455,6 @@ internal sealed class SpectateHud : UIElement
     private void UpdateStatusText()
     {
         UpdateBottomPanels();
-        Recalculate();
 
         if (!SpectateHudClientSettings.ShowDescription || statusPanel == null)
             return;
@@ -585,6 +552,7 @@ internal sealed class SpectateHud : UIElement
         if (settingsRevision == SpectateHudClientSettings.Revision)
             return;
 
+        //Log.Chat($"RefreshSettingsIfNeeded update={Main.GameUpdateCount} revision {settingsRevision} -> {SpectateHudClientSettings.Revision}");
         settingsRevision = SpectateHudClientSettings.Revision;
         RefreshTargets();
     }
@@ -665,7 +633,7 @@ internal sealed class SpectateHud : UIElement
 
     private void ScrollToPlayer(int playerIndex)
     {
-        targetGrid?.Goto(element => element is UIPlayerCard card && card.PlayerIndex == playerIndex, center: true);
+        targetGrid?.Goto(element => ContainsPlayerCard(element, playerIndex), center: true);
     }
 
     private void NavigateNpcTarget(int direction)
@@ -700,7 +668,41 @@ internal sealed class SpectateHud : UIElement
 
     private void ScrollToNpc(int npcIndex)
     {
-        targetGrid?.Goto(element => element is UINPCCard card && card.NPCIndex == npcIndex, center: true);
+        targetGrid?.Goto(element => ContainsNpcCard(element, npcIndex), center: true);
+    }
+
+    private static bool ContainsPlayerCard(UIElement element, int playerIndex)
+    {
+        if (element is UIPlayerCard card && card.PlayerIndex == playerIndex)
+            return true;
+
+        if (elementsField?.GetValue(element) is not List<UIElement> children)
+            return false;
+
+        for (int i = 0; i < children.Count; i++)
+        {
+            if (ContainsPlayerCard(children[i], playerIndex))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool ContainsNpcCard(UIElement element, int npcIndex)
+    {
+        if (element is UINPCCard card && card.NPCIndex == npcIndex)
+            return true;
+
+        if (elementsField?.GetValue(element) is not List<UIElement> children)
+            return false;
+
+        for (int i = 0; i < children.Count; i++)
+        {
+            if (ContainsNpcCard(children[i], npcIndex))
+                return true;
+        }
+
+        return false;
     }
 
     #endregion
@@ -711,16 +713,27 @@ internal sealed class SpectateHud : UIElement
 
     private void RefreshTargetsIfNeeded()
     {
-        int playerListHash = GetActivePlayerListHash();
-        int npcListHash = GetActiveNpcListHash();
+            bool showingNpcs = currentTab?.Tab == SpectatorTab.NPCs;
 
-        if (playerListHash == shownPlayerListHash && npcListHash == shownNpcListHash)
-            return;
+            if (showingNpcs)
+            {
+                int npcListHash = GetActiveNpcListHash();
 
-        shownPlayerListHash = playerListHash;
-        shownNpcListHash = npcListHash;
+                if (npcListHash == shownNpcListHash)
+                    return;
 
-        RefreshTargets();
+                shownNpcListHash = npcListHash;
+                RefreshTargets();
+                return;
+            }
+
+            int playerListHash = GetActivePlayerListHash();
+
+            if (playerListHash == shownPlayerListHash)
+                return;
+
+            shownPlayerListHash = playerListHash;
+            RefreshTargets();
     }
     private static int GetActivePlayerListHash()
     {
@@ -796,13 +809,13 @@ internal sealed class SpectateHud : UIElement
     #endregion
 
     #region Layout Helpers
-    private static float GetScale() => 0.85f;
+    private static float GetScale() => 0.75f;
     private static float GetPlayerCardScale() => 0.8f;
-    private static float GetHeaderHeight() => HeaderHeight * GetScale();
-    private static float GetTabHeight() => TabHeight * GetScale();
+    private static float GetHeaderHeight() => 0f;
+    private static float GetTabHeight() => TabHeight;
     private static float GetPlayerPanelPadding() => 10f * GetScale();
     private static float GetCardGap() => 6f * GetScale();
-    private static float GetContentGap() => ContentGap * GetScale();
+    private static float GetContentGap() => 2 * GetScale();
     private static float GetDetailStatusGap() => DetailStatusGap * GetScale();
     private static float GetScrollbarWidth() => 20;
     private static float GetCardScale() => GetScale() * GetPlayerCardScale();
@@ -828,8 +841,10 @@ internal sealed class SpectateHud : UIElement
     }
     private static float GetDetailWidth() => UIPlayerCard.DetailWidth * GetScale();
     private static float GetDetailHeight() => UIPlayerCard.DetailHeight * GetScale();
-    private static int GetVisibleColumns(int count) => Math.Max(MinCardsPerRow, Math.Min(CardsPerRow, count));
-    private static int GetVisibleRows(int count) => Math.Max(1, Math.Min(SpectateHudClientSettings.RowsVisible, (count + CardsPerRow - 1) / CardsPerRow));
+    private static int GetVisibleColumns(int count) => Math.Clamp(count, MinCardsPerRow, MaxCardsPerRow);
+    private static int GetMaxVisibleCards(int columns) => columns * SpectateHudClientSettings.RowsVisible;
+    private static int GetVisibleRows(int count) => GetVisibleRows(count, GetVisibleColumns(count));
+    private static int GetVisibleRows(int count, int columns) => Math.Max(1, Math.Min(SpectateHudClientSettings.RowsVisible, (count + columns - 1) / columns));
     private static float GetGridWidth(int columns) => GetGridWidth(columns, GetCardWidth(), GetCardGap());
     private static float GetGridWidth(int columns, float cardWidth, float cardGap) => columns * cardWidth + Math.Max(0, columns - 1) * cardGap;
     private static float GetGridHeight(int rows) => rows * GetCardHeight() + Math.Max(0, rows - 1) * GetCardGap();
@@ -885,9 +900,10 @@ internal sealed class SpectateHud : UIElement
 
     private static float GetGridPanelWidth(int count)
     {
-        float contentWidth = GetGridWidth(GetVisibleColumns(count));
+        int columns = GetVisibleColumns(count);
+        float contentWidth = GetGridWidth(columns);
 
-        if (count > MaxVisibleCards)
+        if (count > GetMaxVisibleCards(columns))
             contentWidth += GetCardGap() + GetScrollbarWidth();
 
         return contentWidth + GetPlayerPanelPadding() * 2f;
@@ -901,7 +917,7 @@ internal sealed class SpectateHud : UIElement
         public string TooltipText => "Spectate players";
         public Asset<Texture2D> Icon => Ass.IconPlayer;
         public float IconScale => 1.2f;
-        public Vector2 IconOffset => new(2, 0);
+        public Vector2 IconOffset => new(2, 2);
         public Vector2 TextOffset => new(-12, 0);
         public void Refresh()
         {
@@ -915,7 +931,7 @@ internal sealed class SpectateHud : UIElement
         public string TooltipText => "Spectate NPCs";
         public Asset<Texture2D> Icon => Ass.IconNPC;
         public float IconScale => 1f;
-        public Vector2 IconOffset => new(-2, -4);
+        public Vector2 IconOffset => new(-2, -2);
         public Vector2 TextOffset => new(-2, 0);
         public void Refresh()
         {

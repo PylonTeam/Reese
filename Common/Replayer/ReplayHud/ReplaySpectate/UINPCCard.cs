@@ -32,7 +32,7 @@ internal sealed class UINPCCard : UIPanel
     protected override void DrawSelf(SpriteBatch sb)
     {
         bool selected = IsValidNPC(NPCIndex) && SpectatorTargetSystem.IsLockedTargeting(Main.npc[NPCIndex]);
-        BackgroundColor = selected || !IsMouseHovering ? new Color(28, 36, 76) * 0.92f : new Color(63, 82, 151) * 0.45f;
+        BackgroundColor = selected || !IsMouseHovering ? new Color(20, 27, 62) * 0.95f : new Color(47, 61, 125) * 0.55f;
         BorderColor = selected ? Color.Yellow : IsMouseHovering ? Colors.FancyUIFatButtonMouseOver : Color.Black;
         base.DrawSelf(sb);
 
@@ -63,14 +63,14 @@ internal sealed class UINPCCard : UIPanel
         if (showName)
         {
             Rectangle name = new(content.X, y, content.Width, nameHeight);
-            DrawCenteredText(sb, StatDrawer.Truncate(FontAssets.MouseText.Value, npc.FullName, name.Width, 0.95f * scale), name, 0.95f * scale, Color.White);
+            DrawCenteredText(sb, StatDrawer.Truncate(FontAssets.MouseText.Value, npc.FullName, name.Width, 0.95f * scale), name, 1.1f * scale, Color.White);
             y = name.Bottom;
         }
 
         if (showDistance)
         {
             Rectangle distance = new(content.X, y, content.Width, distanceHeight);
-            DrawCenteredText(sb, GetDistanceText(npc), distance, 0.78f * scale, Color.LightGray);
+            DrawCenteredText(sb, GetDistanceText(npc), distance, 0.9f * scale, Color.LightGray);
         }
     }
 
@@ -78,7 +78,7 @@ internal sealed class UINPCCard : UIPanel
     {
         Player local = Main.LocalPlayer;
         float feet = local?.active == true ? Vector2.Distance(local.Center, npc.Center) / 8f : 0f;
-        return $"({feet.ToString("N0", CultureInfo.InvariantCulture)} ft)";
+        return $"({feet.ToString("F0", CultureInfo.InvariantCulture)} ft)";
     }
 
     internal static bool IsValidNPC(int npcIndex)

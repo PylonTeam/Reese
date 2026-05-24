@@ -9,11 +9,9 @@ public class ReplayHudState : UIState
     private ReplayInfo.InfoHud infoHud;
     private ReplayControls.PlaybackHud playbackHud;
 
-    private bool showSpectateHud = true;
     private bool showInfoHud = true;
-    private bool showPlaybackHud = true;
 
-    public bool HasVisibleHuds => showSpectateHud || showInfoHud || showPlaybackHud;
+    public bool HasVisibleHuds => ReplayClientSettings.ShowSpectateHud || showInfoHud || ReplayClientSettings.ShowPlaybackHud;
 
     public override void OnActivate()
     {
@@ -30,9 +28,7 @@ public class ReplayHudState : UIState
 
     public void ShowAllHuds()
     {
-        showSpectateHud = true;
         showInfoHud = true;
-        showPlaybackHud = true;
     }
 
     public void Rebuild()
@@ -77,18 +73,28 @@ public class ReplayHudState : UIState
 
     private void EnsureHuds()
     {
-        if (showSpectateHud)
+        if (ReplayClientSettings.ShowSpectateHud)
             spectateHud ??= new ReplaySpectate.SpectateHud();
+        else
+        {
+            spectateHud?.Remove();
+            spectateHud = null;
+        }
 
         if (showInfoHud)
             infoHud ??= new ReplayInfo.InfoHud();
 
-        if (showPlaybackHud)
+        if (ReplayClientSettings.ShowPlaybackHud)
             playbackHud ??= new ReplayControls.PlaybackHud();
+        else
+        {
+            playbackHud?.Remove();
+            playbackHud = null;
+        }
 
-        if (showSpectateHud && spectateHud.Parent == null) Append(spectateHud);
+        if (ReplayClientSettings.ShowSpectateHud && spectateHud.Parent == null) Append(spectateHud);
         if (showInfoHud && infoHud.Parent == null) Append(infoHud);
-        if (showPlaybackHud && playbackHud.Parent == null) Append(playbackHud);
+        if (ReplayClientSettings.ShowPlaybackHud && playbackHud.Parent == null) Append(playbackHud);
     }
 
     private void RemoveHuds()
@@ -107,7 +113,9 @@ public class ReplayHudState : UIState
     // Close huds
     public void CloseSpectateHud()
     {
-        showSpectateHud = false;
+        if (ReplayClientSettings.ShowSpectateHud)
+            ReplayClientSettings.ToggleShowSpectateHud();
+
         spectateHud?.Remove();
         spectateHud = null;
     }
@@ -121,7 +129,9 @@ public class ReplayHudState : UIState
 
     public void ClosePlaybackHud()
     {
-        showPlaybackHud = false;
+        if (ReplayClientSettings.ShowPlaybackHud)
+            ReplayClientSettings.ToggleShowPlaybackHud();
+
         playbackHud?.Remove();
         playbackHud = null;
     }

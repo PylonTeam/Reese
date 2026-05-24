@@ -1,7 +1,6 @@
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Common.Replayer.ReplayHud.Shared.UI;
 using Reese.Core.Configs;
-using ReLogic.Content;
 using System;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
@@ -13,6 +12,15 @@ public sealed class PlaybackHud : DraggablePanel
 {
     private static readonly float[] SpeedPresets = [0.25f, 0.5f, 1f, 2f, 4f, 8f, 16f, 32f];
 
+    private const float Padding = 12f;
+    private const float SpeedColumnWidth = 100f;
+    private const float RightColumnWidth = 290f;
+    private const float ColumnGap = 16f;
+    private const float SpeedSectionHeight = 152f;
+    private const float SeekbarSectionHeight = 56f;
+    private const float ControlsSectionHeight = 78f;
+    private const float SectionGap = 14f;
+
     private readonly Slider positionSlider;
     private readonly UIText positionLabel;
     private readonly UIText speedLabel;
@@ -22,52 +30,25 @@ public sealed class PlaybackHud : DraggablePanel
     private readonly HorizontalRule horizontalRule;
     private readonly VerticalRule verticalRule;
 
-    protected override Asset<Texture2D> LeftIcon => Ass.IconReset;
-
-    protected override void OnRightIconTitlePanelClick()
-    {
-        ModContent.GetInstance<ReplayHudSystem>().ClosePlaybackHud();
-    }
-
-    protected override void OnLeftIconTitlePanelClick()
-    {
-        //ApplyLayout();
-        //Recalculate();
-        //RefreshVisualState();
-
-        // Reset position
-        Log.Chat("Resetting position...");
-        HAlign = 0.5f;
-        VAlign = 0.92f;
-        Left.Set(0f, 0f);
-        Top.Set(0f, 0f);
-    }
+    private int settingsRevision = ReplayClientSettings.HudRevision;
 
     public PlaybackHud() : base("Replay")
     {
-        Width.Set(430f, 0f);
-        Height.Set(200f, 0f);
         HAlign = 0.5f;
         VAlign = 0.92f;
 
         speedLabel = CreateLabel(0.82f);
-        ContentPanel.Append(speedLabel);
-
         speedButtons = new CompactTextPanel<string>[SpeedPresets.Length];
 
         for (int i = 0; i < SpeedPresets.Length; i++)
         {
             float speed = SpeedPresets[i];
-            speedButtons[i] = new CompactTextPanel<string>(FormatSpeedButton(speed), 0.72f, false, leftClick: () => SetSpeed(speed), backgroundColor: new Color(44, 57, 105), padding: 5f);
-            ContentPanel.Append(speedButtons[i]);
+            speedButtons[i] = new CompactTextPanel<string>(FormatSpeedButton(speed), 0.72f, false, leftClick: () => SetSpeed(speed), backgroundColor: new Color(32, 43, 92), padding: 5f);
         }
 
         verticalRule = new VerticalRule();
-        ContentPanel.Append(verticalRule);
 
         positionLabel = CreateLabel(0.86f);
-        ContentPanel.Append(positionLabel);
-
         positionSlider = new Slider();
         positionSlider.OnDrag += ratio =>
         {
@@ -93,14 +74,9 @@ public sealed class PlaybackHud : DraggablePanel
 
             RefreshPositionSlider();
         };
-        ContentPanel.Append(positionSlider);
 
         horizontalRule = new HorizontalRule();
-        ContentPanel.Append(horizontalRule);
-
         transportStatusLabel = CreateLabel(0.86f);
-        ContentPanel.Append(transportStatusLabel);
-
         transportButtons =
         [
             CreateTransportButton(Ass.IconSpeedDown, "Go to start", GoToStart),
@@ -111,16 +87,10 @@ public sealed class PlaybackHud : DraggablePanel
             CreateTransportButton(Ass.IconSpeedUp, "Go to end", GoToEnd)
         ];
 
+        RebuildContent();
         ApplyLayout();
         RefreshVisualState();
     }
-
-    //private void Rebuild()
-    //{
-    //    ApplyLayout();
-    //    Recalculate();
-    //    RefreshVisualState();
-    //}
 
     public override void Recalculate()
     {
@@ -131,69 +101,146 @@ public sealed class PlaybackHud : DraggablePanel
 
     public override void Update(GameTime gameTime)
     {
+        RefreshSettingsIfNeeded();
         base.Update(gameTime);
         RefreshVisualState();
     }
 
-    private void ApplyLayout()
+    protected override bool CanStartDrag(UIElement target)
     {
-        Width.Set(430f, 0f);
-        Height.Set(200f, 0f);
+        return base.CanStartDrag(target) ||
+            target == speedLabel ||
+            target == positionLabel ||
+            target == transportStatusLabel ||
+            target == horizontalRule ||
+            target == verticalRule;
+    }
 
-        if (TitlePanel != null)
-            TitlePanel.Height.Set(32f, 0f);
+    private void RefreshSettingsIfNeeded()
+    {
+        if (settingsRevision == ReplayClientSettings.HudRevision)
+            return;
 
-        if (ContentPanel != null)
+        settingsRevision = ReplayClientSettings.HudRevision;
+        RebuildContent();
+        ApplyLayout();
+        Recalculate();
+    }
+
+    private void RebuildContent()
+    {
+        ContentPanel.RemoveAllChildren();
+
+        bool showSpeed = ReplayClientSettings.ShowReplayHudSpeed;
+        bool showSeekbar = ReplayClientSettings.ShowReplayHudSeekbar;
+        bool showControls = ReplayClientSettings.ShowReplayHudPlaybackControls;
+
+        if (showSpeed)
         {
-            ContentPanel.Top.Set(32f, 0f);
-            ContentPanel.Height.Set(168f, 0f);
+            ContentPanel.Append(speedLabel);
+
+            for (int i = 0; i < speedButtons.Length; i++)
+                ContentPanel.Append(speedButtons[i]);
         }
 
-        speedLabel.Left.Set(12f, 0f);
-        speedLabel.Top.Set(10f, 0f);
+        if (showSpeed && (showSeekbar || showControls))
+            ContentPanel.Append(verticalRule);
+
+        if (showSeekbar)
+        {
+            ContentPanel.Append(positionLabel);
+            ContentPanel.Append(positionSlider);
+        }
+
+        if (showSeekbar && showControls)
+            ContentPanel.Append(horizontalRule);
+
+        if (showControls)
+        {
+            ContentPanel.Append(transportStatusLabel);
+
+            for (int i = 0; i < transportButtons.Length; i++)
+                ContentPanel.Append(transportButtons[i]);
+        }
+    }
+
+    private void ApplyLayout()
+    {
+        bool showSpeed = ReplayClientSettings.ShowReplayHudSpeed;
+        bool showSeekbar = ReplayClientSettings.ShowReplayHudSeekbar;
+        bool showControls = ReplayClientSettings.ShowReplayHudPlaybackControls;
+        bool showRightColumn = showSeekbar || showControls;
+
+        float innerWidth = 0f;
+        if (showSpeed)
+            innerWidth += SpeedColumnWidth;
+
+        if (showSpeed && showRightColumn)
+            innerWidth += ColumnGap;
+
+        if (showRightColumn)
+            innerWidth += RightColumnWidth;
+
+        float rightHeight = 0f;
+        if (showSeekbar)
+            rightHeight += SeekbarSectionHeight;
+
+        if (showSeekbar && showControls)
+            rightHeight += SectionGap;
+
+        if (showControls)
+            rightHeight += ControlsSectionHeight;
+
+        float innerHeight = Math.Max(showSpeed ? SpeedSectionHeight : 0f, rightHeight);
+        Width.Set(Math.Max(180f, innerWidth + Padding * 2f), 0f);
+        Height.Set(Math.Max(48f, innerHeight + Padding * 2f), 0f);
+
+        float rightLeft = Padding + (showSpeed ? SpeedColumnWidth + (showRightColumn ? ColumnGap : 0f) : 0f);
+
+        speedLabel.Left.Set(Padding, 0f);
+        speedLabel.Top.Set(Padding, 0f);
 
         for (int i = 0; i < speedButtons.Length; i++)
         {
             int column = i % 2;
             int row = i / 2;
 
-            speedButtons[i].Left.Set(12f + column * 50f, 0f);
-            speedButtons[i].Top.Set(38f + row * 32f, 0f);
+            speedButtons[i].Left.Set(Padding + column * 50f, 0f);
+            speedButtons[i].Top.Set(Padding + 28f + row * 32f, 0f);
             speedButtons[i].Width.Set(44f, 0f);
             speedButtons[i].Height.Set(28f, 0f);
         }
 
-        verticalRule.Left.Set(118f, 0f);
-        verticalRule.Top.Set(10f, 0f);
+        verticalRule.Left.Set(Padding + SpeedColumnWidth + ColumnGap * 0.5f - 1f, 0f);
+        verticalRule.Top.Set(Padding, 0f);
         verticalRule.Width.Set(2f, 0f);
-        verticalRule.Height.Set(138f, 0f);
+        verticalRule.Height.Set(innerHeight, 0f);
 
-        positionLabel.Left.Set(136f, 0f);
-        positionLabel.Top.Set(10f, 0f);
+        positionLabel.Left.Set(rightLeft, 0f);
+        positionLabel.Top.Set(Padding, 0f);
 
-        positionSlider.Left.Set(136f, 0f);
-        positionSlider.Top.Set(38f, 0f);
-        positionSlider.Width.Set(-154f, 1f);
+        positionSlider.Left.Set(rightLeft, 0f);
+        positionSlider.Top.Set(Padding + 28f, 0f);
+        positionSlider.Width.Set(RightColumnWidth, 0f);
         positionSlider.Height.Set(18f, 0f);
 
-        horizontalRule.Left.Set(136f, 0f);
-        horizontalRule.Top.Set(70f, 0f);
-        horizontalRule.Width.Set(-154f, 1f);
+        float controlsTop = Padding + (showSeekbar ? SeekbarSectionHeight + SectionGap : 0f);
+        horizontalRule.Left.Set(rightLeft, 0f);
+        horizontalRule.Top.Set(controlsTop - SectionGap * 0.5f, 0f);
+        horizontalRule.Width.Set(RightColumnWidth, 0f);
         horizontalRule.Height.Set(2f, 0f);
 
-        transportStatusLabel.Left.Set(136f, 0f);
-        transportStatusLabel.Top.Set(82f, 0f);
+        transportStatusLabel.Left.Set(rightLeft, 0f);
+        transportStatusLabel.Top.Set(controlsTop, 0f);
 
-        float rightColumnLeft = 136f;
-        float rightColumnRight = 412f;
         float gap = 6f;
-        float buttonTop = 118f;
+        float buttonTop = controlsTop + 36f;
         float totalWidth = 0f;
 
         for (int i = 0; i < transportButtons.Length; i++)
             totalWidth += GetTransportButtonWidth(i) + (i == 0 ? 0f : gap);
 
-        float left = rightColumnLeft + (rightColumnRight - rightColumnLeft - totalWidth) * 0.5f;
+        float left = rightLeft + (RightColumnWidth - totalWidth) * 0.5f;
 
         for (int i = 0; i < transportButtons.Length; i++)
         {
@@ -209,9 +256,9 @@ public sealed class PlaybackHud : DraggablePanel
     {
         return index switch
         {
-            0 => 44f, // Go to start
-            2 => 60f, // Play
-            5 => 44f, // Go to end
+            0 => 44f,
+            2 => 60f,
+            5 => 44f,
             _ => 36f
         };
     }
@@ -226,11 +273,9 @@ public sealed class PlaybackHud : DraggablePanel
         };
     }
 
-    private IconActionButton CreateTransportButton(ReLogic.Content.Asset<Texture2D> texture, string hoverText, Action onClick)
+    private static IconActionButton CreateTransportButton(ReLogic.Content.Asset<Texture2D> texture, string hoverText, Action onClick)
     {
-        IconActionButton button = new(texture, hoverText, (_, _) => onClick());
-        ContentPanel.Append(button);
-        return button;
+        return new IconActionButton(texture, hoverText, (_, _) => onClick());
     }
 
     private static void SetSpeed(float value)
@@ -271,39 +316,50 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void RefreshVisualState()
     {
-        positionSlider.AllowsInput = true;
-
         uint durationTicks = GetDurationTicks();
         uint currentTick = Math.Min(ReplayPlayback.CurrentTick, durationTicks);
         float speed = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
         bool paused = speed <= 0f;
 
-        if (!positionSlider.IsHeld)
-            RefreshPositionSlider(currentTick, durationTicks);
+        positionSlider.AllowsInput = ReplayClientSettings.ShowReplayHudSeekbar;
 
-        positionSlider.HighlightColor = !IsBackwardsSeekingEnabled() && IsHoveringBackwardPosition() ? Color.Red : Main.OurFavoriteColor;
-        positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
-        speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
-        transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Tick: {currentTick}");
-
-        for (int i = 0; i < speedButtons.Length; i++)
+        if (ReplayClientSettings.ShowReplayHudSeekbar)
         {
-            bool selected = Math.Abs(speed - SpeedPresets[i]) < 0.001f;
-            bool hovered = speedButtons[i].IsMouseHovering;
+            if (!positionSlider.IsHeld)
+                RefreshPositionSlider(currentTick, durationTicks);
 
-            speedButtons[i].BackgroundColor =
-                selected ? new Color(73, 94, 171) :
-                hovered ? new Color(61, 78, 141) :
-                new Color(44, 57, 105);
-
-            speedButtons[i].BorderColor = selected || hovered ? Color.Yellow : Color.Black;
+            positionSlider.HighlightColor = !IsBackwardsSeekingEnabled() && IsHoveringBackwardPosition() ? Color.Red : Main.OurFavoriteColor;
+            positionLabel.SetText($"Time: {FormatTime(currentTick)} / {FormatTime(durationTicks)}");
         }
+
+        if (ReplayClientSettings.ShowReplayHudSpeed)
+        {
+            speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
+
+            for (int i = 0; i < speedButtons.Length; i++)
+            {
+                bool selected = Math.Abs(speed - SpeedPresets[i]) < 0.001f;
+                bool hovered = speedButtons[i].IsMouseHovering;
+
+                speedButtons[i].BackgroundColor =
+                    selected ? new Color(47, 61, 125) :
+                    hovered ? new Color(42, 55, 112) :
+                    new Color(32, 43, 92);
+
+                speedButtons[i].BorderColor = selected || hovered ? Color.Yellow : Color.Black;
+            }
+        }
+
+        if (!ReplayClientSettings.ShowReplayHudPlaybackControls)
+            return;
+
+        transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Tick: {currentTick}");
 
         for (int i = 0; i < transportButtons.Length; i++)
             transportButtons[i].SetSelected(false);
 
-        transportButtons[2].SetSelected(!paused); // Play
-        transportButtons[3].SetSelected(paused);  // Pause
+        transportButtons[2].SetSelected(!paused);
+        transportButtons[3].SetSelected(paused);
     }
 
     private void RefreshPositionSlider()

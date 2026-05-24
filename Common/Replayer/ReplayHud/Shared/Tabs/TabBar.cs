@@ -14,7 +14,7 @@ internal sealed class TabBar : UIPanel
     public TabBar()
     {
         SetPadding(0f);
-        BackgroundColor = new Color(20, 20, 60) * 0.85f;
+        BackgroundColor = new Color(12, 18, 42) * 0.96f;
         BorderColor = Color.Black;
     }
 

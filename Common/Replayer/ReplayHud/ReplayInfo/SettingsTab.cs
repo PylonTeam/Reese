@@ -27,6 +27,7 @@ internal sealed class SettingsTab : TabPage
         AddSection(list, new GhostSettings());
         AddSection(list, new DrawSettings());
         AddSection(list, new SpectateHudSettingsSection());
+        AddSection(list, new ReplayHudSettingsSection());
         //AddSection(list, new DisplaySettings());
     }
     private sealed class GhostSettings : SettingsSection
@@ -133,19 +134,35 @@ internal sealed class SettingsTab : TabPage
     private sealed class SpectateHudSettingsSection : SettingsSection
     {
         public override string HeaderText => "Spectate HUD Settings";
-        public override float Height => 278f;
+        public override float Height => 244f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
             return
             [
+                new("Show Spectate HUD:", () => $"Show Spectate HUD: {OnOff(ReplayClientSettings.ShowSpectateHud)}", () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowSpectateHud),
                 new("Rows Visible:", () => $"Rows Visible: {SpectateHudClientSettings.RowsVisible}", () => Ass.IconResize.Value, onLeftClick: SpectateHudClientSettings.CycleRowsVisible),
-                new("Players Per Row:", () => $"Players Per Row: {SpectateHudClientSettings.PlayersPerRow}", () => Ass.IconPlayer.Value, onLeftClick: SpectateHudClientSettings.CyclePlayersPerRow, iconScale: 1.5f),
                 new("Show Player:", () => $"Show Player: {OnOff(SpectateHudClientSettings.ShowPlayer)}", () => Ass.IconPlayer.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayer, iconScale: 1.5f),
-                new("Show Player Name:", () => $"Show Player Name: {OnOff(SpectateHudClientSettings.ShowPlayerName)}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerName, iconScale: 0.8f),
-                new("Show Player Distance:", () => $"Show Player Distance: {OnOff(SpectateHudClientSettings.ShowPlayerDistance)}", () => Ass.IconMapOn.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerDistance),
+                new("Show Name/Distance:", () => $"Show Name/Distance: {OnOff(SpectateHudClientSettings.ShowPlayerNameAndDistance)}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerNameAndDistance, iconScale: 0.8f),
                 new("Show Player Details:", () => $"Show Player Details: {OnOff(SpectateHudClientSettings.ShowPlayerDetails)}", () => Ass.IconInventoryOpen.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerDetails),
                 new("Show Description:", () => $"Show Description: {OnOff(SpectateHudClientSettings.ShowDescription)}", () => Ass.IconEye.Value, onLeftClick: SpectateHudClientSettings.ToggleShowDescription)
+            ];
+        }
+    }
+
+    private sealed class ReplayHudSettingsSection : SettingsSection
+    {
+        public override string HeaderText => "Replay HUD Settings";
+        public override float Height => 180f;
+
+        public override IReadOnlyList<SpectatorSectionRow> GetRows()
+        {
+            return
+            [
+                new("Show Replay HUD:", () => $"Show Replay HUD: {OnOff(ReplayClientSettings.ShowPlaybackHud)}", () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowPlaybackHud),
+                new("Show Speed:", () => $"Show Speed: {OnOff(ReplayClientSettings.ShowReplayHudSpeed)}", () => Ass.IconSpeedUp.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSpeed),
+                new("Show Playback Controls:", () => $"Show Playback Controls: {OnOff(ReplayClientSettings.ShowReplayHudPlaybackControls)}", () => Ass.IconPlay.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudPlaybackControls),
+                new("Show Seekbar:", () => $"Show Seekbar: {OnOff(ReplayClientSettings.ShowReplayHudSeekbar)}", () => Ass.SliderHighlight.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSeekbar)
             ];
         }
     }

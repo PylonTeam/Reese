@@ -27,6 +27,7 @@ internal sealed class InfoHud : UIElement
     private readonly List<ITab> tabs = [];
     private ITab currentTab;
     private TabBar tabBar;
+    private UIText titleText;
     private bool isShiftedForTeammateAccessoriesHud;
 
     public InfoHud()
@@ -64,8 +65,7 @@ internal sealed class InfoHud : UIElement
             Top = new StyleDimension(HeaderHeight + TabHeight, 0f),
             Width = new StyleDimension(0f, 1f),
             Height = new StyleDimension(-(HeaderHeight + TabHeight), 1f),
-            BackgroundColor = new Color(20, 20, 60) * 0.9f,
-            //BackgroundColor = new Color(28, 36, 76) * 0.92f,
+            BackgroundColor = new Color(12, 18, 42) * 0.96f,
             BorderColor = Color.Black
         };
         ContentPanel.SetPadding(0f);
@@ -77,6 +77,7 @@ internal sealed class InfoHud : UIElement
     public override void Update(GameTime gameTime)
     {
         UpdatePanelPosition();
+        UpdateTitleText();
         base.Update(gameTime);
 
         if (ContainsPoint(Main.MouseScreen))
@@ -106,20 +107,16 @@ internal sealed class InfoHud : UIElement
         TitlePanel.Height.Set(HeaderHeight, 0f);
         TitlePanel.Width.Set(0f, 1f);
         TitlePanel.SetPadding(0f);
-        TitlePanel.BackgroundColor = new Color(63, 82, 151);
+        TitlePanel.BackgroundColor = new Color(31, 43, 95);
         TitlePanel.BorderColor = Color.Black;
 
-        UIText titleText = new("Replay Info", large: false, textScale: 1f)
+        titleText = new(GetReplayTitle(), large: false, textScale: 1f)
         {
             HAlign = 0.5f,
             VAlign = 0.5f
         };
         TitlePanel.Append(titleText);
 
-        // Close panel
-        TitlePanel.Append(new ClosePanel(
-            () => ModContent.GetInstance<ReplayHudSystem>().CloseInfoHud()
-        ));
     }
 
     private void BuildTabPanel()
@@ -163,6 +160,16 @@ internal sealed class InfoHud : UIElement
         }
 
         return null;
+    }
+
+    private void UpdateTitleText()
+    {
+        titleText?.SetText(GetReplayTitle());
+    }
+
+    private static string GetReplayTitle()
+    {
+        return ReplayPlayback.Metadata?.ReplayName ?? "Replay";
     }
 
 }

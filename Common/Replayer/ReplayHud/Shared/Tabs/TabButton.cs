@@ -101,7 +101,7 @@ internal sealed class TabButton : UIPanel
 
         bool selected = isSelected();
 
-        BackgroundColor = selected ? new Color(83, 97, 168) : new Color(63, 82, 151) * 0.85f;
+        BackgroundColor = selected ? new Color(47, 61, 125) : new Color(31, 43, 95) * 0.92f;
         BorderColor = IsMouseHovering ? Color.Yellow : selected ? Color.White : Color.Black;
 
         if (IsMouseHovering)
