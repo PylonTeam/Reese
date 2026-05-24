@@ -516,7 +516,7 @@ public class Recorder : ModSystem, ITicker
             return baselinePacketDiagnostics?.GetCount(messageId) ?? 0;
         }
 
-        public void Finish(string worldName, string[] modNames, uint finalTick, ReplayFileFlags flags = ReplayFileFlags.None)
+        public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None)
         {
             if (isFinished || isClosed)
                 return;

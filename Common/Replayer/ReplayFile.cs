@@ -52,6 +52,7 @@ public class ReplayFile : IDisposable
     {
         _binaryWriter.Write(IdentifierASCII);
     }
+
     private static readonly byte[] FlagsMarkerASCII = Encoding.ASCII.GetBytes("RFL1");
 
     private void ReadPacketDataHeader()
