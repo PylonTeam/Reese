@@ -30,9 +30,8 @@ internal sealed class MainMenuUIState : UIState
     private UIAutoScaleTextTextPanel<string> refreshButton;
     private UIBrowserStatus statusBadge;
     private MainMenuLoaderImage loaderImage;
-    private bool refreshLoading;
-    private DateTime refreshLoadingUntil;
     private string statusText = "Completed";
+    private DateTime statusLoadingStarted;
     private int lastScreenWidth;
     private int lastScreenHeight;
     private float lastUiScale;
@@ -50,17 +49,13 @@ internal sealed class MainMenuUIState : UIState
         if (KeyboardHelper.Pressed(Keys.Escape))
             onBack?.Invoke();
 
-#if DEBUG
-        if (KeyboardHelper.Pressed(Keys.F5))
-        {
-            Rebuild();
-            return;
-        }
-#endif
-
-        if (refreshLoading && DateTime.UtcNow >= refreshLoadingUntil)
-            SetCurrentAsyncState(AsyncProviderState.Completed);
-
+//#if DEBUG
+//        if (KeyboardHelper.Pressed(Keys.F5))
+//        {
+//            Rebuild();
+//            return;
+//        }
+//#endif
         UpdateScreenMetrics();
     }
 
@@ -86,17 +81,8 @@ internal sealed class MainMenuUIState : UIState
             VAlign = 0.5f
         };
 
-        replayBrowser.OnRefreshStarted += () =>
-        {
-            refreshLoadingUntil = DateTime.UtcNow.AddSeconds(0.2);
-            SetCurrentAsyncState(AsyncProviderState.Loading);
-        };
-
-        replayBrowser.OnRefreshFinished += () =>
-        {
-            if (DateTime.UtcNow >= refreshLoadingUntil)
-                SetCurrentAsyncState(AsyncProviderState.Completed);
-        };
+        replayBrowser.OnRefreshStarted += () => SetCurrentAsyncState(AsyncProviderState.Loading);
+        replayBrowser.OnRefreshFinished += () => SetCurrentAsyncState(AsyncProviderState.Completed);
 
         SetCurrentAsyncState(AsyncProviderState.Completed);
 
@@ -131,8 +117,10 @@ internal sealed class MainMenuUIState : UIState
         };
         statusBadge.OnUpdate += _ =>
         {
-            if (statusBadge.IsMouseHovering)
-                UICommon.TooltipMouseText(statusText);
+            if (statusBadge.IsMouseHovering && loaderImage?.Loading == true)
+            {
+                Main.instance.MouseText(GetStatusText());
+            }
         };
         footer.Append(statusBadge);
 
@@ -147,13 +135,21 @@ internal sealed class MainMenuUIState : UIState
     private void SetCurrentAsyncState(AsyncProviderState state, string text = null)
     {
         bool loading = state == AsyncProviderState.Loading;
+        if (loading)
+            statusLoadingStarted = DateTime.UtcNow;
 
-        refreshLoading = loading;
         refreshButton?.SetText(loading ? "Loading" : "Refresh");
         statusBadge?.SetCurrentState(state);
         statusText = text ?? state.ToString();
+
         if (loaderImage != null)
             loaderImage.Loading = loading;
+    }
+
+    private string GetStatusText()
+    {
+        int seconds = Math.Max(1, (int)Math.Ceiling((DateTime.UtcNow - statusLoadingStarted).TotalSeconds));
+        return $"Refreshing...{seconds}";
     }
 
     private static UIAutoScaleTextTextPanel<string> CreateActionButton(string text, Action onClick)

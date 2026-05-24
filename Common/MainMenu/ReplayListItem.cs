@@ -25,7 +25,7 @@ internal sealed class ReplayListItem : UIPanel
 
     private readonly ActionLabel actionLabel;
 
-    public ReplayListItem(ReplayMetadata metadata, Action onEntryChanged, Action<string> onFavoriteToggled)
+    public ReplayListItem(ReplayMetadata metadata, Action onEntryChanged, Action<string, ReplayFileFlags> onFavoriteToggled)
     {
         ReplayLayout.Update();
 
@@ -36,9 +36,9 @@ internal sealed class ReplayListItem : UIPanel
         BackgroundColor = new Color(63, 82, 151) * 0.95f;
         BorderColor = new Color(89, 116, 213) * 0.95f;
 
-        bool isNew = ReplayFlags.IsNew(metadata.FullPath);
-        bool isWatchedBefore = ReplayFlags.HasWatched(metadata.FullPath);
-        bool isFavorite = ReplayFlags.IsFavorite(metadata.FullPath);
+        bool isNew = metadata.IsNew;
+        bool isWatchedBefore = metadata.HasWatched;
+        bool isFavorite = metadata.IsFavorite;
 
         Append(new Preview(metadata, ReplayLayout.ReplayItemHeight));
 
@@ -72,7 +72,7 @@ internal sealed class ReplayListItem : UIPanel
         ButtonAction[] actions =
         [
             new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayActions.EnterReplay(metadata.FullPath)),
-            new(favoriteTexture, isFavorite ? "Unfavorite" : "Favorite", () => ReplayActions.Favorite(metadata.FullPath, () => onFavoriteToggled?.Invoke(metadata.FullPath))),
+            new(favoriteTexture, isFavorite ? "Unfavorite" : "Favorite", () => ReplayActions.Favorite(metadata.FullPath, flags => onFavoriteToggled?.Invoke(metadata.FullPath, flags))),
             new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayActions.Rename(metadata.FullPath, onEntryChanged))
         ];
 

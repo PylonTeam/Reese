@@ -149,14 +149,19 @@ internal static class ReplayActions
         return name.Trim();
     }
 
-    public static void Favorite(string path, Action onChanged = null)
+    public static void Favorite(string path, Action<ReplayFileFlags> onChanged = null)
     {
         SoundEngine.PlaySound(SoundID.MenuTick);
 
         try
         {
-            ReplayFlags.ToggleFavorite(path);
-            onChanged?.Invoke();
+            if (!ReplayFlags.TryToggleFavorite(path, out ReplayFileFlags flags))
+            {
+                Log.Warn($"Failed to toggle replay favorite '{path}'");
+                return;
+            }
+
+            onChanged?.Invoke(flags);
         }
         catch (Exception e)
         {

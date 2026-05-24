@@ -1,8 +1,4 @@
 using Reese.Common.Replayer;
-using System;
-using System.IO;
-using System.Linq;
-using System.Text;
 
 namespace Reese.Common.MainMenu;
 
@@ -11,29 +7,45 @@ namespace Reese.Common.MainMenu;
 /// </summary>
 internal static class ReplayFlags
 {
-    private const byte New = 1;
-    private const byte Watched = 2;
-    private const byte Favorite = 4;
-    private const byte AllFlags = New | Watched | Favorite;
+    public static bool IsNew(string replayPath) => HasFlag(replayPath, ReplayFileFlags.New);
+    public static bool HasWatched(string replayPath) => HasFlag(replayPath, ReplayFileFlags.Watched);
+    public static bool IsFavorite(string replayPath) => HasFlag(replayPath, ReplayFileFlags.Favorite);
 
-    private static readonly byte[] IdentifierASCII = Encoding.ASCII.GetBytes(ReplayFile.Identifier);
-    private static readonly byte[] MetadataMarkerASCII = Encoding.ASCII.GetBytes("RMD1");
-    private static readonly byte[] FlagsMarkerASCII = Encoding.ASCII.GetBytes("RFL1");
-
-    public static bool IsNew(string replayPath) => HasFlag(replayPath, New);
-    public static bool HasWatched(string replayPath) => HasFlag(replayPath, Watched);
-    public static bool IsFavorite(string replayPath) => HasFlag(replayPath, Favorite);
-
-    public static void MarkNew(string replayPath) => SetFlag(replayPath, New, true);
-
-    public static void MarkWatched(string replayPath)
+    public static ReplayFileFlags MarkNew(string replayPath)
     {
-        WriteFlags(replayPath, (byte)((ReadFlags(replayPath) & ~New) | Watched));
+        return SetFlag(replayPath, ReplayFileFlags.New, true);
     }
 
-    public static void ToggleFavorite(string replayPath)
+    public static ReplayFileFlags MarkWatched(string replayPath)
     {
-        SetFlag(replayPath, Favorite, !IsFavorite(replayPath));
+        if (!TryRead(replayPath, out ReplayFileFlags flags))
+            return ReplayFileFlags.None;
+
+        ReplayFileFlags updatedFlags = (flags & ~ReplayFileFlags.New) | ReplayFileFlags.Watched;
+        TryWrite(replayPath, updatedFlags, validateFile: false);
+        return Clean(updatedFlags);
+    }
+
+    public static bool TryToggleFavorite(string replayPath, out ReplayFileFlags updatedFlags)
+    {
+        if (!TryRead(replayPath, out ReplayFileFlags flags))
+        {
+            updatedFlags = ReplayFileFlags.None;
+            return false;
+        }
+
+        updatedFlags = flags.HasFlag(ReplayFileFlags.Favorite)
+            ? flags & ~ReplayFileFlags.Favorite
+            : flags | ReplayFileFlags.Favorite;
+
+        updatedFlags = Clean(updatedFlags);
+        return TryWrite(replayPath, updatedFlags, validateFile: false);
+    }
+
+    public static ReplayFileFlags ToggleFavorite(string replayPath)
+    {
+        TryToggleFavorite(replayPath, out ReplayFileFlags updatedFlags);
+        return updatedFlags;
     }
 
     public static void Delete(string replayPath)
@@ -44,102 +56,38 @@ internal static class ReplayFlags
     {
     }
 
-    private static bool HasFlag(string replayPath, byte flag) => (ReadFlags(replayPath) & flag) != 0;
-
-    private static void SetFlag(string replayPath, byte flag, bool enabled)
+    private static bool HasFlag(string replayPath, ReplayFileFlags flag)
     {
-        byte flags = ReadFlags(replayPath);
-        WriteFlags(replayPath, enabled ? (byte)(flags | flag) : (byte)(flags & ~flag));
+        return Read(replayPath).HasFlag(flag);
     }
 
-    private static byte ReadFlags(string replayPath)
+    private static ReplayFileFlags SetFlag(string replayPath, ReplayFileFlags flag, bool enabled)
     {
-        if (string.IsNullOrWhiteSpace(replayPath) || !File.Exists(replayPath))
-            return 0;
+        if (!TryRead(replayPath, out ReplayFileFlags flags))
+            return ReplayFileFlags.None;
 
-        try
-        {
-            using var stream = File.Open(replayPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
-
-            if (!ReadMarker(reader, IdentifierASCII) || !SkipPacketData(reader) || !ReadMarker(reader, MetadataMarkerASCII))
-                return 0;
-
-            _ = reader.ReadString();
-            int modCount = reader.ReadInt32();
-            if (modCount < 0 || modCount > 4096)
-                return 0;
-
-            for (int i = 0; i < modCount; i++)
-                _ = reader.ReadString();
-
-            byte flags = 0;
-            while (stream.Position + FlagsMarkerASCII.Length + sizeof(byte) <= stream.Length)
-            {
-                if (!ReadMarker(reader, FlagsMarkerASCII))
-                    return flags;
-
-                flags = (byte)(reader.ReadByte() & AllFlags);
-            }
-
-            return flags;
-        }
-        catch
-        {
-            return 0;
-        }
+        ReplayFileFlags updatedFlags = enabled ? flags | flag : flags & ~flag;
+        TryWrite(replayPath, updatedFlags, validateFile: false);
+        return Clean(updatedFlags);
     }
 
-    private static void WriteFlags(string replayPath, byte flags)
+    private static ReplayFileFlags Read(string replayPath)
     {
-        if (string.IsNullOrWhiteSpace(replayPath) || !File.Exists(replayPath))
-            return;
-
-        if (!ReplayFile.TryReadSummary(replayPath, out _, out _, out _))
-            return;
-
-        try
-        {
-            DateTime lastWriteTimeUtc = File.GetLastWriteTimeUtc(replayPath);
-
-            using var stream = File.Open(replayPath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
-            stream.Seek(0, SeekOrigin.End);
-
-            using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
-            writer.Write(FlagsMarkerASCII);
-            writer.Write((byte)(flags & AllFlags));
-            writer.Flush();
-
-            File.SetLastWriteTimeUtc(replayPath, lastWriteTimeUtc);
-        }
-        catch
-        {
-        }
+        return TryRead(replayPath, out ReplayFileFlags flags) ? flags : ReplayFileFlags.None;
     }
 
-    private static bool SkipPacketData(BinaryReader reader)
+    private static bool TryRead(string replayPath, out ReplayFileFlags flags)
     {
-        Stream stream = reader.BaseStream;
-
-        while (stream.Position + sizeof(uint) + sizeof(int) <= stream.Length)
-        {
-            _ = reader.ReadUInt32();
-            int length = reader.ReadInt32();
-
-            if (length < 0 || stream.Position + length > stream.Length)
-                return false;
-
-            if (length == 0)
-                return true;
-
-            stream.Seek(length, SeekOrigin.Current);
-        }
-
-        return false;
+        return ReplayFile.TryReadCatalogInfo(replayPath, out _, out _, out _, out flags);
     }
 
-    private static bool ReadMarker(BinaryReader reader, byte[] marker)
+    private static bool TryWrite(string replayPath, ReplayFileFlags flags, bool validateFile)
     {
-        return reader.ReadBytes(marker.Length).SequenceEqual(marker);
+        return ReplayFile.TryAppendFlags(replayPath, Clean(flags), preserveLastWriteTime: true, validateFile: validateFile);
+    }
+
+    private static ReplayFileFlags Clean(ReplayFileFlags flags)
+    {
+        return flags & ReplayFileFlags.All;
     }
 }

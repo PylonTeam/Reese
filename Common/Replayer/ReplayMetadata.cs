@@ -18,6 +18,11 @@ public sealed class ReplayMetadata
     public DateTime DateCreated { get; init; }
     public long SizeBytes { get; init; }
     public string[] ModNames { get; init; }
+    public ReplayFileFlags Flags { get; init; }
+
+    public bool IsNew => Flags.HasFlag(ReplayFileFlags.New);
+    public bool HasWatched => Flags.HasFlag(ReplayFileFlags.Watched);
+    public bool IsFavorite => Flags.HasFlag(ReplayFileFlags.Favorite);
 
     /// <summary>
     /// Reads file info
@@ -38,8 +43,9 @@ public sealed class ReplayMetadata
         uint durationTicks = 0;
         string worldName = null;
         string[] modNames = null;
+        ReplayFileFlags flags = ReplayFileFlags.None;
 
-        bool hasSummary = fileExists && ReplayFile.TryReadSummary(path, out durationTicks, out worldName, out modNames);
+        bool hasSummary = fileExists && ReplayFile.TryReadCatalogInfo(path, out durationTicks, out worldName, out modNames, out flags);
 
         return new ReplayMetadata
         {
@@ -50,7 +56,24 @@ public sealed class ReplayMetadata
             DurationTicks = hasSummary ? durationTicks : 0,
             DateCreated = fileExists ? File.GetLastWriteTime(path) : DateTime.MinValue,
             SizeBytes = fileExists ? new FileInfo(path).Length : 0,
-            ModNames = modNames
+            ModNames = modNames,
+            Flags = flags
+        };
+    }
+
+    public ReplayMetadata WithFlags(ReplayFileFlags flags)
+    {
+        return new ReplayMetadata
+        {
+            FullPath = FullPath,
+            FileName = FileName,
+            ReplayName = ReplayName,
+            WorldName = WorldName,
+            DurationTicks = DurationTicks,
+            DateCreated = DateCreated,
+            SizeBytes = SizeBytes,
+            ModNames = ModNames,
+            Flags = flags
         };
     }
 

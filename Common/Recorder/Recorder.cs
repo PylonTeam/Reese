@@ -1,5 +1,4 @@
 ﻿using MonoMod.Cil;
-using Reese.Common.MainMenu;
 using Reese.Common.Replayer;
 using Reese.Core.Stats;
 using System;
@@ -246,7 +245,7 @@ public class Recorder : ModSystem, ITicker
 
         if (recordClient?.Socket is RecordSocket recordSocket)
         {
-            recordSocket.Finish(ReplayStats.GetCurrentWorldName(), ReplayStats.GetCurrentModNames(), Ticks);
+            recordSocket.Finish(ReplayStats.GetCurrentWorldName(), ReplayStats.GetCurrentModNames(), Ticks, ReplayFileFlags.New);
             recordSocket.Close();
         }
 
@@ -256,7 +255,6 @@ public class Recorder : ModSystem, ITicker
             recordClient.Reset();
         }
 
-        ReplayFlags.MarkNew(savedReplayPath);
         ReplayPlayback.NotifyFolderChanged();
 
         currentReplayPath = null;
@@ -357,7 +355,7 @@ public class Recorder : ModSystem, ITicker
         private bool isFinished;
         private bool isClosed;
 
-        public void Finish(string worldName, string[] modNames, uint finalTick)
+        public void Finish(string worldName, string[] modNames, uint finalTick, ReplayFileFlags flags = ReplayFileFlags.None)
         {
             if (isFinished || isClosed)
                 return;
@@ -369,7 +367,7 @@ public class Recorder : ModSystem, ITicker
             remoteClient.IsActive = false;
             remoteClient.State = 0;
 
-            replayFile.Finish(finalTick, worldName, modNames);
+            replayFile.Finish(finalTick, worldName, modNames, flags);
         }
 
         public void Close()

@@ -30,12 +30,12 @@ public static class ReplayPlayback
 
     public static void BeginPlayback(string path)
 	{
-		IsReplayPlayback = true;
-		CurrentPath = path;
+        IsReplayPlayback = true;
+        CurrentPath = path;
         Metadata = ReplayMetadata.FromFile(path);
-        DurationTicks = TryGetDurationTicks(path);
+        DurationTicks = Metadata?.DurationTicks ?? 0;
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
-		Log.Info($"Replay playback started: {path}");
+        Log.Info($"Replay playback started: {path}");
 	}
 
 	public static void End(string reason = null, bool quitPlayer=false)
@@ -54,17 +54,6 @@ public static class ReplayPlayback
             WorldGen.JustQuit();
         }
     }
-
-	private static uint TryGetDurationTicks(string path)
-	{
-		if (string.IsNullOrWhiteSpace(path))
-			return 0;
-
-		if (!ReplayFile.TryReadDurationTicks(path, out uint durationTicks))
-			return 0;
-
-		return durationTicks;
-	}
 
     // Helper for checking for active players, used for deciding when to start and stop recording
     public static bool HasActivePlayers()

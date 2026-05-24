@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
@@ -287,7 +288,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         string dir = ReplayPaths.GetFolder();
         Utils.TryCreatingDirectory(dir);
 
-        System.Threading.Tasks.Task.Run(() => LoadReplayEntries(dir)).ContinueWith(task =>
+        Task.Run(() => LoadReplayEntries(dir)).ContinueWith(task =>
         {
             Main.QueueMainThreadAction(() =>
             {
@@ -305,7 +306,11 @@ internal sealed class ReplayBrowserPanel : UIElement
                 }
 
                 cachedEntries = task.Result;
-                ApplyCurrentFilter();
+
+                var applyWatch = System.Diagnostics.Stopwatch.StartNew();
+                int visibleCount = ApplyCurrentFilterCore();
+                applyWatch.Stop();
+                Log.Info($"Replay list apply finished: visible={visibleCount}/{cachedEntries.Length}, ms={applyWatch.ElapsedMilliseconds}");
 
                 OnRefreshFinished?.Invoke();
             });
@@ -314,13 +319,13 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private void ApplyCurrentFilter()
     {
-        ApplyCurrentFilter(refreshFlags: false);
+        ApplyCurrentFilterCore();
     }
 
-    private void ApplyCurrentFilter(bool refreshFlags)
+    private int ApplyCurrentFilterCore()
     {
         if (list == null)
-            return;
+            return 0;
 
         list.Clear();
 
@@ -339,7 +344,7 @@ internal sealed class ReplayBrowserPanel : UIElement
                 AddMessage("No replays yet", "Host a multiplayer world to create one, or place a .reese file in the folder");
 
             list.Recalculate();
-            return;
+            return 0;
         }
 
         ReplayMetadata[] sortedEntries = SortEntries(entries);
@@ -347,11 +352,21 @@ internal sealed class ReplayBrowserPanel : UIElement
             list.Add(new ReplayListItem(entry, () => Refresh(showLoading: false), HandleFavoriteToggled));
 
         list.Recalculate();
+        return sortedEntries.Length;
     }
 
-    private void HandleFavoriteToggled(string fullPath)
+    private void HandleFavoriteToggled(string fullPath, ReplayFileFlags flags)
     {
-        ApplyCurrentFilter(refreshFlags: false);
+        for (int i = 0; i < cachedEntries.Length; i++)
+        {
+            if (!string.Equals(cachedEntries[i].FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            cachedEntries[i] = cachedEntries[i].WithFlags(flags);
+            break;
+        }
+
+        ApplyCurrentFilterCore();
     }
 
     private static ReplayMetadata[] LoadReplayEntries(string dir)
@@ -387,26 +402,26 @@ internal sealed class ReplayBrowserPanel : UIElement
         IOrderedEnumerable<ReplayMetadata> sorted = sortColumn switch
         {
             SortColumn.Name => sortAscending
-                ? entries.OrderBy(x => x.ReplayName).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated)
-                : entries.OrderByDescending(x => x.ReplayName).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated),
+                ? entries.OrderBy(x => x.ReplayName).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated)
+                : entries.OrderByDescending(x => x.ReplayName).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated),
 
             SortColumn.Length => sortAscending
-                ? entries.OrderBy(x => x.DurationTicks).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated)
-                : entries.OrderByDescending(x => x.DurationTicks).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated),
+                ? entries.OrderBy(x => x.DurationTicks).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated)
+                : entries.OrderByDescending(x => x.DurationTicks).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated),
 
             SortColumn.Mods => sortAscending
-                ? entries.OrderBy(GetModCount).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated)
-                : entries.OrderByDescending(GetModCount).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated),
+                ? entries.OrderBy(GetModCount).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated)
+                : entries.OrderByDescending(GetModCount).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated),
 
             SortColumn.Size => sortAscending
-                ? entries.OrderBy(x => x.SizeBytes).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated)
-                : entries.OrderByDescending(x => x.SizeBytes).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenByDescending(x => x.DateCreated),
+                ? entries.OrderBy(x => x.SizeBytes).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated)
+                : entries.OrderByDescending(x => x.SizeBytes).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated),
 
             SortColumn.Date => sortAscending
-                ? entries.OrderBy(x => x.DateCreated).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenBy(x => x.ReplayName)
-                : entries.OrderByDescending(x => x.DateCreated).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenBy(x => x.ReplayName),
+                ? entries.OrderBy(x => x.DateCreated).ThenByDescending(x => x.IsFavorite).ThenBy(x => x.ReplayName)
+                : entries.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.IsFavorite).ThenBy(x => x.ReplayName),
 
-            _ => entries.OrderByDescending(x => x.DateCreated).ThenByDescending(x => ReplayFlags.IsFavorite(x.FullPath)).ThenBy(x => x.ReplayName)
+            _ => entries.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.IsFavorite).ThenBy(x => x.ReplayName)
         };
 
         return sorted.ToArray();

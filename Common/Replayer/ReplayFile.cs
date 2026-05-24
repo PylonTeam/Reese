@@ -6,6 +6,16 @@ using log4net;
 
 namespace Reese.Common.Replayer;
 
+[Flags]
+public enum ReplayFileFlags : byte
+{
+    None = 0,
+    New = 1,
+    Watched = 2,
+    Favorite = 4,
+    All = New | Watched | Favorite
+}
+
 // FIXME: Some of the bullshit we do would be better buffered instead of manually counting bytes, in both directions.
 
 public class ReplayFile : IDisposable
@@ -32,6 +42,7 @@ public class ReplayFile : IDisposable
     }
 
     private static readonly byte[] MetadataMarkerASCII = Encoding.ASCII.GetBytes("RMD1");
+    private static readonly byte[] FlagsMarkerASCII = Encoding.ASCII.GetBytes("RFL1");
 
     private void ReadPacketDataHeader()
     {
@@ -100,7 +111,7 @@ public class ReplayFile : IDisposable
         NumberOfPacketDataBytesRemaining = 0;
     }
 
-    public void Finish(uint finalTick, string worldName, string[] modNames)
+    public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None)
     {
         if (_binaryWriter == null)
             return;
@@ -114,6 +125,7 @@ public class ReplayFile : IDisposable
         _binaryWriter.Write(0);                // terminator
 
         WriteMetadata(worldName, modNames);
+        WriteFlags(flags);
         _binaryWriter.Flush();
 
         Tick = finalTick;
@@ -132,6 +144,16 @@ public class ReplayFile : IDisposable
 
         foreach (string name in names)
             _binaryWriter.Write(name ?? string.Empty);
+    }
+
+    private void WriteFlags(ReplayFileFlags flags)
+    {
+        flags = CleanFlags(flags);
+
+        if (flags == ReplayFileFlags.None)
+            return;
+
+        WriteFlags(_binaryWriter, flags);
     }
 
     public static ReplayFile Write(Stream stream)
@@ -192,66 +214,20 @@ public class ReplayFile : IDisposable
     #region Metadata reading
     public static bool TryReadDurationTicks(string path, out uint durationTicks)
     {
-        durationTicks = 0;
-
-        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
-            return false;
-
-        try
-        {
-            using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
-
-            byte[] identifier = reader.ReadBytes(Identifier.Length);
-            if (!identifier.SequenceEqual(IdentifierASCII))
-                return false;
-
-            long totalTicks = 0;
-            int chunkCount = 0;
-            bool foundTerminator = false;
-
-            while (stream.Position + 8 <= stream.Length)
-            {
-                uint delta = reader.ReadUInt32();
-                int length = reader.ReadInt32();
-
-                if (length < 0)
-                    return false;
-
-                totalTicks += delta;
-                if (totalTicks > uint.MaxValue)
-                    return false;
-
-                if (length == 0)
-                {
-                    foundTerminator = true;
-                    break;
-                }
-
-                if (stream.Position + length > stream.Length)
-                    return false;
-
-                stream.Seek(length, SeekOrigin.Current);
-                chunkCount++;
-            }
-
-            if (!foundTerminator || chunkCount == 0)
-                return false;
-
-            durationTicks = (uint)totalTicks;
-            return true;
-        }
-        catch
-        {
-            durationTicks = 0;
-            return false;
-        }
+        return TryReadCatalogInfo(path, out durationTicks, out _, out _, out _);
     }
+
     public static bool TryReadSummary(string path, out uint durationTicks, out string worldName, out string[] modNames)
+    {
+        return TryReadCatalogInfo(path, out durationTicks, out worldName, out modNames, out _);
+    }
+
+    public static bool TryReadCatalogInfo(string path, out uint durationTicks, out string worldName, out string[] modNames, out ReplayFileFlags flags)
     {
         durationTicks = 0;
         worldName = null;
         modNames = null;
+        flags = ReplayFileFlags.None;
 
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             return false;
@@ -283,7 +259,7 @@ public class ReplayFile : IDisposable
                 if (length == 0)
                 {
                     durationTicks = chunkCount > 0 ? (uint)totalTicks : 0;
-                    ReadMetadataTrailer(reader, out worldName, out modNames);
+                    TryReadMetadataAndFlags(reader, out worldName, out modNames, out flags);
                     return chunkCount > 0;
                 }
 
@@ -301,14 +277,63 @@ public class ReplayFile : IDisposable
             durationTicks = 0;
             worldName = null;
             modNames = null;
+            flags = ReplayFileFlags.None;
             return false;
         }
     }
 
-    private static bool ReadMetadataTrailer(BinaryReader reader, out string worldName, out string[] modNames)
+    public static bool TryAppendFlags(string path, ReplayFileFlags flags, bool preserveLastWriteTime = true, bool validateFile = true)
+    {
+        flags = CleanFlags(flags);
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return false;
+
+        if (validateFile && !TryReadCatalogInfo(path, out _, out _, out _, out _))
+            return false;
+
+        try
+        {
+            DateTime lastWriteTimeUtc = File.GetLastWriteTimeUtc(path);
+
+            using var stream = File.Open(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
+            stream.Seek(0, SeekOrigin.End);
+
+            using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
+            WriteFlags(writer, flags);
+            writer.Flush();
+
+            if (preserveLastWriteTime)
+                File.SetLastWriteTimeUtc(path, lastWriteTimeUtc);
+
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool TryReadMetadataAndFlags(BinaryReader reader, out string worldName, out string[] modNames, out ReplayFileFlags flags)
+    {
+        try
+        {
+            return ReadMetadataAndFlags(reader, out worldName, out modNames, out flags);
+        }
+        catch
+        {
+            worldName = null;
+            modNames = null;
+            flags = ReplayFileFlags.None;
+            return false;
+        }
+    }
+
+    private static bool ReadMetadataAndFlags(BinaryReader reader, out string worldName, out string[] modNames, out ReplayFileFlags flags)
     {
         worldName = null;
         modNames = null;
+        flags = ReplayFileFlags.None;
 
         Stream stream = reader.BaseStream;
         if (stream.Position + MetadataMarkerASCII.Length > stream.Length)
@@ -328,7 +353,34 @@ public class ReplayFile : IDisposable
         for (int i = 0; i < modCount; i++)
             modNames[i] = reader.ReadString();
 
+        ReadFlagTrailers(reader, out flags);
         return true;
+    }
+
+    private static void ReadFlagTrailers(BinaryReader reader, out ReplayFileFlags flags)
+    {
+        flags = ReplayFileFlags.None;
+
+        Stream stream = reader.BaseStream;
+        while (stream.Position + FlagsMarkerASCII.Length + sizeof(byte) <= stream.Length)
+        {
+            byte[] marker = reader.ReadBytes(FlagsMarkerASCII.Length);
+            if (!marker.SequenceEqual(FlagsMarkerASCII))
+                return;
+
+            flags = CleanFlags((ReplayFileFlags)reader.ReadByte());
+        }
+    }
+
+    private static void WriteFlags(BinaryWriter writer, ReplayFileFlags flags)
+    {
+        writer.Write(FlagsMarkerASCII);
+        writer.Write((byte)CleanFlags(flags));
+    }
+
+    private static ReplayFileFlags CleanFlags(ReplayFileFlags flags)
+    {
+        return flags & ReplayFileFlags.All;
     }
 
     #endregion
