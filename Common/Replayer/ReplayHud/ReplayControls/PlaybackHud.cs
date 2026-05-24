@@ -11,7 +11,7 @@ namespace Reese.Common.Replayer.ReplayHud.ReplayControls;
 
 public sealed class PlaybackHud : DraggablePanel
 {
-    private static readonly float[] SpeedPresets = [0.25f, 0.5f, 1f, 2f, 4f, 8f];
+    private static readonly float[] SpeedPresets = [0.25f, 0.5f, 1f, 2f, 4f, 8f, 16f, 32f];
 
     private readonly Slider positionSlider;
     private readonly UIText positionLabel;

@@ -17,7 +17,7 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 [Autoload(Side = ModSide.Both)]
 internal sealed class ReplayTimeScaleSystem : ModSystem
 {
-    public static readonly float[] SnapValues = [0f, 0.125f, 0.25f, 0.5f, 0.75f, 1f, 2f, 4f, 8f];
+    public static readonly float[] SnapValues = [0f, 0.125f, 0.25f, 0.5f, 0.75f, 1f, 2f, 4f, 8f, 16f, 32f];
 
     /// <summary>
     /// Gets the current time scale factor applied to time-dependent operations.
