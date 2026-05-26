@@ -30,6 +30,13 @@ public class ReplayFile : IDisposable
     // [uint deltaTick][int -1][int baselineByteLength][baseline bytes].
     // Old readers rejected negative lengths; new normal playback skips this marker.
     private const int BaselineMarkerLength = -1;
+    private const int BlockHeaderByteLength = sizeof(uint) + sizeof(int);
+    private const int MinimumTerrariaPacketLength = 3;
+    private const int MaxReasonablePacketBlockLength = 64 * 1024 * 1024;
+    private const int MaxReasonableBaselineBlockLength = 512 * 1024 * 1024;
+    private const uint SuspiciousDeltaTicks = 10 * 60 * 60;
+    private const int RequiredRecoveryBlocks = 3;
+    private const long MaxRecoveryScanBytes = 128L * 1024 * 1024;
 
     private BinaryWriter _binaryWriter;
     private BinaryReader _binaryReader;
@@ -43,6 +50,18 @@ public class ReplayFile : IDisposable
     public bool ReachedTerminator { get; private set; }
     private bool readingBaselineData;
     private long baselineResumeOffset;
+
+    private readonly record struct ReplayBlockHeader(
+        uint DeltaTick,
+        int Length,
+        int PayloadLength,
+        long HeaderOffset,
+        long DataOffset,
+        bool IsBaseline,
+        bool IsTerminator)
+    {
+        public long ResumeOffset => DataOffset + PayloadLength;
+    }
 
     private ReplayFile()
     {
@@ -60,50 +79,49 @@ public class ReplayFile : IDisposable
         if (ReachedTerminator)
             return;
 
+        Stream stream = _binaryReader.BaseStream;
+
         while (!ReachedTerminator)
         {
-            // FIXME: This seems like a shitty way to handle EOF? idek
-            try
-            {
-                Tick += _binaryReader.ReadUInt32();
-                NumberOfPacketDataBytesRemaining = _binaryReader.ReadInt32();
+            long headerOffset = stream.Position;
 
-                if (NumberOfPacketDataBytesRemaining == 0)
-                {
-                    ReachedTerminator = true;
-                    return;
-                }
-
-                if (NumberOfPacketDataBytesRemaining == BaselineMarkerLength)
-                {
-                    int baselineByteLength = _binaryReader.ReadInt32();
-                    if (baselineByteLength < 0 ||
-                        _binaryReader.BaseStream.Position + baselineByteLength > _binaryReader.BaseStream.Length)
-                    {
-                        NumberOfPacketDataBytesRemaining = 0;
-                        ReachedTerminator = true;
-                        return;
-                    }
-
-                    _binaryReader.BaseStream.Seek(baselineByteLength, SeekOrigin.Current);
-                    NumberOfPacketDataBytesRemaining = 0;
-                    continue;
-                }
-
-                if (NumberOfPacketDataBytesRemaining < 0)
-                {
-                    NumberOfPacketDataBytesRemaining = 0;
-                    ReachedTerminator = true;
-                    return;
-                }
-
-                return;
-            }
-            catch (EndOfStreamException)
+            if (!TryReadBlockHeader(_binaryReader, headerOffset, out ReplayBlockHeader header))
             {
                 NumberOfPacketDataBytesRemaining = 0;
                 ReachedTerminator = true;
+                return;
             }
+
+            if (!IsReplayBlockHeaderValid(_binaryReader, header, Tick, validatePacketFrames: false))
+            {
+                if (!TryRecoverFromInvalidHeader(_binaryReader, headerOffset, Tick, out header))
+                {
+                    NumberOfPacketDataBytesRemaining = 0;
+                    ReachedTerminator = true;
+                    return;
+                }
+            }
+
+            Tick += header.DeltaTick;
+
+            if (header.IsTerminator)
+            {
+                NumberOfPacketDataBytesRemaining = 0;
+                ReachedTerminator = true;
+                stream.Seek(header.DataOffset, SeekOrigin.Begin);
+                return;
+            }
+
+            if (header.IsBaseline)
+            {
+                stream.Seek(header.ResumeOffset, SeekOrigin.Begin);
+                NumberOfPacketDataBytesRemaining = 0;
+                continue;
+            }
+
+            stream.Seek(header.DataOffset, SeekOrigin.Begin);
+            NumberOfPacketDataBytesRemaining = header.PayloadLength;
+            return;
         }
     }
 
@@ -353,42 +371,232 @@ public class ReplayFile : IDisposable
 
         try
         {
-            while (stream.Position + sizeof(uint) + sizeof(int) <= stream.Length)
+            while (stream.Position + BlockHeaderByteLength <= stream.Length)
             {
-                uint delta = _binaryReader.ReadUInt32();
-                int length = _binaryReader.ReadInt32();
-                absoluteTick += delta;
-
-                if (length == 0)
+                long headerOffset = stream.Position;
+                if (!TryReadBlockHeader(_binaryReader, headerOffset, out ReplayBlockHeader header))
                     break;
 
-                if (length == BaselineMarkerLength)
+                if (!IsReplayBlockHeaderValid(_binaryReader, header, absoluteTick, validatePacketFrames: false) &&
+                    !TryRecoverFromInvalidHeader(_binaryReader, headerOffset, absoluteTick, out header))
+                    break;
+
+                absoluteTick += header.DeltaTick;
+
+                if (header.IsTerminator)
+                    break;
+
+                if (header.IsBaseline)
                 {
-                    if (stream.Position + sizeof(int) > stream.Length)
-                        break;
-
-                    int baselineByteLength = _binaryReader.ReadInt32();
-                    long dataOffset = stream.Position;
-
-                    if (baselineByteLength < 0 || dataOffset + baselineByteLength > stream.Length)
-                        break;
-
-                    long resumeOffset = dataOffset + baselineByteLength;
-                    baselines.Add(new ReplayBaselineEntry(absoluteTick, dataOffset, baselineByteLength, resumeOffset));
-                    stream.Seek(baselineByteLength, SeekOrigin.Current);
+                    baselines.Add(new ReplayBaselineEntry(absoluteTick, header.DataOffset, header.PayloadLength, header.ResumeOffset));
+                    stream.Seek(header.ResumeOffset, SeekOrigin.Begin);
                     continue;
                 }
 
-                if (length < 0 || stream.Position + length > stream.Length)
-                    break;
-
-                stream.Seek(length, SeekOrigin.Current);
+                stream.Seek(header.ResumeOffset, SeekOrigin.Begin);
             }
         }
         finally
         {
             stream.Seek(initialPosition, SeekOrigin.Begin);
             Log.Info($"Replay file baseline index built: {baselines.Count} baselines found.");
+        }
+    }
+
+    private static bool TryReadBlockHeader(BinaryReader reader, long headerOffset, out ReplayBlockHeader header)
+    {
+        header = default;
+
+        Stream stream = reader.BaseStream;
+        if (headerOffset < IdentifierASCII.Length || headerOffset + BlockHeaderByteLength > stream.Length)
+            return false;
+
+        stream.Seek(headerOffset, SeekOrigin.Begin);
+
+        try
+        {
+            uint deltaTick = reader.ReadUInt32();
+            int length = reader.ReadInt32();
+            long dataOffset = stream.Position;
+
+            if (length == 0)
+            {
+                header = new ReplayBlockHeader(deltaTick, length, 0, headerOffset, dataOffset, IsBaseline: false, IsTerminator: true);
+                return true;
+            }
+
+            if (length == BaselineMarkerLength)
+            {
+                if (stream.Position + sizeof(int) > stream.Length)
+                    return false;
+
+                int baselineByteLength = reader.ReadInt32();
+                header = new ReplayBlockHeader(deltaTick, length, baselineByteLength, headerOffset, stream.Position, IsBaseline: true, IsTerminator: false);
+                return true;
+            }
+
+            header = new ReplayBlockHeader(deltaTick, length, length, headerOffset, dataOffset, IsBaseline: false, IsTerminator: false);
+            return true;
+        }
+        catch (EndOfStreamException)
+        {
+            header = default;
+            return false;
+        }
+    }
+
+    private static bool IsReplayBlockHeaderValid(BinaryReader reader, ReplayBlockHeader header, uint currentTick, bool validatePacketFrames)
+    {
+        Stream stream = reader.BaseStream;
+        if (currentTick + (long)header.DeltaTick > uint.MaxValue)
+            return false;
+
+        if (header.IsTerminator)
+            return IsTerminatorFollowedByMetadataOrEnd(reader, header.DataOffset);
+
+        if (header.PayloadLength < 0)
+            return false;
+
+        if (header.DataOffset > stream.Length || header.PayloadLength > stream.Length - header.DataOffset)
+            return false;
+
+        int maxBlockLength = header.IsBaseline ? MaxReasonableBaselineBlockLength : MaxReasonablePacketBlockLength;
+        if (header.PayloadLength > maxBlockLength)
+            return false;
+
+        if ((validatePacketFrames || header.DeltaTick >= SuspiciousDeltaTicks) &&
+            !TryValidateTerrariaPacketFrames(reader, header.DataOffset, header.PayloadLength))
+            return false;
+
+        return true;
+    }
+
+    private static bool TryRecoverFromInvalidHeader(BinaryReader reader, long badHeaderOffset, uint currentTick, out ReplayBlockHeader recoveredHeader)
+    {
+        Stream stream = reader.BaseStream;
+        long originalPosition = stream.Position;
+
+        if (TryFindRecoveryHeader(reader, badHeaderOffset, currentTick, requireDeltaOne: true, out recoveredHeader) ||
+            TryFindRecoveryHeader(reader, badHeaderOffset, currentTick, requireDeltaOne: false, out recoveredHeader))
+        {
+            long skippedBytes = recoveredHeader.HeaderOffset - badHeaderOffset;
+            Log.Warn($"Recovered damaged Reese replay stream at offset {badHeaderOffset} by skipping {skippedBytes} bytes.");
+            stream.Seek(recoveredHeader.DataOffset, SeekOrigin.Begin);
+            return true;
+        }
+
+        recoveredHeader = default;
+        stream.Seek(originalPosition, SeekOrigin.Begin);
+        return false;
+    }
+
+    private static bool TryFindRecoveryHeader(BinaryReader reader, long badHeaderOffset, uint currentTick, bool requireDeltaOne, out ReplayBlockHeader recoveredHeader)
+    {
+        Stream stream = reader.BaseStream;
+        long startOffset = badHeaderOffset + 1;
+        long endOffset = Math.Min(stream.Length - BlockHeaderByteLength, badHeaderOffset + MaxRecoveryScanBytes);
+
+        for (long candidateOffset = startOffset; candidateOffset <= endOffset; candidateOffset++)
+        {
+            if (!TryReadBlockHeader(reader, candidateOffset, out ReplayBlockHeader candidate))
+                continue;
+
+            if (requireDeltaOne && candidate.DeltaTick != 1)
+                continue;
+
+            if (!HasValidRecoveryRun(reader, candidate, currentTick))
+                continue;
+
+            recoveredHeader = candidate;
+            return true;
+        }
+
+        recoveredHeader = default;
+        return false;
+    }
+
+    private static bool HasValidRecoveryRun(BinaryReader reader, ReplayBlockHeader firstHeader, uint currentTick)
+    {
+        ReplayBlockHeader header = firstHeader;
+        uint tick = currentTick;
+        int validDataBlocks = 0;
+
+        while (true)
+        {
+            if (!IsReplayBlockHeaderValid(reader, header, tick, validatePacketFrames: true))
+                return false;
+
+            tick += header.DeltaTick;
+
+            if (header.IsTerminator)
+                return validDataBlocks > 0;
+
+            validDataBlocks++;
+            if (validDataBlocks >= RequiredRecoveryBlocks)
+                return true;
+
+            if (!TryReadBlockHeader(reader, header.ResumeOffset, out header))
+                return false;
+        }
+    }
+
+    private static bool TryValidateTerrariaPacketFrames(BinaryReader reader, long dataOffset, int byteLength)
+    {
+        Stream stream = reader.BaseStream;
+        long originalPosition = stream.Position;
+
+        try
+        {
+            if (byteLength < 0 || dataOffset > stream.Length || byteLength > stream.Length - dataOffset)
+                return false;
+
+            stream.Seek(dataOffset, SeekOrigin.Begin);
+            int remaining = byteLength;
+
+            while (remaining > 0)
+            {
+                if (remaining < MinimumTerrariaPacketLength)
+                    return false;
+
+                int low = stream.ReadByte();
+                int high = stream.ReadByte();
+                if (low < 0 || high < 0)
+                    return false;
+
+                int packetLength = low | (high << 8);
+                if (packetLength < MinimumTerrariaPacketLength || packetLength > remaining)
+                    return false;
+
+                stream.Seek(packetLength - sizeof(ushort), SeekOrigin.Current);
+                remaining -= packetLength;
+            }
+
+            return true;
+        }
+        finally
+        {
+            stream.Seek(originalPosition, SeekOrigin.Begin);
+        }
+    }
+
+    private static bool IsTerminatorFollowedByMetadataOrEnd(BinaryReader reader, long terminatorDataOffset)
+    {
+        Stream stream = reader.BaseStream;
+        if (terminatorDataOffset == stream.Length)
+            return true;
+
+        if (terminatorDataOffset + MetadataMarkerASCII.Length > stream.Length)
+            return false;
+
+        long originalPosition = stream.Position;
+        try
+        {
+            stream.Seek(terminatorDataOffset, SeekOrigin.Begin);
+            return reader.ReadBytes(MetadataMarkerASCII.Length).SequenceEqual(MetadataMarkerASCII);
+        }
+        finally
+        {
+            stream.Seek(originalPosition, SeekOrigin.Begin);
         }
     }
 
@@ -490,42 +698,34 @@ public class ReplayFile : IDisposable
             long totalTicks = 0;
             int chunkCount = 0;
 
-            while (stream.Position + 8 <= stream.Length)
+            while (stream.Position + BlockHeaderByteLength <= stream.Length)
             {
-                uint delta = reader.ReadUInt32();
-                int length = reader.ReadInt32();
+                long headerOffset = stream.Position;
+                if (!TryReadBlockHeader(reader, headerOffset, out ReplayBlockHeader header))
+                    return false;
 
-                totalTicks += delta;
+                if (!IsReplayBlockHeaderValid(reader, header, (uint)totalTicks, validatePacketFrames: false) &&
+                    !TryRecoverFromInvalidHeader(reader, headerOffset, (uint)totalTicks, out header))
+                    return false;
+
+                totalTicks += header.DeltaTick;
                 if (totalTicks > uint.MaxValue)
                     return false;
 
-                if (length == 0)
+                if (header.IsTerminator)
                 {
                     durationTicks = chunkCount > 0 ? (uint)totalTicks : 0;
                     TryReadMetadataAndFlags(reader, out worldName, out modNames, out flags);
                     return chunkCount > 0;
                 }
 
-                if (length == BaselineMarkerLength)
+                if (header.IsBaseline)
                 {
-                    if (stream.Position + sizeof(int) > stream.Length)
-                        return false;
-
-                    int baselineByteLength = reader.ReadInt32();
-                    if (baselineByteLength < 0 || stream.Position + baselineByteLength > stream.Length)
-                        return false;
-
-                    stream.Seek(baselineByteLength, SeekOrigin.Current);
+                    stream.Seek(header.ResumeOffset, SeekOrigin.Begin);
                     continue;
                 }
 
-                if (length < 0)
-                    return false;
-
-                if (stream.Position + length > stream.Length)
-                    return false;
-
-                stream.Seek(length, SeekOrigin.Current);
+                stream.Seek(header.ResumeOffset, SeekOrigin.Begin);
                 chunkCount++;
             }
 

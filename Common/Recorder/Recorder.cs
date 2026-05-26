@@ -115,7 +115,8 @@ public class Recorder : ModSystem, ITicker
         recordClient.Reset();
         recordClient.Name = RecordClientName;
         // FIXME: File name too long? file path too long? do we care is that our problem??
-        recordClient.Socket = new RecordSocket(this, recordClient, replayFile);
+        var recordSocket = new RecordSocket(this, recordClient, replayFile);
+        recordClient.Socket = recordSocket;
 
         // RemoteClient.Update would set this because Socket.IsConnected() returned true, but we need this now, so
         // fast-track it.
@@ -137,7 +138,7 @@ public class Recorder : ModSystem, ITicker
         SendReplayWorldSnapshot(recordClient, initial: true, syncInvasion: false);
 
         // Flush now, so that it comes at update delta 0
-        replayFile.FlushTick();
+        recordSocket.FlushTick();
         isRecording = true;
         RecorderStatus.SyncToClients(force: true);
 
@@ -490,106 +491,136 @@ public class Recorder : ModSystem, ITicker
     private class RecordSocket(ITicker ticker, RemoteClient remoteClient, ReplayFile replayFile) : ISocket
     {
         private readonly RecordRemoteAddress _remoteAddress = new();
+        private readonly object writeLock = new();
         private bool isFinished;
         private bool isClosed;
         private MemoryStream baselineCaptureStream;
         private BaselinePacketDiagnostics baselinePacketDiagnostics;
-        public int BaselineCount => replayFile.Baselines.Count;
+        public int BaselineCount
+        {
+            get
+            {
+                lock (writeLock)
+                    return replayFile.Baselines.Count;
+            }
+        }
 
         public void BeginBaselineCapture()
         {
-            if (isFinished || isClosed)
-                throw new InvalidOperationException("Cannot capture a baseline after recording has finished.");
+            lock (writeLock)
+            {
+                if (isFinished || isClosed)
+                    throw new InvalidOperationException("Cannot capture a baseline after recording has finished.");
 
-            if (baselineCaptureStream != null)
-                throw new InvalidOperationException("Baseline capture is already active.");
+                if (baselineCaptureStream != null)
+                    throw new InvalidOperationException("Baseline capture is already active.");
 
-            replayFile.FlushTick();
-            baselineCaptureStream = new MemoryStream();
-            baselinePacketDiagnostics = new BaselinePacketDiagnostics();
+                replayFile.FlushTick();
+                baselineCaptureStream = new MemoryStream();
+                baselinePacketDiagnostics = new BaselinePacketDiagnostics();
+            }
         }
 
         public int EndBaselineCapture(uint tick)
         {
-            if (baselineCaptureStream == null)
-                return 0;
+            byte[] bytes;
+            BaselinePacketDiagnostics diagnostics;
 
-            byte[] bytes = baselineCaptureStream.ToArray();
-            baselineCaptureStream.Dispose();
-            baselineCaptureStream = null;
+            lock (writeLock)
+            {
+                if (baselineCaptureStream == null)
+                    return 0;
 
-            replayFile.WriteBaselineData(bytes, tick);
-            LogBaselineDiagnostics(tick, bytes.Length, baselinePacketDiagnostics);
-            baselinePacketDiagnostics = null;
+                bytes = baselineCaptureStream.ToArray();
+                baselineCaptureStream.Dispose();
+                baselineCaptureStream = null;
+
+                diagnostics = baselinePacketDiagnostics;
+                baselinePacketDiagnostics = null;
+
+                replayFile.WriteBaselineData(bytes, tick);
+            }
+
+            LogBaselineDiagnostics(tick, bytes.Length, diagnostics);
             return bytes.Length;
         }
 
         public void CancelBaselineCapture()
         {
-            baselineCaptureStream?.Dispose();
-            baselineCaptureStream = null;
-            baselinePacketDiagnostics = null;
+            lock (writeLock)
+                ClearBaselineCapture();
         }
 
         public int GetBaselineMessageCount(int messageId)
         {
-            return baselinePacketDiagnostics?.GetCount(messageId) ?? 0;
+            lock (writeLock)
+                return baselinePacketDiagnostics?.GetCount(messageId) ?? 0;
         }
 
         public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None)
         {
-            if (isFinished || isClosed)
-                return;
+            lock (writeLock)
+            {
+                if (isFinished || isClosed)
+                    return;
 
-            isFinished = true;
+                isFinished = true;
 
-            // Stop any further traffic to this fake client immediately.
-            NetMessage.buffer[remoteClient.Id].broadcast = false;
-            remoteClient.IsActive = false;
-            remoteClient.State = 0;
-            CancelBaselineCapture();
+                // Stop any further traffic to this fake client immediately.
+                NetMessage.buffer[remoteClient.Id].broadcast = false;
+                remoteClient.IsActive = false;
+                remoteClient.State = 0;
+                ClearBaselineCapture();
 
-            replayFile.Finish(finalTick, worldName, modNames, flags);
+                replayFile.Finish(finalTick, worldName, modNames, flags);
+            }
         }
 
         public void Close()
         {
-            if (isClosed)
-                return;
+            lock (writeLock)
+            {
+                if (isClosed)
+                    return;
 
-            isClosed = true;
+                isClosed = true;
 
-            NetMessage.buffer[remoteClient.Id].broadcast = false;
-            remoteClient.IsActive = false;
-            remoteClient.State = 0;
-            CancelBaselineCapture();
+                NetMessage.buffer[remoteClient.Id].broadcast = false;
+                remoteClient.IsActive = false;
+                remoteClient.State = 0;
+                ClearBaselineCapture();
 
-            Log.Info("Closing record socket");
-            replayFile.Dispose();
+                Log.Info("Closing record socket");
+                replayFile.Dispose();
+            }
         }
 
-        public bool IsConnected() => !isClosed && !isFinished;
+        public bool IsConnected()
+        {
+            lock (writeLock)
+                return !isClosed && !isFinished;
+        }
 
         public void Connect(RemoteAddress address) =>
             throw new InvalidOperationException("The recording socket cannot connect");
 
         public void AsyncSend(byte[] data, int offset, int size, SocketSendCallback callback, object state = null)
         {
-            if (isFinished || isClosed)
+            lock (writeLock)
             {
-                callback?.Invoke(state);
-                return;
-            }
-
-            if (baselineCaptureStream != null)
-            {
-                baselineCaptureStream.Write(data, offset, size);
-                baselinePacketDiagnostics?.Add(data, offset, size);
-            }
-            else
-            {
-                RecorderStatus.TrackPacket(data, offset, size, ticker.Ticks);
-                replayFile.WritePacketData(data[offset..(offset + size)], ticker.Ticks);
+                if (!isFinished && !isClosed)
+                {
+                    if (baselineCaptureStream != null)
+                    {
+                        baselineCaptureStream.Write(data, offset, size);
+                        baselinePacketDiagnostics?.Add(data, offset, size);
+                    }
+                    else
+                    {
+                        RecorderStatus.TrackPacket(data, offset, size, ticker.Ticks);
+                        replayFile.WritePacketData(data[offset..(offset + size)], ticker.Ticks);
+                    }
+                }
             }
 
             callback?.Invoke(state);
@@ -602,8 +633,11 @@ public class Recorder : ModSystem, ITicker
 
         public void SendQueuedPackets()
         {
-            if (!isFinished && !isClosed)
-                remoteClient.TimeOutTimer = 0;
+            lock (writeLock)
+            {
+                if (!isFinished && !isClosed)
+                    remoteClient.TimeOutTimer = 0;
+            }
         }
 
         public bool StartListening(SocketConnectionAccepted callback) =>
@@ -613,6 +647,22 @@ public class Recorder : ModSystem, ITicker
             throw new InvalidOperationException("The recording socket cannot listen");
 
         public RemoteAddress GetRemoteAddress() => _remoteAddress;
+
+        public void FlushTick()
+        {
+            lock (writeLock)
+            {
+                if (!isFinished && !isClosed)
+                    replayFile.FlushTick();
+            }
+        }
+
+        private void ClearBaselineCapture()
+        {
+            baselineCaptureStream?.Dispose();
+            baselineCaptureStream = null;
+            baselinePacketDiagnostics = null;
+        }
 
         private static void LogBaselineDiagnostics(uint tick, int byteSize, BaselinePacketDiagnostics diagnostics)
         {
