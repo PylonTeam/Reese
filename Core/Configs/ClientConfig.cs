@@ -8,6 +8,9 @@ namespace Reese.Core.Configs;
 
 public class ClientConfig : ModConfig
 {
+    public const int DefaultBaselineIntervalTicks = 1800;
+    public const int MaxBaselineIntervalTicks = 60 * 60 * 60;
+
     public override ConfigScope Mode => ConfigScope.ClientSide;
 
     [Header("MainMenu")]
@@ -26,6 +29,10 @@ public class ClientConfig : ModConfig
 
     [BackgroundColor(250, 60, 60, 150)]
     [DefaultValue(true)] public bool AutoStartRecordingOnEnterWorld = true;
+
+    [BackgroundColor(250, 60, 60, 150)]
+    [Range(0, MaxBaselineIntervalTicks)]
+    [DefaultValue(DefaultBaselineIntervalTicks)] public int BaselineIntervalTicks = DefaultBaselineIntervalTicks;
 
     [Header("Debug")]
     [BackgroundColor(150, 150, 150, 150)]

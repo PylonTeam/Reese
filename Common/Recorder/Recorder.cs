@@ -31,14 +31,13 @@ namespace Reese.Common.Recorder;
 [Autoload(Side = ModSide.Server)]
 public class Recorder : ModSystem, ITicker
 {
-    private const uint BaselineIntervalTicks = 1800; // Every 30 seconds at 60 TPS. Adjust as needed for performance vs. seek speed tradeoff.
-
     // FIXME: Become delegate
     public uint Ticks { get; private set; }
     public bool IsRecording => isRecording;
     private bool isRecording;
     private string currentReplayPath;
     private uint nextBaselineTick;
+    private uint baselineIntervalTicks;
 
     // Reflection fields
     private static MethodInfo _modNetSyncMods;
@@ -96,7 +95,8 @@ public class Recorder : ModSystem, ITicker
 
         // FIXME: Will this break an existing recording that we try to end? prob need to do it later.
         Ticks = 0;
-        nextBaselineTick = BaselineIntervalTicks;
+        baselineIntervalTicks = GetBaselineIntervalTicks();
+        nextBaselineTick = baselineIntervalTicks;
         const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
         const string RecordClientName = "Recording";
 
@@ -381,7 +381,9 @@ public class Recorder : ModSystem, ITicker
             RecorderStatus.UpdateTick(Ticks);
             RecorderStatus.SyncToClients();
 
-            if (BaselineIntervalTicks > 0 && Ticks >= nextBaselineTick)
+            UpdateBaselineSchedule();
+
+            if (baselineIntervalTicks > 0 && Ticks >= nextBaselineTick)
                 WriteBaselineCheckpoint();
 
             // Logging at 1 tick, 5 seconds, 10 seconds, and every 30 minutes thereafter
@@ -403,7 +405,7 @@ public class Recorder : ModSystem, ITicker
 
     private void WriteBaselineCheckpoint()
     {
-        nextBaselineTick = Ticks + BaselineIntervalTicks;
+        nextBaselineTick = Ticks + baselineIntervalTicks;
 
         if (!isRecording)
             return;
@@ -440,6 +442,24 @@ public class Recorder : ModSystem, ITicker
 
         if (completed)
             Log.Info($"Recorded replay baseline at tick {baselineTick}: {byteSize} bytes, {recordSocket.BaselineCount} total baselines.");
+    }
+
+    private void UpdateBaselineSchedule()
+    {
+        uint configuredBaselineIntervalTicks = GetBaselineIntervalTicks();
+        if (baselineIntervalTicks == configuredBaselineIntervalTicks)
+            return;
+
+        baselineIntervalTicks = configuredBaselineIntervalTicks;
+        nextBaselineTick = baselineIntervalTicks > 0 ? Ticks + baselineIntervalTicks : 0;
+    }
+
+    private static uint GetBaselineIntervalTicks()
+    {
+        int configuredTicks = ModContent.GetInstance<ClientConfig>()?.BaselineIntervalTicks
+            ?? ClientConfig.DefaultBaselineIntervalTicks;
+
+        return (uint)Math.Max(0, configuredTicks);
     }
 
     public override void OnWorldUnload()

@@ -32,6 +32,11 @@ Mods: {
 					Tooltip: When disabled, recordings only start when the record console command is used.
 				}
 
+				BaselineIntervalTicks: {
+					Label: Baseline Interval Ticks
+					Tooltip: How often Reese writes replay baseline checkpoints, in ticks. 60 ticks is about 1 second. Set to 0 to disable baselines. Max: 216000 ticks (1 hour).
+				}
+
 				ShowDebugMessages: {
 					Label: Show Debug Messages
 					Tooltip: For developers and testers
