@@ -1,5 +1,6 @@
 ﻿using Microsoft.VisualBasic;
 using Microsoft.Xna.Framework;
+using Reese.Core.Configs;
 using System;
 using System.Diagnostics;
 using Terraria;
@@ -19,7 +20,6 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
 {
     public static readonly float[] SnapValues = [0f, 0.125f, 0.25f, 0.5f, 0.75f, 1f, 2f, 4f, 8f, 16f, 32f];
     private const int MaxSeekUpdatesPerFrame = 128;
-    private const double MaxSeekMillisecondsPerFrame = 8.0;
 
     /// <summary>
     /// Gets the current time scale factor applied to time-dependent operations.
@@ -158,14 +158,20 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
 
     private void RunSeekUpdates(On_Main.orig_DoUpdate orig, Main self, ref GameTime gameTime)
     {
+        ClientConfig config = ModContent.GetInstance<ClientConfig>();
+        float maxSeekMillisecondsPerFrame = Math.Clamp(
+            config?.SeekMaxMillisecondsPerFrame ?? ClientConfig.DefaultSeekMaxMillisecondsPerFrame,
+            ClientConfig.MinSeekMaxMillisecondsPerFrame,
+            ClientConfig.MaxSeekMaxMillisecondsPerFrame);
+
         Stopwatch stopwatch = Stopwatch.StartNew();
         runningExtraUpdates = true;
 
         try
         {
-            for (int i = 0; i < MaxSeekUpdatesPerFrame && ReplayPlayback.IsSeeking; i++)
+            for (int i = 0; i < MaxSeekUpdatesPerFrame && IsSeekCatchUpPending(); i++)
             {
-                if (stopwatch.Elapsed.TotalMilliseconds >= MaxSeekMillisecondsPerFrame)
+                if (stopwatch.Elapsed.TotalMilliseconds >= maxSeekMillisecondsPerFrame)
                     break;
 
                 global::Reese.Common.Replayer.Replayer.ReplaySocket.ResetTimeoutTimer();
@@ -176,6 +182,11 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
         {
             runningExtraUpdates = false;
         }
+    }
+
+    private static bool IsSeekCatchUpPending()
+    {
+        return ReplayPlayback.IsSeeking && ReplayPlayback.CurrentTick < ReplayPlayback.SeekTargetTick;
     }
 
     private void TryAdvanceReplayBootstrapTick()

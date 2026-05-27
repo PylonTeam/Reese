@@ -37,6 +37,11 @@ Mods: {
 					Tooltip: How often Reese writes replay baseline checkpoints, in ticks. 60 ticks is about 1 second. Set to 0 to disable baselines. Max: 216000 ticks (1 hour).
 				}
 
+				SeekMaxMillisecondsPerFrame: {
+					Label: Seek Milliseconds Per Frame
+					Tooltip: Maximum milliseconds Reese spends per frame catching up during seeking. Higher values make seeking faster but may briefly freeze the game.
+				}
+
 				ShowDebugMessages: {
 					Label: Show Debug Messages
 					Tooltip: For developers and testers
