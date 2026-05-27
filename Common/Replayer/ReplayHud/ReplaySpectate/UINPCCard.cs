@@ -12,9 +12,6 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
 internal sealed class UINPCCard : UIPanel
 {
-    internal static int CardWidth => UIPlayerCard.CardWidth;
-    internal static int CardHeight => UIPlayerCard.CardHeight;
-
     public int NPCIndex { get; }
     public int ListIndex { get; }
 

@@ -7,7 +7,6 @@ internal static class SpectateHudClientSettings
     public static bool ShowPlayerNameAndDistance { get; private set; } = true;
     public static bool ShowPlayerName => ShowPlayerNameAndDistance;
     public static bool ShowPlayerDistance => ShowPlayerNameAndDistance;
-    public static bool ShowPlayerDetails { get; private set; } = true;
     public static bool ShowDescription { get; private set; } = true;
     public static int Revision { get; private set; }
 
@@ -19,7 +18,6 @@ internal static class SpectateHudClientSettings
 
     public static void ToggleShowPlayer() { ShowPlayer = !ShowPlayer; Touch(); }
     public static void ToggleShowPlayerNameAndDistance() { ShowPlayerNameAndDistance = !ShowPlayerNameAndDistance; Touch(); }
-    public static void ToggleShowPlayerDetails() { ShowPlayerDetails = !ShowPlayerDetails; Touch(); }
     public static void ToggleShowDescription() { ShowDescription = !ShowDescription; Touch(); }
 
     private static void Touch()

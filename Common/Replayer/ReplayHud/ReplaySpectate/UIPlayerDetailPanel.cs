@@ -1,13 +1,9 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 using Reese.Core.Stats;
-using ReLogic.Content;
 using System;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
-using Terraria.ID;
-using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
@@ -64,119 +60,4 @@ internal sealed class UIPlayerDetailPanel : UIPanel
         StatDrawer.DrawPlayerStat(sb, manaRect, PlayerStats.Mana(player), scale);
         StatDrawer.DrawPlayerStat(sb, biomeRect, PlayerStats.Biome(player), scale);
     }
-
-    #region Action buttons
-    private readonly record struct PlayerCardAction(
-        Asset<Texture2D> Icon,
-        Asset<Texture2D> SelectedIcon,
-        string HoverText,
-        string SelectedHoverText,
-        Action<int> Click,
-        Func<int, bool> Selected
-    );
-    private static PlayerCardAction[] GetPlayerCardActions()
-    {
-        return
-        [
-            new PlayerCardAction(
-                Ass.IconInventoryClosed,
-                Ass.IconInventoryOpen,
-                "Open inventory",
-                "Close inventory",
-                TeammateHudOverlay.Toggle,
-                TeammateHudOverlay.IsOpen)
-            ];
-    }
-
-    internal static void AddActionButtons(UIElement parent, int playerIndex, float scale, float left, float top)
-    {
-        float buttonSize = 32f * scale;
-        float buttonGap = 2f * scale;
-        PlayerCardAction[] actions = GetPlayerCardActions();
-
-        for (int i = 0; i < actions.Length; i++)
-        {
-            AddActionButton(parent, playerIndex, actions[i], left, top, buttonSize);
-            left += buttonSize + buttonGap;
-        }
-    }
-
-    private static void AddActionButton(UIElement parent, int playerIndex, PlayerCardAction action, float left, float top, float size)
-    {
-        PlayerCardActionButton button = new(playerIndex, action);
-        button.Left.Set(left, 0f);
-        button.Top.Set(top, 0f);
-        button.Width.Set(size, 0f);
-        button.Height.Set(size, 0f);
-        parent.Append(button);
-    }
-
-    private sealed class PlayerCardActionButton : UIElement
-    {
-        private readonly int playerIndex;
-        private readonly PlayerCardAction action;
-
-        public PlayerCardActionButton(int playerIndex, PlayerCardAction action)
-        {
-            this.playerIndex = playerIndex;
-            this.action = action;
-
-            OnLeftClick += (_, _) =>
-            {
-                Main.LocalPlayer.mouseInterface = true;
-
-                if (!IsValidPlayer())
-                    return;
-
-                action.Click(playerIndex);
-            };
-        }
-
-        public override void Update(GameTime gameTime)
-        {
-            base.Update(gameTime);
-
-            if (IsMouseHovering)
-            {
-                Main.LocalPlayer.mouseInterface = true;
-                Main.instance.MouseText(IsSelected() ? action.SelectedHoverText : action.HoverText);
-            }
-        }
-
-        protected override void DrawSelf(SpriteBatch sb)
-        {
-            Rectangle box = GetDimensions().ToRectangle();
-            bool isSelected = IsSelected();
-
-            Texture2D background = isSelected
-                ? TextureAssets.InventoryBack14.Value
-                : IsMouseHovering
-                    ? TextureAssets.InventoryBack7.Value
-                    : TextureAssets.InventoryBack.Value;
-
-            Asset<Texture2D> iconAsset = isSelected && action.SelectedIcon is not null ? action.SelectedIcon : action.Icon;
-
-            if (iconAsset is null)
-                return;
-
-            Texture2D icon = iconAsset.Value;
-            float scale = Math.Min((box.Width - 8f) / icon.Width, (box.Height - 8f) / icon.Height);
-            Color color = isSelected || IsMouseHovering ? Color.White : Color.White * 0.8f;
-
-            sb.Draw(background, box, Color.White * 0.85f);
-            sb.Draw(icon, box.Center.ToVector2(), null, color, 0f, icon.Size() * 0.5f, Math.Min(1f, scale), SpriteEffects.None, 0f);
-        }
-
-        private bool IsSelected()
-        {
-            return IsValidPlayer() && action.Selected(playerIndex);
-        }
-
-        private bool IsValidPlayer()
-        {
-            return playerIndex >= 0 && playerIndex < Main.maxPlayers && Main.player[playerIndex]?.active == true;
-        }
-    }
-
-    #endregion
 }

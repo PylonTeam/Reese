@@ -134,7 +134,7 @@ internal sealed class SettingsTab : TabPage
     private sealed class SpectateHudSettingsSection : SettingsSection
     {
         public override string HeaderText => "Spectate HUD Settings";
-        public override float Height => 244f;
+        public override float Height => 210f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
@@ -144,7 +144,6 @@ internal sealed class SettingsTab : TabPage
                 new("Rows Visible:", () => $"Rows Visible: {SpectateHudClientSettings.RowsVisible}", () => Ass.IconResize.Value, onLeftClick: SpectateHudClientSettings.CycleRowsVisible),
                 new("Show Player:", () => $"Show Player: {OnOff(SpectateHudClientSettings.ShowPlayer)}", () => Ass.IconPlayer.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayer, iconScale: 1.5f),
                 new("Show Name/Distance:", () => $"Show Name/Distance: {OnOff(SpectateHudClientSettings.ShowPlayerNameAndDistance)}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerNameAndDistance, iconScale: 0.8f),
-                new("Show Player Details:", () => $"Show Player Details: {OnOff(SpectateHudClientSettings.ShowPlayerDetails)}", () => Ass.IconInventoryOpen.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerDetails),
                 new("Show Description:", () => $"Show Description: {OnOff(SpectateHudClientSettings.ShowDescription)}", () => Ass.IconEye.Value, onLeftClick: SpectateHudClientSettings.ToggleShowDescription)
             ];
         }
