@@ -1,7 +1,7 @@
 displayName = Reese
 author = resin <hey@amberres.in> & Erky
 buildIgnore = *.csproj, *.user, *.md, obj\*, bin\*, .vs\*, Assets\Old\*, Assets\Workshop\*, *.psd
-version = 0.2
+version = 0.2.1
 hideCode = true
 homepage = https://amberres.in
 side = NoSync
