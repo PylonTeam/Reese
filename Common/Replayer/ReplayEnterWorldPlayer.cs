@@ -22,7 +22,10 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
             return;
 
         ReplayPlayback.MarkEnteredReplayWorld();
-        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
+        
+        // Replaying the start once after entry to repair missing sections forcefully
+        // Note: make this smoother in the future 
+        Main.QueueMainThreadAction(ReplayPlayback.ReapplyStartAfterWorldEntry);
 
         string fileName = string.IsNullOrWhiteSpace(ReplayPlayback.CurrentPath)
             ? "Unknown replay"

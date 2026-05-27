@@ -21,6 +21,7 @@ public static class ReplayPlayback
 	public static uint DurationTicks { get; private set; }
     public static uint CurrentTick => ModContent.GetInstance<Replayer>().Ticks;
     public static ReplayMetadata Metadata { get; private set; }
+    private static bool hasReappliedStartAfterWorldEntry;
 
     public static bool IsPlayerReplayClient(Player player)
     {
@@ -34,6 +35,7 @@ public static class ReplayPlayback
         IsReplayPlayback = true;
         CurrentPath = path;
 		HasEnteredReplayWorld = false;
+        hasReappliedStartAfterWorldEntry = false;
         Metadata = ReplayMetadata.FromFile(path);
         DurationTicks = Metadata?.DurationTicks ?? 0;
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
@@ -57,6 +59,7 @@ public static class ReplayPlayback
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 		IsReplayPlayback = false;
 		HasEnteredReplayWorld = false;
+        hasReappliedStartAfterWorldEntry = false;
 		CurrentPath = null;
 		DurationTicks = 0;
         CancelSeek();
@@ -230,6 +233,33 @@ public static class ReplayPlayback
 
         Replayer.ReplaySocket.ResetTimeoutTimer();
         Log.Chat("Replay restarted from the beginning.");
+    }
+
+    public static void ReapplyStartAfterWorldEntry()
+    {
+        if (!IsReplayPlayback || hasReappliedStartAfterWorldEntry)
+            return;
+
+        Replayer replayer = ModContent.GetInstance<Replayer>();
+        Replayer.ReplaySocket socket = CurrentReplaySocket;
+
+        if (socket?.ResetToStart() != true)
+        {
+            Log.Warn("Unable to reapply replay start after world entry: stream reset failed.");
+            return;
+        }
+
+        hasReappliedStartAfterWorldEntry = true;
+        CancelSeek();
+        replayer.SetTicks(0);
+        ResetReplayStateForBaseline();
+        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
+
+        if (Netplay.Connection != null)
+            Netplay.Connection.StatusText = string.Empty;
+
+        Replayer.ReplaySocket.ResetTimeoutTimer();
+        Log.Info("Reapplied replay start after world entry.");
     }
 
     public static void SeekToEnd()
