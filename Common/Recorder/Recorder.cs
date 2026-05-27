@@ -167,17 +167,18 @@ public class Recorder : ModSystem, ITicker
             recordClient.State = 3;
         }
 
-        // Let's send ALL tile sections for the ENTIRE world.
-        // Likely handles world spawn, player spawn, and portal bullshit.
+
         int expectedSectionCount = Main.maxSectionsX * Main.maxSectionsY;
         RecordSocket baselineRecordSocket = !initial ? recordClient.Socket as RecordSocket : null;
         int tileSectionsBefore = baselineRecordSocket?.GetBaselineMessageCount(MessageID.TileSection) ?? 0;
 
-        if (!initial)
-        {
-            int clearedSectionArrays = ClearFakeClientSentSections(recordClient);
-            Log.Info($"Recording baseline tile sections for fake client {recordClient.Id}: expected {expectedSectionCount} sections; cleared {clearedSectionArrays} sent-section arrays.");
-        }
+    
+        // Netmessage internally doesn't send sections that it believes the RemoteClient already has loaded
+        // So force it into believing the client has no data instead
+        int clearedSectionArrays = ClearFakeClientSentSections(recordClient);
+        Log.Info(
+            $"Recording {(initial ? "initial" : "baseline")} tile sections for fake client {recordClient.Id}: " +
+            $"expected {expectedSectionCount} sections; cleared {clearedSectionArrays} sent-section arrays.");
 
         for (var x = 0; x < Main.maxSectionsX; x++)
         {
