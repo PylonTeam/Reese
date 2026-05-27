@@ -5,9 +5,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
+using Terraria.UI.Chat;
 
 namespace Reese.Common.MainMenu;
 
@@ -161,6 +163,12 @@ internal sealed class ReplayBrowserPanel : UIElement
         container.Append(scrollbar);
         list.SetScrollbar(scrollbar);
 
+        // Header
+        string headerText = GetHeaderText();
+        Vector2 textSize = ChatManager.GetStringSize(FontAssets.DeathText.Value, headerText, new Vector2(0.66f));
+        const float iconWidth = 30f;
+        const float iconGap = 6f;
+        float iconLeft = (540 / 2f) - (textSize.X / 2f) - iconWidth - iconGap - 6f;
         UITextPanel<string> header = new(GetHeaderText(), 0.66f, true)
         {
             BackgroundColor = new Color(73, 94, 171),
@@ -174,16 +182,16 @@ internal sealed class ReplayBrowserPanel : UIElement
 
         UIImage cameraIcon = new(Ass.IconCameraSmall)
         {
-            HAlign = 0.5f,
             VAlign = 0f,
             Top = { Pixels = 0f },
-            Left = { Pixels = -88f }
+            Left = { Pixels = iconLeft },
+            ImageScale = 1.5f
         };
-        cameraIcon.ImageScale = 1.5f;
         cameraIcon.Width.Set(30f, 0f);
         cameraIcon.Height.Set(30f, 0f);
         header.Append(cameraIcon);
 
+        // Buttons
         UIElement buttonStrip = new()
         {
             Left = { Pixels = 0f },
