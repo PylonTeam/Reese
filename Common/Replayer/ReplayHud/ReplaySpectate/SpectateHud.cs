@@ -6,6 +6,7 @@ using ReLogic.Content;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ModLoader.UI.Elements;
 using Terraria.UI;
@@ -20,7 +21,6 @@ internal sealed class SpectateHud : UIElement
 {
     // Layout
     private const float TabHeight = 36f;
-    private const float ContentGap = 6f;
 
     // Card display logic
     private const int MinCardsPerRow = 3;
@@ -40,7 +40,6 @@ internal sealed class SpectateHud : UIElement
     private TabBar tabBar;
     private UIPanel backgroundPanel;
     private UIPanel contentPanel;
-    private UIStatusPanel statusPanel;
     private UIGrid targetGrid;
 
     // Reflection
@@ -55,7 +54,7 @@ internal sealed class SpectateHud : UIElement
         Left.Set(0, 0f);
         Top.Set(IsPvPAdventureLoaded ? 40 : 4 , 0f); 
         Width.Set(ReplayInfo.InfoHud.PanelWidth, 0f);
-        Height.Set(GetPanelHeight(GetGridContentHeight(0), SpectateHudClientSettings.ShowDescription), 0f);
+        Height.Set(GetPanelHeight(GetGridContentHeight(0)), 0f);
 
         tabs.Add(new PlayersTab());
         tabs.Add(new NPCsTab());
@@ -70,7 +69,6 @@ internal sealed class SpectateHud : UIElement
 
         RemoveAllChildren();
         targetGrid = null;
-        statusPanel = null;
         backgroundPanel = null;
 
         // Layout
@@ -81,7 +79,7 @@ internal sealed class SpectateHud : UIElement
 
         currentTab ??= tabs.Count > 0 ? tabs[0] : null;
 
-        Height.Set(GetPanelHeight(contentHeight, SpectateHudClientSettings.ShowDescription), 0f);
+        Height.Set(GetPanelHeight(contentHeight), 0f);
 
         backgroundPanel = new UIPanel
         {
@@ -141,17 +139,14 @@ internal sealed class SpectateHud : UIElement
         int slotCount = GetSlotCount(activeCount, detailIndex);
         currentContentHeight = GetGridContentHeight(slotCount);
 
-        bool showDescription = SpectateHudClientSettings.ShowDescription;
         Width.Set(GetGridPanelWidth(slotCount), 0f);
-        Height.Set(GetPanelHeight(currentContentHeight, showDescription), 0f);
+        Height.Set(GetPanelHeight(currentContentHeight), 0f);
         contentPanel.Height.Set(currentContentHeight, 0f);
         contentPanel.SetPadding(playerPanelPadding);
 
 
         tabBar?.RefreshHeaders();
         BuildContent(playerTargets, npcTargets);
-
-        UpdateStatusText();
     }
 
     private void ShowTab(SpectatorTab tab)
@@ -486,14 +481,12 @@ internal sealed class SpectateHud : UIElement
 
         hovered = playerIndex;
         SpectatorTargetSystem.SetPreviewTarget(playerIndex);
-        UpdateStatusText();
     }
 
     private void EndHover()
     {
         hovered = -1;
         SpectatorTargetSystem.ClearPreviewTarget();
-        UpdateStatusText();
     }
 
     private string GetStatusText()
@@ -518,44 +511,32 @@ internal sealed class SpectateHud : UIElement
         return "You are not spectating anyone";
     }
 
-    private void UpdateStatusText()
+    public override void Draw(SpriteBatch spriteBatch)
     {
-        UpdateStatusPanel();
+        base.Draw(spriteBatch);
 
-        if (!SpectateHudClientSettings.ShowDescription || statusPanel == null)
+        if (!SpectateHudClientSettings.ShowDescription)
             return;
 
-        bool showGhost = hovered < 0 && locked < 0 && lockedNpc < 0 && Main.LocalPlayer?.ghost == true;
-        statusPanel.SetStatus(GetStatusText(), showGhost);
+        DrawStatusText(spriteBatch);
     }
 
-    private void UpdateStatusPanel()
+    private void DrawStatusText(SpriteBatch spriteBatch)
     {
-        bool showDescription = SpectateHudClientSettings.ShowDescription;
-        float scale = GetScale();
+        CalculatedStyle dimensions = GetDimensions();
+        string text = GetStatusText();
+        float scale = FitStatusText(text, 0.45f * GetScale(), dimensions.Width);
+        Vector2 size = FontAssets.DeathText.Value.MeasureString(text) * scale;
+        Vector2 position = new(dimensions.X + (dimensions.Width - size.X) * 0.5f, dimensions.Y + dimensions.Height + 3f * GetScale());
+        Utils.DrawBorderStringBig(spriteBatch, text, position, Color.White, scale);
+    }
 
-        if (showDescription)
-        {
-            statusPanel ??= new UIStatusPanel(scale);
+    private static float FitStatusText(string text, float scale, float width)
+    {
+        if (string.IsNullOrEmpty(text))
+            return scale;
 
-            if (statusPanel.Parent == null)
-                Append(statusPanel);
-
-            statusPanel.Left.Set(0f, 0f);
-            statusPanel.Top.Set(GetBottomTop(currentContentHeight), 0f);
-            statusPanel.Width.Set(0f, 1f);
-            statusPanel.Height.Set(GetStatusHeight(), 0f);
-        }
-        else
-        {
-            if (statusPanel?.Parent != null)
-                RemoveChild(statusPanel);
-
-            statusPanel = null;
-        }
-
-        Width.Set(GetActivePanelWidth(), 0f);
-        Height.Set(GetPanelHeight(currentContentHeight, showDescription), 0f);
+        return Math.Min(scale, (width - 12f * GetScale()) / FontAssets.DeathText.Value.MeasureString(text).X);
     }
 
     private void UpdatePlayerCardScale()
@@ -841,7 +822,6 @@ internal sealed class SpectateHud : UIElement
     private static float GetTabHeight() => TabHeight;
     private static float GetPlayerPanelPadding() => 10f * GetScale();
     private static float GetCardGap() => 6f * GetScale();
-    private static float GetContentGap() => 2 * GetScale();
     private static float GetScrollbarWidth() => 20;
     private static float GetCardScale() => GetScale() * GetPlayerCardScale();
     private static float GetCardWidth() => UIPlayerCard.CardWidth * GetCardScale();
@@ -876,11 +856,6 @@ internal sealed class SpectateHud : UIElement
     private static float GetGridHeight(int rows) => rows * GetCardHeight() + Math.Max(0, rows - 1) * GetCardGap();
     private static float GetGridContentHeight(int count) => GetGridHeight(GetVisibleRows(count)) + GetPlayerPanelPadding() * 2f;
 
-    private static float GetStatusHeight()
-    {
-        return 44f * GetScale();
-    }
-
     private float GetActiveContentHeight()
     {
         return GetGridContentHeight(GetActiveSlotCount());
@@ -891,21 +866,9 @@ internal sealed class SpectateHud : UIElement
         return GetGridPanelWidth(GetActiveSlotCount());
     }
 
-    private static float GetBottomTop(float contentHeight)
+    private static float GetPanelHeight(float contentHeight)
     {
-        return GetHeaderHeight() + GetTabHeight() + contentHeight + GetContentGap();
-    }
-
-    private static float GetBottomHeight(bool showDescription)
-    {
-        return showDescription ? GetStatusHeight() : 0f;
-    }
-
-    private static float GetPanelHeight(float contentHeight, bool showDescription)
-    {
-        float bottomHeight = GetBottomHeight(showDescription);
-        float height = GetHeaderHeight() + GetTabHeight() + contentHeight;
-        return bottomHeight > 0f ? height + GetContentGap() + bottomHeight : height;
+        return GetHeaderHeight() + GetTabHeight() + contentHeight;
     }
 
     private int GetActiveSlotCount()
