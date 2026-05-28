@@ -24,6 +24,7 @@ public class ReplayFile : IDisposable
 {
     public const string Identifier = "Reese";
     private static readonly byte[] IdentifierASCII = Encoding.ASCII.GetBytes(Identifier);
+    private static readonly byte[] HeaderMarkerASCII = Encoding.ASCII.GetBytes("RHD1");
     private static readonly byte[] MetadataMarkerASCII = Encoding.ASCII.GetBytes("RMD1");
     private static readonly byte[] SummaryMarkerASCII = Encoding.ASCII.GetBytes("RSM1");
     private static readonly byte[] FlagsMarkerASCII = Encoding.ASCII.GetBytes("RFL1");
@@ -45,6 +46,8 @@ public class ReplayFile : IDisposable
     private BinaryWriter _binaryWriter;
     private BinaryReader _binaryReader;
     private readonly List<ReplayBaselineEntry> baselines = [];
+    private long dataStartOffset = IdentifierASCII.Length;
+    private long headerDurationOffset = -1;
 
     public uint Tick { get; private set; }
     public IReadOnlyList<ReplayBaselineEntry> Baselines => baselines;
@@ -74,6 +77,29 @@ public class ReplayFile : IDisposable
     private void WriteIdentifier()
     {
         _binaryWriter.Write(IdentifierASCII);
+    }
+
+    private void WriteHeaderPlaceholder()
+    {
+        _binaryWriter.Write(HeaderMarkerASCII);
+        headerDurationOffset = _binaryWriter.BaseStream.Position;
+        _binaryWriter.Write(0u);
+        _binaryWriter.Write(~0u);
+        dataStartOffset = _binaryWriter.BaseStream.Position;
+    }
+
+    private void WriteHeaderDuration(uint durationTicks)
+    {
+        if (headerDurationOffset < 0)
+            return;
+
+        Stream stream = _binaryWriter.BaseStream;
+        long position = stream.Position;
+
+        stream.Seek(headerDurationOffset, SeekOrigin.Begin);
+        _binaryWriter.Write(durationTicks);
+        _binaryWriter.Write(~durationTicks);
+        stream.Seek(position, SeekOrigin.Begin);
     }
 
     private void ReadPacketDataHeader()
@@ -221,6 +247,7 @@ public class ReplayFile : IDisposable
         _binaryWriter.Write(finalTick - Tick); // delta to recording end
         _binaryWriter.Write(0);                // terminator
 
+        WriteHeaderDuration(finalTick);
         WriteMetadata(finalTick, worldName, modNames);
         WriteFlags(flags);
         _binaryWriter.Flush();
@@ -269,6 +296,7 @@ public class ReplayFile : IDisposable
         };
 
         replayFile.WriteIdentifier();
+        replayFile.WriteHeaderPlaceholder();
 
         return replayFile;
     }
@@ -283,6 +311,9 @@ public class ReplayFile : IDisposable
         var identifier = replayFile._binaryReader.ReadBytes(Identifier.Length);
         if (!identifier.SequenceEqual(IdentifierASCII))
             throw new InvalidDataException("Not a Reese file");
+
+        TryReadHeaderDuration(replayFile._binaryReader, out _, out long dataStartOffset);
+        replayFile.dataStartOffset = dataStartOffset;
 
         replayFile.BuildBaselineIndex();
 
@@ -311,7 +342,7 @@ public class ReplayFile : IDisposable
         if (_binaryReader == null)
             throw new InvalidOperationException("ReplayFile is not open for reading.");
 
-        _binaryReader.BaseStream.Seek(IdentifierASCII.Length, SeekOrigin.Begin);
+        _binaryReader.BaseStream.Seek(dataStartOffset, SeekOrigin.Begin);
         Tick = 0;
         NumberOfPacketDataBytesRemaining = 0;
         ReachedTerminator = false;
@@ -610,6 +641,37 @@ public class ReplayFile : IDisposable
         }
     }
 
+    private static bool TryReadHeaderDuration(BinaryReader reader, out uint durationTicks, out long dataStartOffset)
+    {
+        durationTicks = 0;
+
+        Stream stream = reader.BaseStream;
+        long headerStartOffset = stream.Position;
+        dataStartOffset = headerStartOffset;
+
+        if (stream.Position + HeaderMarkerASCII.Length + sizeof(uint) * 2 > stream.Length)
+            return false;
+
+        byte[] marker = reader.ReadBytes(HeaderMarkerASCII.Length);
+        if (!marker.SequenceEqual(HeaderMarkerASCII))
+        {
+            stream.Seek(headerStartOffset, SeekOrigin.Begin);
+            return false;
+        }
+
+        uint value = reader.ReadUInt32();
+        uint complement = reader.ReadUInt32();
+        if (complement != ~value)
+        {
+            stream.Seek(headerStartOffset, SeekOrigin.Begin);
+            return false;
+        }
+
+        durationTicks = value;
+        dataStartOffset = stream.Position;
+        return true;
+    }
+
     #region Metadata reading
     public static bool TryReadDurationTicks(string path, out uint durationTicks)
     {
@@ -617,6 +679,9 @@ public class ReplayFile : IDisposable
 
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             return false;
+
+        if (TryReadDurationTicksFromHeader(path, out durationTicks) && durationTicks > 0)
+            return true;
 
         if (TryReadCatalogInfoFromTail(path, out durationTicks, out _, out _, out _))
             return true;
@@ -699,8 +764,21 @@ public class ReplayFile : IDisposable
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             return false;
 
+        bool hasHeaderDuration = TryReadDurationTicksFromHeader(path, out uint headerDurationTicks);
+
         if (TryReadCatalogInfoFromTail(path, out durationTicks, out worldName, out modNames, out flags))
+        {
+            if (hasHeaderDuration && headerDurationTicks > 0)
+                durationTicks = headerDurationTicks;
+
             return true;
+        }
+
+        if (hasHeaderDuration && headerDurationTicks > 0)
+        {
+            durationTicks = headerDurationTicks;
+            return true;
+        }
 
         try
         {
@@ -756,6 +834,26 @@ public class ReplayFile : IDisposable
             worldName = null;
             modNames = null;
             flags = ReplayFileFlags.None;
+            return false;
+        }
+    }
+
+    private static bool TryReadDurationTicksFromHeader(string path, out uint durationTicks)
+    {
+        durationTicks = 0;
+
+        try
+        {
+            using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+
+            byte[] identifier = reader.ReadBytes(Identifier.Length);
+            return identifier.SequenceEqual(IdentifierASCII) &&
+                   TryReadHeaderDuration(reader, out durationTicks, out _);
+        }
+        catch
+        {
+            durationTicks = 0;
             return false;
         }
     }

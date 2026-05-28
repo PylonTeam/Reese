@@ -17,7 +17,7 @@ internal sealed class ReplayCatalogService
     private const int CacheVersion = 1;
     private const string CacheFileName = ".reese-replay-cache.json";
 
-    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = false };
+    private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private readonly object sync = new();
     private readonly Dictionary<string, CacheEntry> cache = new(StringComparer.OrdinalIgnoreCase);
@@ -192,7 +192,7 @@ internal sealed class ReplayCatalogService
 
     private static ReplayMetadata Read(Snapshot snapshot, int index, out ReadDiagnostic diagnostic)
     {
-        Log.Info($"Reading {snapshot.FileName}");
+        Log.Info($"Reading {snapshot.FileName}...");
 
         var watch = Stopwatch.StartNew();
         List<FieldTiming> timings = [];
