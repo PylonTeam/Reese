@@ -43,6 +43,9 @@ internal static class ReplayLayout
         Set(ref PanelWidth, 600f, ref changed);       
         Set(ref PanelHeight, 600f, ref changed); 
 
+        //if (ModLoader.TryGetMod("ModReloader", out Mod _))
+            //Set(ref PanelHeight, 400f, ref changed);
+
         Set(ref PreviewColumnWidth, 60f, ref changed);
         Set(ref StatColumnPadding, 6f, ref changed);
         Set(ref ReplayItemHeight, 58f, ref changed);
@@ -60,8 +63,8 @@ internal static class ReplayLayout
         Set(ref ActionColumnWidth, 48f, ref changed);
         Set(ref TableWidth, PanelWidth - ContentPadding * 2f - ScrollbarWidth - 4f, ref changed);
 
-        const float baseNameColumnWidth = 150f;
-        const float baseDateColumnWidth = 108f;
+        const float baseNameColumnWidth = 190f;
+        const float baseDateColumnWidth = 107f;
         const float baseDurationColumnWidth = 72f;
         const float baseModsColumnWidth = 68f;
         const float baseSizeColumnWidth = 92f;

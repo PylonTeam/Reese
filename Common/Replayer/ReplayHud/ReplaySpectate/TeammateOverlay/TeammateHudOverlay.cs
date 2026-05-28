@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.Replayer;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.Drawers;
 using ReLogic.Graphics;
@@ -91,6 +92,9 @@ internal static class TeammateHudOverlay
 
         if (player?.active != true)
         {
+            if (ReplayPlayback.IsSeeking)
+                return;
+
             Clear();
             return;
         }
