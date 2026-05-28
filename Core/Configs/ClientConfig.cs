@@ -22,10 +22,6 @@ public class ClientConfig : ModConfig
     [DefaultValue(true)]
     public bool AddExtraMenuState = true;
 
-    [BackgroundColor(30, 150, 30)]
-    [DefaultValue(true)]
-    public bool ShowInMainMenu = true;
-
     [Header("Replay")]
     [BackgroundColor(250, 60, 60, 150)]
     [DefaultValue(true)] public bool ShowWelcomeMessageOnEnterWorld;

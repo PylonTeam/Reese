@@ -270,24 +270,10 @@ public class MainMenuSystem : ModSystem
         if (!Main.gameMenu)
             return;
 
-        if (ui?.CurrentState != null)
+        if (Main.menuMode == SharedMenuMode && ui?.CurrentState != null)
         {
             DrawInterface(ui);
-            return;
         }
-
-        DrawReplayOverlay();
-    }
-
-    private static bool ShouldShowOverlay()
-    {
-        return Main.gameMenu && Main.menuMode == 0 && ModContent.GetInstance<ClientConfig>().ShowInMainMenu;
-    }
-
-    private void DrawReplayOverlay()
-    {
-        if (ShouldShowOverlay() && reeseMainMenuUI?.CurrentState != null)
-            DrawInterface(reeseMainMenuUI);
     }
 
     private void PostUpdateUIStates(On_Main.orig_UpdateUIStates orig, GameTime gameTime)
@@ -309,10 +295,8 @@ public class MainMenuSystem : ModSystem
         }
 
         // Update interface
-        if (Main.gameMenu && ui?.CurrentState != null)
+        if (Main.gameMenu && Main.menuMode == SharedMenuMode && ui?.CurrentState != null)
             UpdateInterface(ui, gameTime);
-        else
-            UpdateReplayOverlay(gameTime);
 
         orig(gameTime);
 
@@ -324,24 +308,6 @@ public class MainMenuSystem : ModSystem
 
         if (ui?.CurrentState != null)
             Main.menuMode = SharedMenuMode;
-    }
-
-    private void UpdateReplayOverlay(GameTime gameTime)
-    {
-        if (ShouldShowOverlay())
-        {
-            if (reeseMainMenuUI == null)
-                return;
-
-            if (reeseMainMenuUI.CurrentState == null)
-                reeseMainMenuUI.SetState(reeseMainMenuState);
-
-            UpdateInterface(reeseMainMenuUI, gameTime);
-        }
-        else if (reeseMainMenuUI?.CurrentState != null)
-        {
-            reeseMainMenuUI.SetState(null);
-        }
     }
 
     private static void DrawInterface(UserInterface userInterface)
@@ -379,6 +345,7 @@ public class MainMenuSystem : ModSystem
     {
         activeSession?.Cancel();
         activeSession?.Dispose();
+        Netplay.Disconnect = false;
         activeSession = new ReplayLaunchSession(ReplayPlayback.BeginLaunchAttempt());
         MainMenuActions.BeginReplayLaunch(ui, reeseMainMenuUI);
         return activeSession;
