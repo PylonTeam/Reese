@@ -53,7 +53,7 @@ public sealed class PlaybackHud : DraggablePanel
         positionSlider.OnDrag += ratio =>
         {
             uint targetTick = RatioToTick(ratio);
-            if (targetTick < ReplayPlayback.CurrentTick && !IsBackwardsSeekingEnabled())
+            if (targetTick < ReplayPlayback.CurrentTick)
                 RefreshPositionSlider();
             else
                 positionLabel.SetText($"Time: {FormatTime(targetTick)} / {FormatTime(GetDurationTicks())}");
@@ -62,10 +62,7 @@ public sealed class PlaybackHud : DraggablePanel
         {
             uint targetTick = RatioToTick(ratio);
 
-            if (targetTick < ReplayPlayback.CurrentTick && !IsBackwardsSeekingEnabled())
-                Main.NewText("You cannot go backwards in a replay. Enable Backwards Seeking in the debug config to allow it.", Color.OrangeRed);
-            else
-                ReplayPlayback.SeekToTick(targetTick);
+            ReplayPlayback.SeekToTick(targetTick);
 
             RefreshPositionSlider();
         };
@@ -324,7 +321,8 @@ public sealed class PlaybackHud : DraggablePanel
             if (!positionSlider.IsHeld)
                 RefreshPositionSlider(currentTick, durationTicks);
 
-            positionSlider.HighlightColor = !IsBackwardsSeekingEnabled() && IsHoveringBackwardPosition() ? Color.Red : Main.OurFavoriteColor;
+            // positionSlider.HighlightColor = IsHoveringBackwardPosition() ? Color.Red : Main.OurFavoriteColor;
+            positionSlider.HighlightColor = Main.OurFavoriteColor;
             positionLabel.SetText($"Time: {FormatTime(displayTick)} / {FormatTime(durationTicks)}");
         }
 
@@ -386,11 +384,6 @@ public sealed class PlaybackHud : DraggablePanel
             return false;
 
         return RatioToTick(positionSlider.GetMouseRatio()) < ReplayPlayback.CurrentTick;
-    }
-
-    private static bool IsBackwardsSeekingEnabled()
-    {
-        return ModContent.GetInstance<ClientConfig>()?.EnableBackwardsSeeking == true;
     }
 
     private static string FormatSpeedButton(float speed)

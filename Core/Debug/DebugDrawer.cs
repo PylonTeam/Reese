@@ -12,6 +12,9 @@ internal static class DebugDrawer
     private readonly record struct DebugButton(string Text, string Tooltip, Func<bool> IsEnabled, Action Toggle);
     internal readonly record struct DebugStatGroup(string Header, Color HeaderColor, Func<bool> IsEnabled, string[] Rows);
 
+    internal static bool Visible { get; private set; }
+    internal static void Toggle() => Visible = !Visible;
+
     // Toggles
     internal static bool ShowDebugRecorderStats { get; private set; } = true;
     internal static bool ShowDebugReplayerStats { get; private set; } = true;
@@ -22,22 +25,11 @@ internal static class DebugDrawer
     internal static bool ShowDebugMiscStats { get; private set; } = false;
     internal static bool ShowChat { get; private set; } = true;
     internal static bool ShowRectangles { get; private set; } = true;
-    private static bool? showDebugButtonsOverride;
 
     // Content
     private static readonly List<(Rectangle rect, Color color)> Rectangles = [];
     private static readonly List<(string text, Vector2 pos, Color color, float scale)> Texts = [];
 
-    internal static bool AreDebugButtonsVisible(bool showDebugDrawer)
-    {
-        return showDebugButtonsOverride ?? showDebugDrawer;
-    }
-
-    internal static void ToggleDebugButtons(bool showDebugDrawer)
-    {
-        showDebugButtonsOverride = !AreDebugButtonsVisible(showDebugDrawer);
-    }
-    
     internal static void DrawRectangle(Rectangle rect, Color? color = null, bool drawSize = false)
     {
         if (!ShowRectangles)

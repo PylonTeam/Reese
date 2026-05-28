@@ -184,8 +184,9 @@ public static class ReplayPlayback
             return;
         }
 
-        if (targetTick < replayer.Ticks && ModContent.GetInstance<ClientConfig>()?.EnableBackwardsSeeking != true)
-            return;
+        // backwards seek. we allow it now
+        //if (targetTick < replayer.Ticks)
+            //return;
 
         Replayer.ReplaySocket socket = CurrentReplaySocket;
         if (socket == null)

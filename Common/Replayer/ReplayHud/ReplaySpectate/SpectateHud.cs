@@ -635,6 +635,7 @@ internal sealed class SpectateHud : UIElement
 
     private void ScrollToPlayer(int playerIndex)
     {
+        //NRE?
         targetGrid?.Goto(element => ContainsPlayerCard(element, playerIndex), center: true);
     }
 
