@@ -369,14 +369,17 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private void HandleFavoriteToggled(string fullPath, ReplayFileFlags flags)
     {
+        UpdateCachedEntryFlags(fullPath, flags);
+
         ReplayMetadata[] serviceEntries = ReplayCatalogService.Shared.GetCurrentEntries();
         if (serviceEntries.Length > 0)
-        {
             cachedEntries = serviceEntries;
-            ApplyCurrentFilterCore();
-            return;
-        }
 
+        ApplyCurrentFilterCore();
+    }
+
+    private void UpdateCachedEntryFlags(string fullPath, ReplayFileFlags flags)
+    {
         for (int i = 0; i < cachedEntries.Length; i++)
         {
             if (!string.Equals(cachedEntries[i].FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
@@ -385,35 +388,35 @@ internal sealed class ReplayBrowserPanel : UIElement
             cachedEntries[i] = cachedEntries[i].WithFlags(flags);
             break;
         }
-
-        ApplyCurrentFilterCore();
     }
 
     private ReplayMetadata[] SortEntries(ReplayMetadata[] entries)
     {
-        IOrderedEnumerable<ReplayMetadata> sorted = sortColumn switch
+        IOrderedEnumerable<ReplayMetadata> sorted = entries.OrderByDescending(x => x.IsFavorite);
+
+        sorted = sortColumn switch
         {
             SortColumn.Name => sortAscending
-                ? entries.OrderBy(x => x.ReplayName).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated)
-                : entries.OrderByDescending(x => x.ReplayName).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated),
+                ? sorted.ThenBy(x => x.ReplayName).ThenByDescending(x => x.DateCreated)
+                : sorted.ThenByDescending(x => x.ReplayName).ThenByDescending(x => x.DateCreated),
 
             SortColumn.Length => sortAscending
-                ? entries.OrderBy(x => x.DurationTicks).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated)
-                : entries.OrderByDescending(x => x.DurationTicks).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated),
+                ? sorted.ThenBy(x => x.DurationTicks).ThenByDescending(x => x.DateCreated)
+                : sorted.ThenByDescending(x => x.DurationTicks).ThenByDescending(x => x.DateCreated),
 
             SortColumn.Mods => sortAscending
-                ? entries.OrderBy(GetModCount).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated)
-                : entries.OrderByDescending(GetModCount).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated),
+                ? sorted.ThenBy(GetModCount).ThenByDescending(x => x.DateCreated)
+                : sorted.ThenByDescending(GetModCount).ThenByDescending(x => x.DateCreated),
 
             SortColumn.Size => sortAscending
-                ? entries.OrderBy(x => x.SizeBytes).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated)
-                : entries.OrderByDescending(x => x.SizeBytes).ThenByDescending(x => x.IsFavorite).ThenByDescending(x => x.DateCreated),
+                ? sorted.ThenBy(x => x.SizeBytes).ThenByDescending(x => x.DateCreated)
+                : sorted.ThenByDescending(x => x.SizeBytes).ThenByDescending(x => x.DateCreated),
 
             SortColumn.Date => sortAscending
-                ? entries.OrderBy(x => x.DateCreated).ThenByDescending(x => x.IsFavorite).ThenBy(x => x.ReplayName)
-                : entries.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.IsFavorite).ThenBy(x => x.ReplayName),
+                ? sorted.ThenBy(x => x.DateCreated).ThenBy(x => x.ReplayName)
+                : sorted.ThenByDescending(x => x.DateCreated).ThenBy(x => x.ReplayName),
 
-            _ => entries.OrderByDescending(x => x.DateCreated).ThenByDescending(x => x.IsFavorite).ThenBy(x => x.ReplayName)
+            _ => sorted.ThenByDescending(x => x.DateCreated).ThenBy(x => x.ReplayName)
         };
 
         return sorted.ToArray();
