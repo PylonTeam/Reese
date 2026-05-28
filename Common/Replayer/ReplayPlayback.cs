@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using Terraria;
 using Terraria.Localization;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
@@ -22,6 +23,42 @@ public static class ReplayPlayback
     public static uint CurrentTick => ModContent.GetInstance<Replayer>().Ticks;
     public static ReplayMetadata Metadata { get; private set; }
     private static bool hasReappliedStartAfterWorldEntry;
+    private static int launchGeneration;
+    private static int activeLaunchGeneration;
+    internal static Func<bool> IsLaunchCancelled;
+
+    internal static bool LaunchCancelled()
+    {
+        try
+        {
+            return IsLaunchCancelled?.Invoke() == true;
+        }
+        catch (ObjectDisposedException)
+        {
+            return true;
+        }
+    }
+
+    internal static int BeginLaunchAttempt()
+    {
+        int generation = Interlocked.Increment(ref launchGeneration);
+        Volatile.Write(ref activeLaunchGeneration, generation);
+        return generation;
+    }
+
+    internal static void CancelLaunchAttempt(int generation)
+    {
+        if (generation == 0 || Volatile.Read(ref activeLaunchGeneration) == generation)
+            Volatile.Write(ref activeLaunchGeneration, 0);
+    }
+
+    internal static void CompleteLaunchAttempt(int generation)
+    {
+        if (Volatile.Read(ref activeLaunchGeneration) == generation)
+            Volatile.Write(ref activeLaunchGeneration, 0);
+    }
+
+    internal static bool IsReplayLaunchActive => Volatile.Read(ref activeLaunchGeneration) != 0;
 
     public static bool IsPlayerReplayClient(Player player)
     {

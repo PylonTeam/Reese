@@ -15,7 +15,7 @@ internal sealed class ReplayCatalogService
     public static ReplayCatalogService Shared { get; } = new();
 
     private const int CacheVersion = 1;
-    private const string CacheFileName = ".reese-replay-cache.json";
+    private const string CacheFileName = "cache.json";
 
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 

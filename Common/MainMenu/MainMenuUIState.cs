@@ -63,6 +63,8 @@ internal sealed class MainMenuUIState : UIState
     {
         RemoveAllChildren();
 
+        ReplayLayout.Update();
+
         loaderImage = new MainMenuLoaderImage(0.5f, 0.5f, 1f)
         {
             WithBackground = false
@@ -71,9 +73,9 @@ internal sealed class MainMenuUIState : UIState
         UIElement footer = CreateFooter();
         footer.HAlign = 0.5f;
         footer.VAlign = 0.5f;
-        footer.Width.Set(ReplayBrowser.PanelWidth, 0f);
+        footer.Width.Set(ReplayLayout.PanelWidth, 0f);
         footer.Height.Set(FooterHeight, 0f);
-        footer.Top.Set(ReplayBrowser.BrowserPanelHeight * 0.5f + FooterGap + FooterHeight * 0.5f, 0f);
+        footer.Top.Set(ReplayLayout.PanelHeight * 0.5f + FooterGap + FooterHeight * 0.5f, 0f);
 
         replayBrowser = new ReplayBrowser
         {
@@ -226,7 +228,7 @@ internal sealed class MainMenuReplayBrowserUIState : UIState
 
         replayBrowser = new ReplayBrowser
         {
-            Left = { Pixels = -(ReplayBrowser.PanelWidth + Margin), Percent = 1f },
+            Left = { Pixels = -(ReplayLayout.PanelWidth + Margin), Percent = 1f },
             Top = { Pixels = Margin }
         };
 
