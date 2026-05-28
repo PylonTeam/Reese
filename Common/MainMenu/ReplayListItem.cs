@@ -457,13 +457,20 @@ internal sealed class ReplayListItem : UIPanel
         return string.Join("\n", lines);
     }
 
+    private static HashSet<string> IgnoredModNames = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "ModLoader",
+        "ModReloader",
+        "Reese"
+    };
+
     private static string[] GetEnabledModNames()
     {
         return ModLoader.Mods
             .Select(x => x?.Name)
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim())
-            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
+            .Where(x => !IgnoredModNames.Contains(x))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -474,7 +481,7 @@ internal sealed class ReplayListItem : UIPanel
         return modNames?
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .Select(x => x.Trim())
-            .Where(x => !string.Equals(x, "ModLoader", StringComparison.OrdinalIgnoreCase))
+            .Where(x => !IgnoredModNames.Contains(x))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
             .ToArray() ?? [];
