@@ -22,8 +22,12 @@ internal static class ReplayFlags
             return ReplayFileFlags.None;
 
         ReplayFileFlags updatedFlags = (flags & ~ReplayFileFlags.New) | ReplayFileFlags.Watched;
-        TryWrite(replayPath, updatedFlags, validateFile: false);
-        return Clean(updatedFlags);
+        updatedFlags = Clean(updatedFlags);
+
+        if (TryWrite(replayPath, updatedFlags, validateFile: false))
+            ReplayCatalogService.Shared.UpdateFlags(replayPath, updatedFlags);
+
+        return updatedFlags;
     }
 
     public static bool TryToggleFavorite(string replayPath, out ReplayFileFlags updatedFlags)
@@ -39,7 +43,12 @@ internal static class ReplayFlags
             : flags | ReplayFileFlags.Favorite;
 
         updatedFlags = Clean(updatedFlags);
-        return TryWrite(replayPath, updatedFlags, validateFile: false);
+
+        bool written = TryWrite(replayPath, updatedFlags, validateFile: false);
+        if (written)
+            ReplayCatalogService.Shared.UpdateFlags(replayPath, updatedFlags);
+
+        return written;
     }
 
     public static ReplayFileFlags ToggleFavorite(string replayPath)
@@ -50,10 +59,12 @@ internal static class ReplayFlags
 
     public static void Delete(string replayPath)
     {
+        ReplayCatalogService.Shared.Remove(replayPath);
     }
 
     public static void Move(string oldReplayPath, string newReplayPath)
     {
+        ReplayCatalogService.Shared.Move(oldReplayPath, newReplayPath);
     }
 
     private static bool HasFlag(string replayPath, ReplayFileFlags flag)
@@ -67,8 +78,12 @@ internal static class ReplayFlags
             return ReplayFileFlags.None;
 
         ReplayFileFlags updatedFlags = enabled ? flags | flag : flags & ~flag;
-        TryWrite(replayPath, updatedFlags, validateFile: false);
-        return Clean(updatedFlags);
+        updatedFlags = Clean(updatedFlags);
+
+        if (TryWrite(replayPath, updatedFlags, validateFile: false))
+            ReplayCatalogService.Shared.UpdateFlags(replayPath, updatedFlags);
+
+        return updatedFlags;
     }
 
     private static ReplayFileFlags Read(string replayPath)
@@ -78,6 +93,9 @@ internal static class ReplayFlags
 
     private static bool TryRead(string replayPath, out ReplayFileFlags flags)
     {
+        if (ReplayCatalogService.Shared.TryGetFlags(replayPath, out flags))
+            return true;
+
         return ReplayFile.TryReadCatalogInfo(replayPath, out _, out _, out _, out flags);
     }
 

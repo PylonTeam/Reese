@@ -1,8 +1,6 @@
 using Reese.Common.MainMenu.UI;
 using Reese.Common.Replayer;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Terraria.GameContent;
@@ -290,13 +288,18 @@ internal sealed class ReplayBrowserPanel : UIElement
         list.Clear();
         list.Recalculate();
 
+        string dir = ReplayPaths.GetFolder();
+        ReplayMetadata[] warmEntries = ReplayCatalogService.Shared.GetCachedEntries(dir);
+        if (warmEntries.Length > 0)
+        {
+            cachedEntries = warmEntries;
+            ApplyCurrentFilterCore();
+        }
+
         if (showLoading)
             OnRefreshStarted?.Invoke();
 
-        string dir = ReplayPaths.GetFolder();
-        Utils.TryCreatingDirectory(dir);
-
-        Task.Run(() => LoadReplayEntries(dir)).ContinueWith(task =>
+        Task.Run(() => ReplayCatalogService.Shared.Load(dir)).ContinueWith(task =>
         {
             Main.QueueMainThreadAction(() =>
             {
@@ -313,12 +316,16 @@ internal sealed class ReplayBrowserPanel : UIElement
                     return;
                 }
 
-                cachedEntries = task.Result;
+                ReplayCatalogLoadResult result = task.Result;
+                cachedEntries = result.Entries;
 
                 var applyWatch = System.Diagnostics.Stopwatch.StartNew();
                 int visibleCount = ApplyCurrentFilterCore();
                 applyWatch.Stop();
-                Log.Info($"Replay list apply finished: visible={visibleCount}/{cachedEntries.Length}, ms={applyWatch.ElapsedMilliseconds}");
+                Log.Info(
+                    $"Replay catalog load finished: entries={cachedEntries.Length}/{result.FileCount}, " +
+                    $"cacheHits={result.CacheHitCount}, loaded={result.LoadedCount}, loadMs={result.ElapsedMilliseconds}, " +
+                    $"applyVisible={visibleCount}, applyMs={applyWatch.ElapsedMilliseconds}");
 
                 OnRefreshFinished?.Invoke();
             });
@@ -365,6 +372,14 @@ internal sealed class ReplayBrowserPanel : UIElement
 
     private void HandleFavoriteToggled(string fullPath, ReplayFileFlags flags)
     {
+        ReplayMetadata[] serviceEntries = ReplayCatalogService.Shared.GetCurrentEntries();
+        if (serviceEntries.Length > 0)
+        {
+            cachedEntries = serviceEntries;
+            ApplyCurrentFilterCore();
+            return;
+        }
+
         for (int i = 0; i < cachedEntries.Length; i++)
         {
             if (!string.Equals(cachedEntries[i].FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
@@ -375,34 +390,6 @@ internal sealed class ReplayBrowserPanel : UIElement
         }
 
         ApplyCurrentFilterCore();
-    }
-
-    private static ReplayMetadata[] LoadReplayEntries(string dir)
-    {
-        var watch = System.Diagnostics.Stopwatch.StartNew();
-
-        string[] files = Directory.GetFiles(dir, "*.reese", SearchOption.TopDirectoryOnly)
-            .OrderByDescending(File.GetLastWriteTime)
-            .ToArray();
-
-        List<ReplayMetadata> entries = [];
-
-        foreach (string file in files)
-        {
-            try
-            {
-                entries.Add(ReplayMetadata.FromFile(file));
-            }
-            catch (Exception e)
-            {
-                Log.Warn($"Failed to build replay list entry for {Path.GetFileName(file)}: {e}");
-            }
-        }
-
-        watch.Stop();
-
-        Log.Info($"Replay metadata load finished: entries={entries.Count}/{files.Length}, ms={watch.ElapsedMilliseconds}");
-        return [.. entries];
     }
 
     private ReplayMetadata[] SortEntries(ReplayMetadata[] entries)
