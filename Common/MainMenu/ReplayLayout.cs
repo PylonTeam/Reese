@@ -7,6 +7,9 @@ namespace Reese.Common.MainMenu;
 /// </summary>
 internal static class ReplayLayout
 {
+    internal static float PanelWidth;
+    internal static float PanelHeight;
+
     internal static float ReplayItemHeight;
     internal static float ReplayItemActionHeight;
     internal static float ReplayItemTotalHeight;
@@ -37,6 +40,9 @@ internal static class ReplayLayout
     {
         bool changed = false;
 
+        Set(ref PanelWidth, 600f, ref changed);       
+        Set(ref PanelHeight, 600f, ref changed); 
+
         Set(ref PreviewColumnWidth, 60f, ref changed);
         Set(ref StatColumnPadding, 6f, ref changed);
         Set(ref ReplayItemHeight, 58f, ref changed);
@@ -52,7 +58,7 @@ internal static class ReplayLayout
         Set(ref TableColumnHeight, 28f, ref changed);
         Set(ref ListTop, TableColumnHeight + 4f, ref changed);
         Set(ref ActionColumnWidth, 48f, ref changed);
-        Set(ref TableWidth, ReplayBrowser.PanelWidth - ContentPadding * 2f - ScrollbarWidth - 4f, ref changed);
+        Set(ref TableWidth, PanelWidth - ContentPadding * 2f - ScrollbarWidth - 4f, ref changed);
 
         const float baseNameColumnWidth = 150f;
         const float baseDateColumnWidth = 108f;

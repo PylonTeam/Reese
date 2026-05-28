@@ -13,9 +13,6 @@ namespace Reese.Common.MainMenu;
 
 internal sealed class ReplayBrowser : UIElement
 {
-    internal const float PanelWidth = 540f;
-    internal const float BrowserPanelHeight = 540f;
-
     private ReplayBrowserPanel browserPanel;
 
     public event Action OnRefreshStarted;
@@ -28,14 +25,14 @@ internal sealed class ReplayBrowser : UIElement
 
     public void Build()
     {
-        RemoveAllChildren();
+        ReplayLayout.Update();
 
-        Width.Set(PanelWidth, 0f);
-        Height.Set(BrowserPanelHeight, 0f);
+        Width.Set(ReplayLayout.PanelWidth, 0f);
+        Height.Set(ReplayLayout.PanelHeight, 0f);
 
         browserPanel = new ReplayBrowserPanel();
         browserPanel.Width.Set(0f, 1f);
-        browserPanel.Height.Set(BrowserPanelHeight, 0f);
+        browserPanel.Height.Set(ReplayLayout.PanelHeight, 0f);
         browserPanel.OnRefreshStarted += () => OnRefreshStarted?.Invoke();
         browserPanel.OnRefreshFinished += () => OnRefreshFinished?.Invoke();
         Append(browserPanel);
@@ -166,7 +163,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         Vector2 textSize = ChatManager.GetStringSize(FontAssets.DeathText.Value, headerText, new Vector2(0.66f));
         const float iconWidth = 30f;
         const float iconGap = 6f;
-        float iconLeft = (540 / 2f) - (textSize.X / 2f) - iconWidth - iconGap - 6f;
+        float iconLeft = (ReplayLayout.PanelWidth / 2f) - (textSize.X / 2f) - iconWidth - iconGap - 6f;
         UITextPanel<string> header = new(GetHeaderText(), 0.66f, true)
         {
             BackgroundColor = new Color(73, 94, 171),
@@ -325,7 +322,7 @@ internal sealed class ReplayBrowserPanel : UIElement
                 Log.Info(
                     $"Replay catalog load finished: entries={cachedEntries.Length}/{result.FileCount}, " +
                     $"cacheHits={result.CacheHitCount}, loaded={result.LoadedCount}, loadMs={result.ElapsedMilliseconds}, " +
-                    $"applyVisible={visibleCount}, applyMs={applyWatch.ElapsedMilliseconds}");
+                    $"applyVisible={visibleCount}, applyMs={applyWatch.ElapsedMilliseconds}\n------------------");
 
                 OnRefreshFinished?.Invoke();
             });
