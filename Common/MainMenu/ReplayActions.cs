@@ -2,6 +2,7 @@ using Reese.Common.Replayer;
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Terraria.Audio;
 using Terraria.ID;
 using Terraria.ModLoader;
@@ -16,23 +17,23 @@ internal static class ReplayActions
     public static void EnterReplay(string replayPath)
     {
         SoundEngine.PlaySound(SoundID.MenuOpen);
-
         Main.QueueMainThreadAction(() =>
         {
-            ModContent.GetInstance<MainMenuSystem>().CloseForReplayLaunch();
+            string fileName = Path.GetFileName(replayPath);
 
+            // Show a loading state so the game doesn't appear frozen
+            Main.statusText = $"Loading {fileName}...";
+            ModContent.GetInstance<MainMenuSystem>().CloseForReplayLaunch();
             Main.LoadPlayers();
             var player = Main.PlayerList.FirstOrDefault();
-
             if (player == null)
             {
                 Log.Chat("Could not enter replay: no player found.");
                 Main.menuMode = 0;
                 return;
             }
-
             Main.SelectPlayer(player);
-            Log.Debug($"Successfully selected {player.Player.name} for replay");
+            Log.Debug($"Successfully selected player {player.Player.name} for replay");
 
             if (!File.Exists(replayPath))
             {
@@ -41,26 +42,46 @@ internal static class ReplayActions
                 return;
             }
 
-            long replayMegaBytes = new FileInfo(replayPath).Length / (1024 * 1024);
-            Log.Debug("Successfully found replay file, size: " + replayMegaBytes + " MB");
-
-            try
+            Task.Run(() =>
             {
-                ReplayPlayback.BeginPlayback(replayPath);
-                ReplayFlags.MarkWatched(replayPath);
+                try
+                {
+                    // Heavy work: file scan, baseline index, damage recovery � off main thread
+                    Log.Info("Starting playback");
+                    ReplayPlayback.BeginPlayback(replayPath);
+                }
+                catch (Exception e)
+                {
+                    Main.QueueMainThreadAction(() =>
+                    {
+                        Log.Error("Failed to start replay: " + e);
+                        Main.statusText = "Failed to start replay";
+                        ReplayPlayback.End("playback launch failed");
+                        Main.menuMode = 0;
+                    });
+                    return;
+                }
 
-                Netplay.SetRemoteIP("10.2.3.4");
-                Main.autoPass = true;
-                Netplay.StartTcpClient();
-                Main.menuMode = 10;
-            }
-            catch (Exception e)
-            {
-                Log.Error("[ReplayBrowser] Failed to start replay: " + e);
-                Main.statusText = "Failed to start replay";
-                ReplayPlayback.End("playback launch failed");
-                Main.menuMode = 0;
-            }
+                // Back to main thread for all Terraria API calls
+                Main.QueueMainThreadAction(() =>
+                {
+                    try
+                    {
+                        ReplayFlags.MarkWatched(replayPath);
+                        Netplay.SetRemoteIP("10.2.3.4");
+                        Main.autoPass = true;
+                        Netplay.StartTcpClient();
+                        Main.menuMode = 10;
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error("Failed to start replay: " + e);
+                        Main.statusText = "Failed to start replay";
+                        ReplayPlayback.End("playback launch failed");
+                        Main.menuMode = 0;
+                    }
+                });
+            });
         });
     }
 
