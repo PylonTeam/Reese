@@ -2,6 +2,7 @@
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
 using Reese.Common.Replayer.ReplayHud.Shared.UI;
+using Reese.Core.Compat;
 using ReLogic.Content;
 using System;
 using System.Collections.Generic;
@@ -40,19 +41,23 @@ internal sealed class SpectateHud : UIElement
     private TabBar tabBar;
     private UIPanel backgroundPanel;
     private UIPanel contentPanel;
+
+    // Save scroll position
     private UIGrid targetGrid;
+    private UIScrollbar targetScrollbar;
+    private float? pendingScrollRestore;
+    private float savedPlayerScrollPosition;
+    private float savedNpcScrollPosition;
 
     // Reflection
     private static readonly FieldInfo elementsField = typeof(UIElement).GetField("Elements", BindingFlags.Instance | BindingFlags.NonPublic);
-
-    private bool IsPvPAdventureLoaded => ModLoader.TryGetMod("PvPAdventure", out _);
 
     public SpectateHud()
     {
         HAlign = 0.5f;
         VAlign = 0f;
         Left.Set(0, 0f);
-        Top.Set(IsPvPAdventureLoaded ? 40 : 4 , 0f); 
+        Top.Set(PvPAdventureCompat.IsPvPAdventureLoaded ? 40 : 4 , 0f); 
         Width.Set(ReplayInfo.InfoHud.PanelWidth, 0f);
         Height.Set(GetPanelHeight(GetGridContentHeight(0)), 0f);
 
@@ -72,7 +77,6 @@ internal sealed class SpectateHud : UIElement
         backgroundPanel = null;
 
         // Layout
-        float scale = GetScale();
         float tabHeight = GetTabHeight();
         float playerPanelPadding = GetPlayerPanelPadding();
         float contentHeight = currentContentHeight = GetActiveContentHeight();
@@ -118,6 +122,15 @@ internal sealed class SpectateHud : UIElement
         if (contentPanel == null)
             return;
 
+        if (targetScrollbar != null)
+        {
+            if (currentTab?.Tab == SpectatorTab.NPCs)
+                savedNpcScrollPosition = targetScrollbar.ViewPosition;
+            else
+                savedPlayerScrollPosition = targetScrollbar.ViewPosition;
+        }
+
+        targetScrollbar = null;
 
         float playerPanelPadding = GetPlayerPanelPadding();
 
@@ -133,10 +146,8 @@ internal sealed class SpectateHud : UIElement
         if (!npcTargets.Contains(lockedNpc))
             lockedNpc = -1;
 
-        bool showingNpcs = currentTab?.Tab == SpectatorTab.NPCs;
-        int activeCount = showingNpcs ? npcTargets.Count : playerTargets.Count;
-        int detailIndex = showingNpcs ? npcTargets.IndexOf(lockedNpc) : playerTargets.IndexOf(locked);
-        int slotCount = GetSlotCount(activeCount, detailIndex);
+        int slotCount = GetActiveSlotCount(playerTargets, npcTargets);
+        int detailIndex = GetActiveDetailIndex(playerTargets, npcTargets);
         currentContentHeight = GetGridContentHeight(slotCount);
 
         Width.Set(GetGridPanelWidth(slotCount), 0f);
@@ -182,104 +193,106 @@ internal sealed class SpectateHud : UIElement
         float scale = GetScale();
         float cardScale = scale * playerCardScale;
 
-        //Log.Chat($"BuildContent update={Main.GameUpdateCount} tab={(currentTab?.Tab.ToString() ?? "null")} playerTargets={playerTargets.Count} npcTargets={npcTargets.Count} cardScale={cardScale:0.##}");
-
-        if (currentTab?.Tab == SpectatorTab.Players)
+        switch (currentTab?.Tab)
         {
-            if (playerTargets.Count == 0)
-            {
-                contentPanel.Append(new UIText("No players are available\n to spectate.", 0.9f)
+            case SpectatorTab.Players:
+                if (playerTargets.Count == 0)
                 {
-                    HAlign = 0.5f,
-                    VAlign = 0.5f,
-                    TextColor = Color.LightGray
-                });
-
-                return;
-            }
-
-            BuildEntityGrid(playerTargets.Count, playerTargets.IndexOf(locked), i =>
-            {
-                int playerIndex = playerTargets[i];
-
-                if (playerIndex == locked)
-                {
-                    UIPlayerDetailPanel detail = new(playerIndex, GetInlineDetailScale());
-                    detail.OnLeftClick += (evt, _) =>
+                    contentPanel.Append(new UIText("No players are available\n to spectate.", 0.9f)
                     {
-                        if (evt.Target != detail || !IsMouseInTargetGridViewport())
+                        HAlign = 0.5f,
+                        VAlign = 0.5f,
+                        TextColor = Color.LightGray
+                    });
+
+                    return;
+                }
+
+                BuildEntityGrid(playerTargets.Count, playerTargets.IndexOf(locked), i =>
+                {
+                    int playerIndex = playerTargets[i];
+
+                    if (playerIndex == locked)
+                    {
+                        UIPlayerDetailPanel detail = new(playerIndex, GetInlineDetailScale());
+                        detail.OnLeftClick += (evt, _) =>
+                        {
+                            if (evt.Target != detail || !IsMouseInTargetGridViewport())
+                                return;
+
+                            SpectatorTargetSystem.TogglePlayerTarget(playerIndex);
+                            UpdateTarget();
+                        };
+
+                        return detail;
+                    }
+
+                    UIPlayerCard card = new(playerIndex, i, cardScale);
+                    card.OnLeftClick += (evt, _) =>
+                    {
+                        if (evt.Target != card || !IsMouseInTargetGridViewport())
                             return;
 
                         SpectatorTargetSystem.TogglePlayerTarget(playerIndex);
+                        if (TeammateHudOverlay.IsAnyOpen)
+                            TeammateHudOverlay.Open(playerIndex);
                         UpdateTarget();
                     };
 
-                    return detail;
+                    return card;
+                });
+                return;
+
+            case SpectatorTab.NPCs:
+                if (npcTargets.Count == 0)
+                {
+                    contentPanel.Append(new UIText("No NPCs are available\n to spectate.", 0.9f)
+                    {
+                        HAlign = 0.5f,
+                        VAlign = 0.5f,
+                        TextColor = Color.LightGray
+                    });
+
+                    return;
                 }
 
-                UIPlayerCard card = new(playerIndex, i, cardScale);
-                card.OnLeftClick += (evt, _) =>
+                BuildEntityGrid(npcTargets.Count, npcTargets.IndexOf(lockedNpc), i =>
                 {
-                    if (evt.Target != card || !IsMouseInTargetGridViewport())
-                        return;
+                    int npcIndex = npcTargets[i];
 
-                    SpectatorTargetSystem.TogglePlayerTarget(playerIndex);
-                    if (TeammateHudOverlay.IsAnyOpen)
-                        TeammateHudOverlay.Open(playerIndex);
-                    UpdateTarget();
-                };
+                    if (npcIndex == lockedNpc)
+                    {
+                        UINPCDetailPanel detail = new(npcIndex, GetInlineDetailScale());
+                        detail.OnLeftClick += (evt, _) =>
+                        {
+                            if (evt.Target != detail || !IsMouseInTargetGridViewport())
+                                return;
 
-                return card;
-            });
-            return;
+                            SpectatorTargetSystem.ToggleNPCTarget(npcIndex);
+                            UpdateTarget();
+                        };
+
+                        return detail;
+                    }
+
+                    UINPCCard card = new(npcIndex, i, cardScale);
+                    card.OnLeftClick += (evt, _) =>
+                    {
+                        if (evt.Target != card || !IsMouseInTargetGridViewport())
+                            return;
+
+                        SpectatorTargetSystem.ToggleNPCTarget(npcIndex);
+                        UpdateTarget();
+                    };
+
+                    return card;
+                });
+                return;
+
+            default:
+                System.Diagnostics.Debug.Fail($"Unexpected spectate tab: {currentTab?.Tab}");
+                return;
         }
-
-        if (currentTab?.Tab != SpectatorTab.NPCs)
-            return;
-
-        if (npcTargets.Count == 0)
-        {
-            contentPanel.Append(new UIText("No NPCs are available\n to spectate.", 0.9f)
-            {
-                HAlign = 0.5f,
-                VAlign = 0.5f,
-                TextColor = Color.LightGray
-            });
-
-            return;
-        }
-
-        BuildEntityGrid(npcTargets.Count, npcTargets.IndexOf(lockedNpc), i =>
-        {
-            int npcIndex = npcTargets[i];
-
-            if (npcIndex == lockedNpc)
-            {
-                UINPCDetailPanel detail = new(npcIndex, GetInlineDetailScale());
-                detail.OnLeftClick += (evt, _) =>
-                {
-                    if (evt.Target != detail || !IsMouseInTargetGridViewport())
-                        return;
-
-                    SpectatorTargetSystem.ToggleNPCTarget(npcIndex);
-                    UpdateTarget();
-                };
-
-                return detail;
-            }
-
-            UINPCCard card = new(npcIndex, i, cardScale);
-            card.OnLeftClick += (evt, _) =>
-            {
-                if (evt.Target != card || !IsMouseInTargetGridViewport())
-                    return;
-
-                SpectatorTargetSystem.ToggleNPCTarget(npcIndex);
-                UpdateTarget();
-            };
-
-            return card;
-        });
     }
 
     private void BuildEntityGrid(int targetCount, int detailIndex, Func<int, UIElement> buildItem)
@@ -377,7 +390,11 @@ internal sealed class SpectateHud : UIElement
         targetGrid.AddRange(rows);
 
         if (!showScrollbar)
+        {
+            targetScrollbar = null;
+            pendingScrollRestore = null;
             return;
+        }
 
         UIScrollbar scrollbar = new();
         scrollbar.Width.Set(GetScrollbarWidth(), 0f);
@@ -385,11 +402,21 @@ internal sealed class SpectateHud : UIElement
         scrollbar.Left.Set(scrollbarLeft, 0f);
         gridHost.Append(scrollbar);
         targetGrid.SetScrollbar(scrollbar);
+        targetScrollbar = scrollbar;
+        pendingScrollRestore = currentTab?.Tab == SpectatorTab.NPCs
+            ? savedNpcScrollPosition
+            : savedPlayerScrollPosition;
     }
 
     public override void Update(GameTime gameTime)
     {
         base.Update(gameTime);
+
+        if (pendingScrollRestore.HasValue && targetScrollbar != null)
+        {
+            targetScrollbar.ViewPosition = pendingScrollRestore.Value;
+            pendingScrollRestore = null;
+        }
 
         UpdatePlayerCardScale();
         RefreshSettingsIfNeeded();
@@ -422,6 +449,9 @@ internal sealed class SpectateHud : UIElement
 
         if (IsMouseHovering)
             Main.LocalPlayer.mouseInterface = true;
+
+        // Keep the locked target in sync every frame in case the world state changes externally.
+        UpdateTarget();
     }
 
     public void UpdateTarget()
@@ -637,6 +667,8 @@ internal sealed class SpectateHud : UIElement
     {
         //NRE?
         targetGrid?.Goto(element => ContainsPlayerCard(element, playerIndex), center: true);
+
+        pendingScrollRestore = null;
     }
 
     private void NavigateNpcTarget(int direction)
@@ -671,6 +703,8 @@ internal sealed class SpectateHud : UIElement
     private void ScrollToNpc(int npcIndex)
     {
         targetGrid?.Goto(element => ContainsNpcCard(element, npcIndex), center: true);
+
+        pendingScrollRestore = null;
     }
 
     private static bool ContainsPlayerCard(UIElement element, int playerIndex)
@@ -799,27 +833,32 @@ internal sealed class SpectateHud : UIElement
 
     private static int GetPlayerTargetCount()
     {
-        return SpectatorTargetSystem.GetTargets(Main.myPlayer).Count;
+        return GetPlayerTargets().Count;
     }
 
     private static int GetNpcTargetCount()
     {
-        int count = 0;
+        return GetNpcTargets().Count;
+    }
 
-        for (int i = 0; i < Main.maxNPCs; i++)
-        {
-            if (Main.npc[i]?.active == true)
-                count++;
-        }
+    private int GetActiveDetailIndex(List<int> playerTargets, List<int> npcTargets)
+    {
+        return currentTab?.Tab == SpectatorTab.NPCs
+            ? npcTargets.IndexOf(lockedNpc)
+            : playerTargets.IndexOf(locked);
+    }
 
-        return count;
+    private int GetActiveSlotCount(List<int> playerTargets, List<int> npcTargets)
+    {
+        return GetSlotCount(
+            currentTab?.Tab == SpectatorTab.NPCs ? npcTargets.Count : playerTargets.Count,
+            GetActiveDetailIndex(playerTargets, npcTargets));
     }
     #endregion
 
     #region Layout Helpers
     private static float GetScale() => 0.75f;
     private static float GetPlayerCardScale() => 0.8f;
-    private static float GetHeaderHeight() => 0f;
     private static float GetTabHeight() => TabHeight;
     private static float GetPlayerPanelPadding() => 10f * GetScale();
     private static float GetCardGap() => 6f * GetScale();
@@ -858,27 +897,10 @@ internal sealed class SpectateHud : UIElement
     private static float GetGridContentHeight(int count) => GetGridHeight(GetVisibleRows(count)) + GetPlayerPanelPadding() * 2f;
 
     private float GetActiveContentHeight()
-    {
-        return GetGridContentHeight(GetActiveSlotCount());
-    }
-
-    private float GetActivePanelWidth()
-    {
-        return GetGridPanelWidth(GetActiveSlotCount());
-    }
+        => GetGridContentHeight(GetActiveSlotCount(GetPlayerTargets(), GetNpcTargets()));
 
     private static float GetPanelHeight(float contentHeight)
-    {
-        return GetHeaderHeight() + GetTabHeight() + contentHeight;
-    }
-
-    private int GetActiveSlotCount()
-    {
-        if (currentTab?.Tab == SpectatorTab.NPCs)
-            return GetSlotCount(GetNpcTargetCount(), UINPCCard.IsValidNPC(lockedNpc) ? lockedNpc : -1);
-
-        return GetSlotCount(GetPlayerTargetCount(), IsTargetValid(locked) ? locked : -1);
-    }
+        => GetTabHeight() + contentHeight;
 
     private static float GetGridPanelWidth(int count)
     {

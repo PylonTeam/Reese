@@ -122,15 +122,15 @@ public static class EntityDrawer
 
     private static void DrawRespawnTime(SpriteBatch sb, Player player, Rectangle area)
     {
-        area.Y -= 10;
-        DrawCenteredTexture(sb, Ass.IconDead.Value, area, 0.5f);
-        area.Y += 10;
+        area.Y -= 5;
+        DrawCenteredTexture(sb, Ass.IconDead.Value, area, 0.45f);
+        area.Y += 5;
 
         int seconds = Math.Max(0, (int)Math.Ceiling(player.respawnTimer / 60f));
         string text = seconds.ToString();
 
         DynamicSpriteFont font = FontAssets.DeathText.Value;
-        float textScale = 0.8f;
+        float textScale = 0.6f;
 
         Vector2 textSize = font.MeasureString(text) * textScale;
         Vector2 textPosition = new(
