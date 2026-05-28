@@ -10,6 +10,7 @@ public class ClientConfig : ModConfig
 {
     public const int DefaultBaselineIntervalTicks = 1800;
     public const int MaxBaselineIntervalTicks = 60 * 60 * 60;
+    public const int DefaultMaxRecordingLengthMinutes = 0;
     public const int DefaultSeekMaxMillisecondsPerFrame = 8;
     public const int MinSeekMaxMillisecondsPerFrame = 1;
     public const int MaxSeekMaxMillisecondsPerFrame = 100;
@@ -32,6 +33,12 @@ public class ClientConfig : ModConfig
 
     [BackgroundColor(250, 60, 60, 150)]
     [DefaultValue(true)] public bool AutoStartRecordingOnEnterWorld = true;
+
+    [BackgroundColor(250, 60, 60, 150)]
+    [DefaultValue(DefaultMaxRecordingLengthMinutes)] public int MaxRecordingLengthMinutes = DefaultMaxRecordingLengthMinutes;
+
+    [BackgroundColor(250, 60, 60, 150)]
+    [DefaultValue(false)] public bool AutoStartRecordingAfterMaxLength;
 
     // Shorter baseline intervals makes replay smoother + quicker but adds file size super quick
     // Larger baseline intervals keep file size small but makes replay seeking take longer
