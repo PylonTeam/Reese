@@ -122,9 +122,9 @@ public static class EntityDrawer
 
     private static void DrawRespawnTime(SpriteBatch sb, Player player, Rectangle area)
     {
-        area.Y -= 5;
+        area.Y -= 6;
         DrawCenteredTexture(sb, Ass.IconDead.Value, area, 0.45f);
-        area.Y += 5;
+        area.Y += 8;
 
         int seconds = Math.Max(0, (int)Math.Ceiling(player.respawnTimer / 60f));
         string text = seconds.ToString();
@@ -135,7 +135,7 @@ public static class EntityDrawer
         Vector2 textSize = font.MeasureString(text) * textScale;
         Vector2 textPosition = new(
             area.X + (area.Width - textSize.X) * 0.5f,
-            area.Y + (area.Height - textSize.Y) * 0.5f + 10f
+            area.Y + (area.Height - textSize.Y) * 0.5f + 8f
         );
 
         Utils.DrawBorderStringBig(sb, text, textPosition, Color.White*0.5f, textScale, 0f, 0f);

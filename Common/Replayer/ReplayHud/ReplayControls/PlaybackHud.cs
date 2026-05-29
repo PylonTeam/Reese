@@ -12,19 +12,13 @@ public sealed class PlaybackHud : DraggablePanel
 {
     private static readonly float[] SpeedPresets = [0.25f, 0.5f, 1f, 2f, 4f, 8f, 16f, 32f];
 
-    private const float Padding = 12f;
-    private const float SpeedColumnWidth = 100f;
-    private const float RightColumnWidth = 290f;
-    private const float ColumnGap = 16f;
-    private const float SpeedSectionHeight = 152f;
-    private const float SeekbarSectionHeight = 56f;
-    private const float ControlsSectionHeight = 78f;
-    private const float SectionGap = 14f;
-
     private readonly Slider positionSlider;
-    private readonly UIText positionLabel;
-    private readonly UIText speedLabel;
-    private readonly UIText transportStatusLabel;
+
+    private readonly CenteredHudText positionLabel;
+    private readonly CenteredHudText speedLabel;
+    private readonly CenteredHudText transportStatusLabel;
+    private readonly CenteredHudText transportTickLabel;
+
     private readonly CompactTextPanel<string>[] speedButtons;
     private readonly IconActionButton[] transportButtons;
     private readonly HorizontalRule horizontalRule;
@@ -34,10 +28,9 @@ public sealed class PlaybackHud : DraggablePanel
 
     public PlaybackHud() : base("Replay")
     {
-        HAlign = 0.5f;
-        VAlign = 0.92f;
+        PlaybackLayout.ApplyDefaultAnchor(this);
 
-        speedLabel = CreateLabel(0.82f);
+        speedLabel = new CenteredHudText(0.82f);
         speedButtons = new CompactTextPanel<string>[SpeedPresets.Length];
 
         for (int i = 0; i < SpeedPresets.Length; i++)
@@ -48,7 +41,7 @@ public sealed class PlaybackHud : DraggablePanel
 
         verticalRule = new VerticalRule();
 
-        positionLabel = CreateLabel(0.86f);
+        positionLabel = new CenteredHudText(0.86f);
         positionSlider = new Slider();
         positionSlider.OnDrag += ratio =>
         {
@@ -56,7 +49,7 @@ public sealed class PlaybackHud : DraggablePanel
             if (targetTick < ReplayPlayback.CurrentTick)
                 RefreshPositionSlider();
             else
-                positionLabel.SetText($"Time: {FormatTime(targetTick)} / {FormatTime(GetDurationTicks())}");
+                positionLabel.SetTextIfChanged($"Time: {FormatTime(targetTick)} / {FormatTime(GetDurationTicks())}");
         };
         positionSlider.OnRelease += ratio =>
         {
@@ -68,15 +61,18 @@ public sealed class PlaybackHud : DraggablePanel
         };
 
         horizontalRule = new HorizontalRule();
-        transportStatusLabel = CreateLabel(0.86f);
+        transportStatusLabel = new CenteredHudText(0.86f);
+        transportTickLabel = new CenteredHudText(0.86f);
         transportButtons =
         [
-            CreateTransportButton(Ass.IconSpeedDown, "Go to start", GoToStart),
-            CreateTransportButton(Ass.IconNextFrame, "Next Frame", StepOneFrame),
-            CreateTransportButton(Ass.IconPlay, "Play", Resume),
-            CreateTransportButton(Ass.IconPause, "Pause", Pause),
-            CreateTransportButton(Ass.IconStop, "Stop Replay", () => ReplayPlayback.End("user stopped replay", quitPlayer: true)),
-            CreateTransportButton(Ass.IconSpeedUp, "Go to end", GoToEnd)
+            CreateTransportButton(Ass.IconSpeedDown,    "Go to start",   GoToStart),
+            CreateTransportButton(Ass.IconNextFrame,    "Next Frame",    StepOneFrame),
+            CreateTransportButton(Ass.IconBackArrow, "-30 Seconds", SeekBackward30, "-30"),
+            CreateTransportButton(Ass.IconPlay,         "Play",          Resume),
+            CreateTransportButton(Ass.IconPause,        "Pause",         Pause),
+            CreateTransportButton(Ass.IconForwardsArrow, "+30 Seconds",   SeekForward30, "+30"),
+            CreateTransportButton(Ass.IconStop,         "Stop Replay",   () => ReplayPlayback.End("user stopped replay", quitPlayer: true)),
+            CreateTransportButton(Ass.IconSpeedUp,      "Go to end",     GoToEnd),
         ];
 
         RebuildContent();
@@ -94,8 +90,20 @@ public sealed class PlaybackHud : DraggablePanel
     public override void Update(GameTime gameTime)
     {
         RefreshSettingsIfNeeded();
+        RefreshLayoutIfNeeded();
+
         base.Update(gameTime);
+
         RefreshVisualState();
+    }
+
+    private void RefreshLayoutIfNeeded()
+    {
+        if (!PlaybackLayout.Update(speedButtons.Length, transportButtons.Length))
+            return;
+
+        ApplyLayout();
+        Recalculate();
     }
 
     protected override bool CanStartDrag(UIElement target)
@@ -104,6 +112,7 @@ public sealed class PlaybackHud : DraggablePanel
             target == speedLabel ||
             target == positionLabel ||
             target == transportStatusLabel ||
+            target == transportTickLabel ||
             target == horizontalRule ||
             target == verticalRule;
     }
@@ -150,6 +159,7 @@ public sealed class PlaybackHud : DraggablePanel
         if (showControls)
         {
             ContentPanel.Append(transportStatusLabel);
+            ContentPanel.Append(transportTickLabel);
 
             for (int i = 0; i < transportButtons.Length; i++)
                 ContentPanel.Append(transportButtons[i]);
@@ -158,101 +168,17 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void ApplyLayout()
     {
-        bool showSpeed = ReplayClientSettings.ShowReplayHudSpeed;
-        bool showSeekbar = ReplayClientSettings.ShowReplayHudSeekbar;
-        bool showControls = ReplayClientSettings.ShowReplayHudPlaybackControls;
-        bool showRightColumn = showSeekbar || showControls;
-
-        float innerWidth = 0f;
-        if (showSpeed)
-            innerWidth += SpeedColumnWidth;
-
-        if (showSpeed && showRightColumn)
-            innerWidth += ColumnGap;
-
-        if (showRightColumn)
-            innerWidth += RightColumnWidth;
-
-        float rightHeight = 0f;
-        if (showSeekbar)
-            rightHeight += SeekbarSectionHeight;
-
-        if (showSeekbar && showControls)
-            rightHeight += SectionGap;
-
-        if (showControls)
-            rightHeight += ControlsSectionHeight;
-
-        float innerHeight = Math.Max(showSpeed ? SpeedSectionHeight : 0f, rightHeight);
-        Width.Set(Math.Max(180f, innerWidth + Padding * 2f), 0f);
-        Height.Set(Math.Max(48f, innerHeight + Padding * 2f), 0f);
-
-        float rightLeft = Padding + (showSpeed ? SpeedColumnWidth + (showRightColumn ? ColumnGap : 0f) : 0f);
-
-        speedLabel.Left.Set(Padding, 0f);
-        speedLabel.Top.Set(Padding, 0f);
-
-        for (int i = 0; i < speedButtons.Length; i++)
-        {
-            int column = i % 2;
-            int row = i / 2;
-
-            speedButtons[i].Left.Set(Padding + column * 50f, 0f);
-            speedButtons[i].Top.Set(Padding + 28f + row * 32f, 0f);
-            speedButtons[i].Width.Set(44f, 0f);
-            speedButtons[i].Height.Set(28f, 0f);
-        }
-
-        verticalRule.Left.Set(Padding + SpeedColumnWidth + ColumnGap * 0.5f - 1f, 0f);
-        verticalRule.Top.Set(Padding, 0f);
-        verticalRule.Width.Set(2f, 0f);
-        verticalRule.Height.Set(innerHeight, 0f);
-
-        positionLabel.Left.Set(rightLeft, 0f);
-        positionLabel.Top.Set(Padding, 0f);
-
-        positionSlider.Left.Set(rightLeft, 0f);
-        positionSlider.Top.Set(Padding + 28f, 0f);
-        positionSlider.Width.Set(RightColumnWidth, 0f);
-        positionSlider.Height.Set(18f, 0f);
-
-        float controlsTop = Padding + (showSeekbar ? SeekbarSectionHeight + SectionGap : 0f);
-        horizontalRule.Left.Set(rightLeft, 0f);
-        horizontalRule.Top.Set(controlsTop - SectionGap * 0.5f, 0f);
-        horizontalRule.Width.Set(RightColumnWidth, 0f);
-        horizontalRule.Height.Set(2f, 0f);
-
-        transportStatusLabel.Left.Set(rightLeft, 0f);
-        transportStatusLabel.Top.Set(controlsTop, 0f);
-
-        float gap = 6f;
-        float buttonTop = controlsTop + 36f;
-        float totalWidth = 0f;
-
-        for (int i = 0; i < transportButtons.Length; i++)
-            totalWidth += GetTransportButtonWidth(i) + (i == 0 ? 0f : gap);
-
-        float left = rightLeft + (RightColumnWidth - totalWidth) * 0.5f;
-
-        for (int i = 0; i < transportButtons.Length; i++)
-        {
-            float width = GetTransportButtonWidth(i);
-            transportButtons[i].SetOuterWidth(width);
-            transportButtons[i].Left.Set(left, 0f);
-            transportButtons[i].Top.Set(buttonTop, 0f);
-            left += width + gap;
-        }
-    }
-
-    private static float GetTransportButtonWidth(int index)
-    {
-        return index switch
-        {
-            0 => 44f,
-            2 => 60f,
-            5 => 44f,
-            _ => 36f
-        };
+        PlaybackLayout.Apply(
+            this,
+            speedLabel,
+            speedButtons,
+            verticalRule,
+            positionLabel,
+            positionSlider,
+            horizontalRule,
+            transportStatusLabel,
+            transportTickLabel,
+            transportButtons);
     }
 
     private static UIText CreateLabel(float scale)
@@ -264,10 +190,26 @@ public sealed class PlaybackHud : DraggablePanel
             TextColor = Color.White
         };
     }
-
-    private static IconActionButton CreateTransportButton(ReLogic.Content.Asset<Texture2D> texture, string hoverText, Action onClick)
+    private static IconActionButton CreateTransportButton(ReLogic.Content.Asset<Texture2D> texture, string hoverText, Action onClick, string label = "")
     {
-        return new IconActionButton(texture, hoverText, (_, _) => onClick());
+        IconActionButton button = new(texture, hoverText, (_, _) => onClick());
+
+        if (label.Length <= 0)
+            return button;
+
+        UIText text = new(label, 0.6f)
+        {
+            HAlign = 0.5f,
+            Top = new StyleDimension(22f, 0f),
+            TextOriginX = 0.5f,
+            TextOriginY = 0f,
+            TextColor = Color.White,
+            IgnoresMouseInteraction = true
+        };
+
+        button.Append(text);
+
+        return button;
     }
 
     private static void SetSpeed(float value)
@@ -275,6 +217,7 @@ public sealed class PlaybackHud : DraggablePanel
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(value);
     }
 
+    #region Actions
     private void Resume()
     {
         SetSpeed(1f);
@@ -306,6 +249,22 @@ public sealed class PlaybackHud : DraggablePanel
         RefreshVisualState();
     }
 
+    private void SeekBackward30()
+    {
+        uint ticks = (uint)(30 * 60);
+        uint target = ReplayPlayback.CurrentTick > ticks ? ReplayPlayback.CurrentTick - ticks : 0u;
+        ReplayPlayback.SeekToTick(target);
+        RefreshVisualState();
+    }
+
+    private void SeekForward30()
+    {
+        uint target = ReplayPlayback.CurrentTick + (uint)(30 * 60);
+        ReplayPlayback.SeekToTick(target);
+        RefreshVisualState();
+    }
+    #endregion
+
     private void RefreshVisualState()
     {
         uint durationTicks = GetDurationTicks();
@@ -321,14 +280,13 @@ public sealed class PlaybackHud : DraggablePanel
             if (!positionSlider.IsHeld)
                 RefreshPositionSlider(currentTick, durationTicks);
 
-            // positionSlider.HighlightColor = IsHoveringBackwardPosition() ? Color.Red : Main.OurFavoriteColor;
             positionSlider.HighlightColor = Main.OurFavoriteColor;
-            positionLabel.SetText($"Time: {FormatTime(displayTick)} / {FormatTime(durationTicks)}");
+            positionLabel.SetTextIfChanged($"Time: {FormatTime(displayTick)} / {FormatTime(durationTicks)}");
         }
 
         if (ReplayClientSettings.ShowReplayHudSpeed)
         {
-            speedLabel.SetText($"Speed: {FormatSpeedButton(speed)}");
+            speedLabel.SetTextIfChanged($"Speed: {FormatSpeedButton(speed)}");
 
             for (int i = 0; i < speedButtons.Length; i++)
             {
@@ -347,13 +305,14 @@ public sealed class PlaybackHud : DraggablePanel
         if (!ReplayClientSettings.ShowReplayHudPlaybackControls)
             return;
 
-        transportStatusLabel.SetText($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}  |  Tick: {currentTick}");
+        transportStatusLabel.SetTextIfChanged($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}");
+        transportTickLabel.SetTextIfChanged($"Tick: {currentTick}");
 
         for (int i = 0; i < transportButtons.Length; i++)
             transportButtons[i].SetSelected(false);
 
-        transportButtons[2].SetSelected(!paused);
-        transportButtons[3].SetSelected(paused);
+        transportButtons[3].SetSelected(!paused);  // Play  
+        transportButtons[4].SetSelected(paused);   // Pause
     }
 
     private void RefreshPositionSlider()
@@ -376,14 +335,6 @@ public sealed class PlaybackHud : DraggablePanel
     private uint RatioToTick(float ratio)
     {
         return (uint)Math.Round(MathHelper.Clamp(ratio, 0f, 1f) * GetDurationTicks());
-    }
-
-    private bool IsHoveringBackwardPosition()
-    {
-        if (!positionSlider.AllowsInput || (!positionSlider.IsMouseHovering && !positionSlider.IsHeld))
-            return false;
-
-        return RatioToTick(positionSlider.GetMouseRatio()) < ReplayPlayback.CurrentTick;
     }
 
     private static string FormatSpeedButton(float speed)
@@ -430,6 +381,36 @@ public sealed class PlaybackHud : DraggablePanel
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
             spriteBatch.Draw(TextureAssets.MagicPixel.Value, GetDimensions().ToRectangle(), Color.White * 0.18f);
+        }
+    }
+
+    private sealed class CenteredHudText : UIText
+    {
+        private readonly float scale;
+        private string currentText = "";
+
+        public CenteredHudText(float scale) : base("", scale)
+        {
+            this.scale = scale;
+            TextOriginX = 0.5f;
+            TextOriginY = 0f;
+        }
+
+        internal void SetTextIfChanged(string text)
+        {
+            if (currentText == text)
+                return;
+
+            currentText = text;
+            SetText(text);
+        }
+
+        protected override void DrawSelf(SpriteBatch spriteBatch)
+        {
+            CalculatedStyle dimensions = GetInnerDimensions();
+            Vector2 position = new(dimensions.X + dimensions.Width * 0.5f, dimensions.Y);
+
+            Utils.DrawBorderString(spriteBatch, currentText, position, TextColor, scale, 0.5f, 0f);
         }
     }
 }
