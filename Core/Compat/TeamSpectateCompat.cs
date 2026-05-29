@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 namespace Reese.Core.Compat;
 
 /// <summary>
-/// Move spectate hud down to make room for the pvp adventure scoreboard
+/// Maybe remove the team spectate hud during replays?
 /// </summary>
-public static class PvPAdventureCompat
+internal class TeamSpectateCompat
 {
     public static bool IsPvPAdventureLoaded => ModLoader.TryGetMod("PvPAdventure", out _);
 }

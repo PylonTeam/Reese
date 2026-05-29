@@ -4,6 +4,9 @@ using static Reese.Common.Replayer.Replayer;
 
 namespace Reese.Core.Compat;
 
+/// <summary>
+// Fixes to high fps support
+/// </summary>
 internal class HighFPSSupportReplayCompat : ModSystem
 {
     private delegate void HighFpsSupportConfigEnsureValidateStateDelegate(object self);

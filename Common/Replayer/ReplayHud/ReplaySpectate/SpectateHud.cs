@@ -57,7 +57,8 @@ internal sealed class SpectateHud : UIElement
         HAlign = 0.5f;
         VAlign = 0f;
         Left.Set(0, 0f);
-        Top.Set(PvPAdventureCompat.IsPvPAdventureLoaded ? 40 : 4 , 0f); 
+        bool pvpaOrCtgLoaded = PvPAdventureCompat.IsPvPAdventureLoaded || CTGCompat.IsCTGLoaded;
+        Top.Set(GetTopOffset(), 0f); 
         Width.Set(ReplayInfo.InfoHud.PanelWidth, 0f);
         Height.Set(GetPanelHeight(GetGridContentHeight(0)), 0f);
 
@@ -67,6 +68,14 @@ internal sealed class SpectateHud : UIElement
 
         Rebuild();
     }
+
+    // Move down to make room for CTG / PvPAdventure scoreboards
+    private int GetTopOffset() => true switch
+    {
+        _ when PvPAdventureCompat.IsPvPAdventureLoaded => 40,
+        _ when CTGCompat.IsCTGLoaded => 65,
+        _ => 6 // Default fallback if no UI-altering mods are loaded
+    };
 
     private void Rebuild()
     {
