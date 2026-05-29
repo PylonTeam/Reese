@@ -5,23 +5,33 @@ namespace Reese.Common.Replayer.ReplayHud;
 internal static class ReplayClientSettings
 {
     // Zoom settings
-    public const float ReplayZoomMin = 0.5f;
-    public const float ReplayZoomMax = 2f;
+    public const float ReplayZoomMin = 0.33f;
+    public const float ReplayZoomMax = 3f;
 
     public static float ReplayZoom { get; private set; } = 1f;
-
     public static int ReplayZoomPercent => (int)Math.Round(ReplayZoom * 100f);
-
     public static float ReplayZoomRatio => (ReplayZoom - ReplayZoomMin) / (ReplayZoomMax - ReplayZoomMin);
 
     public static void SetReplayZoomRatio(float ratio)
     {
-        SetReplayZoom(MathHelper.Lerp(ReplayZoomMin, ReplayZoomMax, MathHelper.Clamp(ratio, 0f, 1f)));
+        SetReplayZoom(ReplayZoomMin + (ReplayZoomMax - ReplayZoomMin) * Math.Clamp(ratio, 0f, 1f));
     }
 
     public static void SetReplayZoom(float value)
     {
-        value = MathHelper.Clamp(value, ReplayZoomMin, ReplayZoomMax);
+        value = Math.Clamp(value, ReplayZoomMin, ReplayZoomMax);
+
+        if (Math.Abs(ReplayZoom - value) <= 0.001f)
+            return;
+
+        ReplayZoom = value;
+        Main.GameZoomTarget = value;
+        HudRevision++;
+    }
+
+    public static void ImportReplayZoomFromGame(float value)
+    {
+        value = Math.Clamp(value, ReplayZoomMin, ReplayZoomMax);
 
         if (Math.Abs(ReplayZoom - value) <= 0.001f)
             return;
