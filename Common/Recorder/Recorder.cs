@@ -373,7 +373,8 @@ public class Recorder : ModSystem, ITicker
         if (Main.netMode == NetmodeID.Server)
         {
             bool hasPlayers = ReplayPlayback.HasActivePlayers();
-            bool autoStartRecording = ModContent.GetInstance<ClientConfig>()?.AutoStartRecordingOnEnterWorld ?? true;
+            bool autoStartRecording = ModContent.GetInstance<ServerConfig>()?.AutoStartRecordingOnEnterWorld
+                ?? ServerConfig.DefaultAutoStartRecordingOnEnterWorld;
 
             if (!hasPlayers)
             {
@@ -477,8 +478,8 @@ public class Recorder : ModSystem, ITicker
 
     private static uint GetBaselineIntervalTicks()
     {
-        int configuredTicks = ModContent.GetInstance<ClientConfig>()?.BaselineIntervalTicks
-            ?? ClientConfig.DefaultBaselineIntervalTicks;
+        int configuredTicks = ModContent.GetInstance<ServerConfig>()?.BaselineIntervalTicks
+            ?? ServerConfig.DefaultBaselineIntervalTicks;
 
         return (uint)Math.Max(0, configuredTicks);
     }
@@ -495,8 +496,8 @@ public class Recorder : ModSystem, ITicker
 
     private static int GetMaxRecordingLengthMinutes()
     {
-        int configuredMinutes = ModContent.GetInstance<ClientConfig>()?.MaxRecordingLengthMinutes
-            ?? ClientConfig.DefaultMaxRecordingLengthMinutes;
+        int configuredMinutes = ModContent.GetInstance<ServerConfig>()?.MaxRecordingLengthMinutes
+            ?? ServerConfig.DefaultMaxRecordingLengthMinutes;
 
         return Math.Max(0, configuredMinutes);
     }
@@ -508,7 +509,7 @@ public class Recorder : ModSystem, ITicker
 
     private static bool ShouldAutoStartRecordingAfterMaxLength()
     {
-        return ModContent.GetInstance<ClientConfig>()?.AutoStartRecordingAfterMaxLength ?? false;
+        return ModContent.GetInstance<ServerConfig>()?.AutoStartRecordingAfterMaxLength ?? false;
     }
 
     public override void OnWorldUnload()

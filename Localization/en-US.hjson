@@ -27,26 +27,6 @@ Mods: {
 					Tooltip: ""
 				}
 
-				AutoStartRecordingOnEnterWorld: {
-					Label: Auto Start Recording On Enter World
-					Tooltip: When disabled, recordings only start when the record console command is used.
-				}
-
-				MaxRecordingLengthMinutes: {
-					Label: Max Recording Length Minutes
-					Tooltip: Maximum replay recording length in minutes. Set to 0 to allow recordings to continue without stopping.
-				}
-
-				AutoStartRecordingAfterMaxLength: {
-					Label: Auto Start Recording After Max Length
-					Tooltip: When enabled, Reese starts a new recording part after a recording reaches the configured maximum length.
-				}
-
-				BaselineIntervalTicks: {
-					Label: Baseline Interval Ticks
-					Tooltip: How often Reese writes replay baseline checkpoints, in ticks. 60 ticks is about 1 second. Set to 0 to disable baselines. Max: 216000 ticks (1 hour).
-				}
-
 				SeekMaxMillisecondsPerFrame: {
 					Label: Seek Milliseconds Per Frame
 					Tooltip: Maximum milliseconds Reese spends per frame catching up during seeking. Higher values make seeking faster but may briefly freeze the game.
@@ -65,6 +45,31 @@ Mods: {
 				EnableBackwardsSeeking: {
 					Label: Enable Backwards Seeking (experimental)
 					Tooltip: ""
+				}
+			}
+
+			ServerConfig: {
+				DisplayName: Server Config
+				Headers.Recording: Recording
+
+				AutoStartRecordingOnEnterWorld: {
+					Label: Auto Start Recording On Enter World
+					Tooltip: When disabled, recordings only start when the record console command is used.
+				}
+
+				MaxRecordingLengthMinutes: {
+					Label: Max Recording Length Minutes
+					Tooltip: Maximum replay recording length in minutes. Set to 0 to allow recordings to continue without stopping.
+				}
+
+				AutoStartRecordingAfterMaxLength: {
+					Label: Auto Start Recording After Max Length
+					Tooltip: When enabled, Reese starts a new recording part after a recording reaches the configured maximum length.
+				}
+
+				BaselineIntervalTicks: {
+					Label: Baseline Interval Ticks
+					Tooltip: How often Reese writes replay baseline checkpoints, in ticks. 60 ticks is about 1 second. Set to 0 to disable baselines. Max: 216000 ticks (1 hour).
 				}
 			}
 		}

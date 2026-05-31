@@ -4,4 +4,4 @@ buildIgnore = *.csproj, *.user, *.md, obj\*, bin\*, .vs\*, Assets\Old\*, Assets\
 version = 0.2.4
 hideCode = true
 homepage = https://amberres.in
-side = NoSync
+side = Both
