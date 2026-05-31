@@ -23,10 +23,6 @@ public class ClientConfig : ModConfig
     [DefaultValue(true)]
     public bool AddExtraMenuState = true;
 
-    [BackgroundColor(30, 150, 30)]
-    [DefaultValue(true)]
-    public bool ShowInMainMenu = true;
-
     [Header("Replay")]
     [BackgroundColor(250, 60, 60, 150)]
     [DefaultValue(true)] public bool ShowWelcomeMessageOnEnterWorld;
@@ -59,12 +55,6 @@ public class ClientConfig : ModConfig
     [Header("Debug")]
     [BackgroundColor(150, 150, 150, 150)]
     [DefaultValue(false)] public bool ShowDebugMessages;
-
-    [BackgroundColor(150, 150, 150, 150)]
-    [DefaultValue(false)] public bool ShowDebugDrawer;
-
-    [BackgroundColor(150, 150, 150, 150)]
-    [DefaultValue(false)] public bool EnableBackwardsSeeking;
 
     #region Methods
     public override void OnChanged()

@@ -1,6 +1,7 @@
 ﻿using Reese.Common.MainMenu.UI;
 using Reese.Core.Configs;
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Terraria.UI;
 
@@ -11,6 +12,11 @@ namespace Reese.Common.MainMenu;
 /// </summary>
 public static class MainMenuActions
 {
+    public static void BeginReplayLaunch(UserInterface ui, UserInterface reeseMainMenuUI)
+    {
+        CloseAllMenuUI(ui, reeseMainMenuUI, resetMenuMode: false);
+    }
+
     public static void OpenReplayBrowser(UserInterface ui, UserInterface reeseMainMenuUI)
     {
         var state = new MainMenuUIState(onBack: () => CloseReplayBrowser(ui, reeseMainMenuUI));

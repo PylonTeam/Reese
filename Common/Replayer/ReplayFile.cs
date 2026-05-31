@@ -24,7 +24,10 @@ public class ReplayFile : IDisposable
 {
     public const string Identifier = "Reese";
     private static readonly byte[] IdentifierASCII = Encoding.ASCII.GetBytes(Identifier);
+    private static readonly byte[] HeaderMarkerASCII = Encoding.ASCII.GetBytes("RHD1");
     private static readonly byte[] MetadataMarkerASCII = Encoding.ASCII.GetBytes("RMD1");
+    private static readonly byte[] SummaryMarkerASCII = Encoding.ASCII.GetBytes("RSM1");
+    private static readonly byte[] FlagsMarkerASCII = Encoding.ASCII.GetBytes("RFL1");
 
     // Baseline blocks are embedded alongside packet blocks as:
     // [uint deltaTick][int -1][int baselineByteLength][baseline bytes].
@@ -37,10 +40,14 @@ public class ReplayFile : IDisposable
     private const uint SuspiciousDeltaTicks = 10 * 60 * 60;
     private const int RequiredRecoveryBlocks = 3;
     private const long MaxRecoveryScanBytes = 128L * 1024 * 1024;
+    private const int MaxCatalogTailScanBytes = 1024 * 1024;
+    private const int MaxMetadataStringByteLength = 16 * 1024;
 
     private BinaryWriter _binaryWriter;
     private BinaryReader _binaryReader;
     private readonly List<ReplayBaselineEntry> baselines = [];
+    private long dataStartOffset = IdentifierASCII.Length;
+    private long headerDurationOffset = -1;
 
     public uint Tick { get; private set; }
     public IReadOnlyList<ReplayBaselineEntry> Baselines => baselines;
@@ -72,7 +79,28 @@ public class ReplayFile : IDisposable
         _binaryWriter.Write(IdentifierASCII);
     }
 
-    private static readonly byte[] FlagsMarkerASCII = Encoding.ASCII.GetBytes("RFL1");
+    private void WriteHeaderPlaceholder()
+    {
+        _binaryWriter.Write(HeaderMarkerASCII);
+        headerDurationOffset = _binaryWriter.BaseStream.Position;
+        _binaryWriter.Write(0u);
+        _binaryWriter.Write(~0u);
+        dataStartOffset = _binaryWriter.BaseStream.Position;
+    }
+
+    private void WriteHeaderDuration(uint durationTicks)
+    {
+        if (headerDurationOffset < 0)
+            return;
+
+        Stream stream = _binaryWriter.BaseStream;
+        long position = stream.Position;
+
+        stream.Seek(headerDurationOffset, SeekOrigin.Begin);
+        _binaryWriter.Write(durationTicks);
+        _binaryWriter.Write(~durationTicks);
+        stream.Seek(position, SeekOrigin.Begin);
+    }
 
     private void ReadPacketDataHeader()
     {
@@ -219,14 +247,15 @@ public class ReplayFile : IDisposable
         _binaryWriter.Write(finalTick - Tick); // delta to recording end
         _binaryWriter.Write(0);                // terminator
 
-        WriteMetadata(worldName, modNames);
+        WriteHeaderDuration(finalTick);
+        WriteMetadata(finalTick, worldName, modNames);
         WriteFlags(flags);
         _binaryWriter.Flush();
 
         Tick = finalTick;
     }
 
-    private void WriteMetadata(string worldName, string[] modNames)
+    private void WriteMetadata(uint durationTicks, string worldName, string[] modNames)
     {
         _binaryWriter.Write(MetadataMarkerASCII);
         _binaryWriter.Write(string.IsNullOrWhiteSpace(worldName) ? "Unknown" : worldName.Trim());
@@ -239,6 +268,14 @@ public class ReplayFile : IDisposable
 
         foreach (string name in names)
             _binaryWriter.Write(name ?? string.Empty);
+
+        WriteSummary(durationTicks);
+    }
+
+    private void WriteSummary(uint durationTicks)
+    {
+        _binaryWriter.Write(SummaryMarkerASCII);
+        _binaryWriter.Write(durationTicks);
     }
 
     private void WriteFlags(ReplayFileFlags flags)
@@ -259,6 +296,7 @@ public class ReplayFile : IDisposable
         };
 
         replayFile.WriteIdentifier();
+        replayFile.WriteHeaderPlaceholder();
 
         return replayFile;
     }
@@ -273,6 +311,9 @@ public class ReplayFile : IDisposable
         var identifier = replayFile._binaryReader.ReadBytes(Identifier.Length);
         if (!identifier.SequenceEqual(IdentifierASCII))
             throw new InvalidDataException("Not a Reese file");
+
+        TryReadHeaderDuration(replayFile._binaryReader, out _, out long dataStartOffset);
+        replayFile.dataStartOffset = dataStartOffset;
 
         replayFile.BuildBaselineIndex();
 
@@ -301,7 +342,7 @@ public class ReplayFile : IDisposable
         if (_binaryReader == null)
             throw new InvalidOperationException("ReplayFile is not open for reading.");
 
-        _binaryReader.BaseStream.Seek(IdentifierASCII.Length, SeekOrigin.Begin);
+        _binaryReader.BaseStream.Seek(dataStartOffset, SeekOrigin.Begin);
         Tick = 0;
         NumberOfPacketDataBytesRemaining = 0;
         ReachedTerminator = false;
@@ -600,6 +641,37 @@ public class ReplayFile : IDisposable
         }
     }
 
+    private static bool TryReadHeaderDuration(BinaryReader reader, out uint durationTicks, out long dataStartOffset)
+    {
+        durationTicks = 0;
+
+        Stream stream = reader.BaseStream;
+        long headerStartOffset = stream.Position;
+        dataStartOffset = headerStartOffset;
+
+        if (stream.Position + HeaderMarkerASCII.Length + sizeof(uint) * 2 > stream.Length)
+            return false;
+
+        byte[] marker = reader.ReadBytes(HeaderMarkerASCII.Length);
+        if (!marker.SequenceEqual(HeaderMarkerASCII))
+        {
+            stream.Seek(headerStartOffset, SeekOrigin.Begin);
+            return false;
+        }
+
+        uint value = reader.ReadUInt32();
+        uint complement = reader.ReadUInt32();
+        if (complement != ~value)
+        {
+            stream.Seek(headerStartOffset, SeekOrigin.Begin);
+            return false;
+        }
+
+        durationTicks = value;
+        dataStartOffset = stream.Position;
+        return true;
+    }
+
     #region Metadata reading
     public static bool TryReadDurationTicks(string path, out uint durationTicks)
     {
@@ -607,6 +679,12 @@ public class ReplayFile : IDisposable
 
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             return false;
+
+        if (TryReadDurationTicksFromHeader(path, out durationTicks) && durationTicks > 0)
+            return true;
+
+        if (TryReadCatalogInfoFromTail(path, out durationTicks, out _, out _, out _))
+            return true;
 
         try
         {
@@ -686,6 +764,22 @@ public class ReplayFile : IDisposable
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
             return false;
 
+        bool hasHeaderDuration = TryReadDurationTicksFromHeader(path, out uint headerDurationTicks);
+
+        if (TryReadCatalogInfoFromTail(path, out durationTicks, out worldName, out modNames, out flags))
+        {
+            if (hasHeaderDuration && headerDurationTicks > 0)
+                durationTicks = headerDurationTicks;
+
+            return true;
+        }
+
+        if (hasHeaderDuration && headerDurationTicks > 0)
+        {
+            durationTicks = headerDurationTicks;
+            return true;
+        }
+
         try
         {
             using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
@@ -715,7 +809,10 @@ public class ReplayFile : IDisposable
                 if (header.IsTerminator)
                 {
                     durationTicks = chunkCount > 0 ? (uint)totalTicks : 0;
-                    TryReadMetadataAndFlags(reader, out worldName, out modNames, out flags);
+                    TryReadMetadataAndFlags(reader, out worldName, out modNames, out flags, out uint metadataDurationTicks, out bool hasMetadataDuration);
+                    if (durationTicks == 0 && hasMetadataDuration)
+                        durationTicks = metadataDurationTicks;
+
                     return chunkCount > 0;
                 }
 
@@ -737,6 +834,26 @@ public class ReplayFile : IDisposable
             worldName = null;
             modNames = null;
             flags = ReplayFileFlags.None;
+            return false;
+        }
+    }
+
+    private static bool TryReadDurationTicksFromHeader(string path, out uint durationTicks)
+    {
+        durationTicks = 0;
+
+        try
+        {
+            using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+
+            byte[] identifier = reader.ReadBytes(Identifier.Length);
+            return identifier.SequenceEqual(IdentifierASCII) &&
+                   TryReadHeaderDuration(reader, out durationTicks, out _);
+        }
+        catch
+        {
+            durationTicks = 0;
             return false;
         }
     }
@@ -773,26 +890,95 @@ public class ReplayFile : IDisposable
         }
     }
 
+    private static bool TryReadCatalogInfoFromTail(string path, out uint durationTicks, out string worldName, out string[] modNames, out ReplayFileFlags flags)
+    {
+        durationTicks = 0;
+        worldName = null;
+        modNames = null;
+        flags = ReplayFileFlags.None;
+
+        try
+        {
+            using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+
+            byte[] identifier = reader.ReadBytes(Identifier.Length);
+            if (!identifier.SequenceEqual(IdentifierASCII))
+                return false;
+
+            int tailLength = (int)Math.Min(MaxCatalogTailScanBytes, Math.Max(0, stream.Length - IdentifierASCII.Length));
+            if (tailLength <= MetadataMarkerASCII.Length)
+                return false;
+
+            long tailStart = stream.Length - tailLength;
+            stream.Seek(tailStart, SeekOrigin.Begin);
+            byte[] tail = reader.ReadBytes(tailLength);
+
+            int searchIndex = tail.Length - MetadataMarkerASCII.Length;
+            while ((searchIndex = LastIndexOf(tail, MetadataMarkerASCII, searchIndex)) >= 0)
+            {
+                if (!LooksLikeMetadataAfterTerminator(tail, searchIndex))
+                {
+                    searchIndex--;
+                    continue;
+                }
+
+                stream.Seek(tailStart + searchIndex, SeekOrigin.Begin);
+
+                if (TryReadMetadataAndFlags(reader, out string candidateWorldName, out string[] candidateModNames, out ReplayFileFlags candidateFlags, out uint candidateDurationTicks, out bool hasDuration) &&
+                    hasDuration &&
+                    candidateDurationTicks > 0)
+                {
+                    durationTicks = candidateDurationTicks;
+                    worldName = candidateWorldName;
+                    modNames = candidateModNames;
+                    flags = candidateFlags;
+                    return true;
+                }
+
+                searchIndex--;
+            }
+        }
+        catch
+        {
+            durationTicks = 0;
+            worldName = null;
+            modNames = null;
+            flags = ReplayFileFlags.None;
+        }
+
+        return false;
+    }
+
     private static bool TryReadMetadataAndFlags(BinaryReader reader, out string worldName, out string[] modNames, out ReplayFileFlags flags)
+    {
+        return TryReadMetadataAndFlags(reader, out worldName, out modNames, out flags, out _, out _);
+    }
+
+    private static bool TryReadMetadataAndFlags(BinaryReader reader, out string worldName, out string[] modNames, out ReplayFileFlags flags, out uint durationTicks, out bool hasDuration)
     {
         try
         {
-            return ReadMetadataAndFlags(reader, out worldName, out modNames, out flags);
+            return ReadMetadataAndFlags(reader, out worldName, out modNames, out flags, out durationTicks, out hasDuration);
         }
         catch
         {
             worldName = null;
             modNames = null;
             flags = ReplayFileFlags.None;
+            durationTicks = 0;
+            hasDuration = false;
             return false;
         }
     }
 
-    private static bool ReadMetadataAndFlags(BinaryReader reader, out string worldName, out string[] modNames, out ReplayFileFlags flags)
+    private static bool ReadMetadataAndFlags(BinaryReader reader, out string worldName, out string[] modNames, out ReplayFileFlags flags, out uint durationTicks, out bool hasDuration)
     {
         worldName = null;
         modNames = null;
         flags = ReplayFileFlags.None;
+        durationTicks = 0;
+        hasDuration = false;
 
         Stream stream = reader.BaseStream;
         if (stream.Position + MetadataMarkerASCII.Length > stream.Length)
@@ -802,7 +988,24 @@ public class ReplayFile : IDisposable
         if (!marker.SequenceEqual(MetadataMarkerASCII))
             return false;
 
-        worldName = reader.ReadString();
+        return TryReadMetadataBodyAndTrailers(reader, out worldName, out modNames, out flags, out durationTicks, out hasDuration);
+    }
+
+    private static bool TryReadMetadataBodyAndTrailers(BinaryReader reader, out string worldName, out string[] modNames, out ReplayFileFlags flags, out uint durationTicks, out bool hasDuration)
+    {
+        worldName = null;
+        modNames = null;
+        flags = ReplayFileFlags.None;
+        durationTicks = 0;
+        hasDuration = false;
+
+        Stream stream = reader.BaseStream;
+
+        if (!TryReadBoundedString(reader, out worldName))
+            return false;
+
+        if (stream.Position + sizeof(int) > stream.Length)
+            return false;
 
         int modCount = reader.ReadInt32();
         if (modCount < 0 || modCount > 4096)
@@ -810,25 +1013,129 @@ public class ReplayFile : IDisposable
 
         modNames = new string[modCount];
         for (int i = 0; i < modCount; i++)
-            modNames[i] = reader.ReadString();
+        {
+            if (!TryReadBoundedString(reader, out modNames[i]))
+                return false;
+        }
 
-        ReadFlagTrailers(reader, out flags);
+        return TryReadCatalogTrailers(reader, out flags, out durationTicks, out hasDuration);
+    }
+
+    private static bool TryReadCatalogTrailers(BinaryReader reader, out ReplayFileFlags flags, out uint durationTicks, out bool hasDuration)
+    {
+        flags = ReplayFileFlags.None;
+        durationTicks = 0;
+        hasDuration = false;
+
+        Stream stream = reader.BaseStream;
+        while (stream.Position + MetadataMarkerASCII.Length <= stream.Length)
+        {
+            long markerOffset = stream.Position;
+            byte[] marker = reader.ReadBytes(FlagsMarkerASCII.Length);
+
+            if (marker.SequenceEqual(SummaryMarkerASCII))
+            {
+                if (stream.Position + sizeof(uint) > stream.Length)
+                    return false;
+
+                durationTicks = reader.ReadUInt32();
+                hasDuration = true;
+                continue;
+            }
+
+            if (marker.SequenceEqual(FlagsMarkerASCII))
+            {
+                if (stream.Position + sizeof(byte) > stream.Length)
+                    return false;
+
+                flags = CleanFlags((ReplayFileFlags)reader.ReadByte());
+                continue;
+            }
+
+            stream.Seek(markerOffset, SeekOrigin.Begin);
+            return true;
+        }
+
         return true;
     }
 
-    private static void ReadFlagTrailers(BinaryReader reader, out ReplayFileFlags flags)
+    private static bool TryReadBoundedString(BinaryReader reader, out string value)
     {
-        flags = ReplayFileFlags.None;
+        value = null;
+
+        if (!TryRead7BitEncodedInt(reader, out int byteLength))
+            return false;
 
         Stream stream = reader.BaseStream;
-        while (stream.Position + FlagsMarkerASCII.Length + sizeof(byte) <= stream.Length)
-        {
-            byte[] marker = reader.ReadBytes(FlagsMarkerASCII.Length);
-            if (!marker.SequenceEqual(FlagsMarkerASCII))
-                return;
+        if (byteLength < 0 ||
+            byteLength > MaxMetadataStringByteLength ||
+            byteLength > stream.Length - stream.Position)
+            return false;
 
-            flags = CleanFlags((ReplayFileFlags)reader.ReadByte());
+        byte[] bytes = reader.ReadBytes(byteLength);
+        if (bytes.Length != byteLength)
+            return false;
+
+        value = Encoding.UTF8.GetString(bytes);
+        return true;
+    }
+
+    private static bool TryRead7BitEncodedInt(BinaryReader reader, out int value)
+    {
+        value = 0;
+        int shift = 0;
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (reader.BaseStream.Position >= reader.BaseStream.Length)
+                return false;
+
+            byte b = reader.ReadByte();
+            value |= (b & 0x7F) << shift;
+
+            if ((b & 0x80) == 0)
+                return value >= 0;
+
+            shift += 7;
         }
+
+        value = 0;
+        return false;
+    }
+
+    private static int LastIndexOf(byte[] buffer, byte[] marker, int startIndex)
+    {
+        if (buffer == null || marker == null || marker.Length == 0 || buffer.Length < marker.Length)
+            return -1;
+
+        int start = Math.Min(startIndex, buffer.Length - marker.Length);
+
+        for (int i = start; i >= 0; i--)
+        {
+            bool matches = true;
+
+            for (int j = 0; j < marker.Length; j++)
+            {
+                if (buffer[i + j] == marker[j])
+                    continue;
+
+                matches = false;
+                break;
+            }
+
+            if (matches)
+                return i;
+        }
+
+        return -1;
+    }
+
+    private static bool LooksLikeMetadataAfterTerminator(byte[] buffer, int metadataMarkerIndex)
+    {
+        if (metadataMarkerIndex < sizeof(int))
+            return false;
+
+        return BitConverter.ToInt32(buffer, metadataMarkerIndex - sizeof(int)) == 0;
     }
 
     private static void WriteFlags(BinaryWriter writer, ReplayFileFlags flags)

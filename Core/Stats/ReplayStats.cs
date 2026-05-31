@@ -84,7 +84,7 @@ public static class ReplayStats
         TimeSpan time = TimeSpan.FromSeconds(durationTicks / 60d);
 
         if (time.TotalHours >= 1d)
-            return $"{(int)time.TotalHours:00}:{time.Minutes:00}";
+            return $"{(int)time.TotalHours:00}:{time.Minutes:00}:{time.Seconds:00}";
 
         return $"{time.Minutes:00}:{time.Seconds:00}";
     }

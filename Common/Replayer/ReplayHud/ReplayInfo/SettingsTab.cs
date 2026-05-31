@@ -3,10 +3,12 @@ using Reese.Common.Replayer.GhostHooks;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Common.Replayer.ReplayHud.Shared.Sections;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
+using Reese.Common.Replayer.ReplayHud.Shared.UI;
 using ReLogic.Content;
 using System.Collections.Generic;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
+using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
 
@@ -24,6 +26,7 @@ internal sealed class SettingsTab : TabPage
 
     protected override void Populate(UIList list)
     {
+        list.Add(new ZoomSettingsSection());
         AddSection(list, new GhostSettings());
         AddSection(list, new DrawSettings());
         AddSection(list, new SpectateHudSettingsSection());
@@ -61,24 +64,83 @@ internal sealed class SettingsTab : TabPage
         }
     }
 
-    private sealed class DisplaySettings : SettingsSection
+    private sealed class ZoomSettingsSection : UIPanel
     {
-        public override string HeaderText => "Display Settings";
-        public override float Height => 86f;
+        private readonly UIText zoomLabel;
+        private readonly Slider zoomSlider;
 
-        public override IReadOnlyList<SpectatorSectionRow> GetRows()
+        private string currentText = "";
+
+        public ZoomSettingsSection()
         {
-            return
-            [
-                //new("Compact HUD:", () => $"Compact HUD: {OnOff(ReplayClientSettings.IsCompactModeOn)}", GetRightClickTeleportIcon, onLeftClick: ReplayClientSettings.ToggleCompactMode)
-            ];
+            Width.Set(0f, 1f);
+            Height.Set(62f, 0f);
+            SetPadding(0f);
+
+            BackgroundColor = new Color(33, 43, 79) * 0.7f;
+            BorderColor = new Color(89, 116, 213) * 0.7f;
+
+            zoomLabel = new UIText("", 0.86f)
+            {
+                Left = new StyleDimension(12f, 0f),
+                Top = new StyleDimension(8f, 0f),
+                TextColor = Color.White
+            };
+
+            zoomSlider = new Slider
+            {
+                Left = new StyleDimension(12f, 0f),
+                Top = new StyleDimension(34f, 0f),
+                Height = new StyleDimension(18f, 0f),
+                HighlightColor = Main.OurFavoriteColor
+            };
+
+            zoomSlider.Width.Set(-24f, 1f);
+            zoomSlider.SetRatio(ReplayClientSettings.ReplayZoomRatio);
+            zoomSlider.OnDrag += ReplayClientSettings.SetReplayZoomRatio;
+            zoomSlider.OnRelease += ReplayClientSettings.SetReplayZoomRatio;
+
+            Append(zoomLabel);
+            Append(zoomSlider);
         }
 
-        //private static Texture2D GetRightClickTeleportIcon()
-        //{
-        //    return ReplayClientSettings.IsCompactModeOn ? Ass.IconCard1.Value : Ass.IconCard3.Value;
-        //}
+        public override void Update(GameTime gameTime)
+        {
+            base.Update(gameTime);
+
+            if (!zoomSlider.IsHeld)
+                zoomSlider.SetRatio(ReplayClientSettings.ReplayZoomRatio);
+
+            zoomSlider.HighlightColor = Main.OurFavoriteColor;
+
+            string text = $"Zoom: {ReplayClientSettings.ReplayZoomPercent}%";
+
+            if (currentText == text)
+                return;
+
+            currentText = text;
+            zoomLabel.SetText(text);
+        }
     }
+
+    //private sealed class DisplaySettings : SettingsSection
+    //{
+    //    public override string HeaderText => "Display Settings";
+    //    public override float Height => 86f;
+
+    //    public override IReadOnlyList<SpectatorSectionRow> GetRows()
+    //    {
+    //        return
+    //        [
+    //            new("Compact HUD:", () => $"Compact HUD: {OnOff(ReplayClientSettings.IsCompactModeOn)}", GetRightClickTeleportIcon, onLeftClick: ReplayClientSettings.ToggleCompactMode)
+    //        ];
+    //    }
+
+    //    private static Texture2D GetRightClickTeleportIcon()
+    //    {
+    //        return ReplayClientSettings.IsCompactModeOn ? Ass.IconCard1.Value : Ass.IconCard3.Value;
+    //    }
+    //}
 
     private sealed class DrawSettings : SettingsSection
     {

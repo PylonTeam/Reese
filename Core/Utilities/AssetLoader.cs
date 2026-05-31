@@ -29,9 +29,11 @@ public static class Ass
     public static Asset<Texture2D> ButtonTableColumn_Selected;
 
     // Replay playback HUD
+    public static Asset<Texture2D> IconBackArrow;
     public static Asset<Texture2D> IconCamera;
     public static Asset<Texture2D> IconCameraSmall;
     public static Asset<Texture2D> IconChest;
+    public static Asset<Texture2D> IconForwardsArrow;
     public static Asset<Texture2D> IconNextFrame;
     public static Asset<Texture2D> IconPause;
     public static Asset<Texture2D> IconPlay;

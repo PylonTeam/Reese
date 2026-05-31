@@ -29,30 +29,20 @@ internal sealed class DebugDrawerSystem : ModSystem
 
     public override void UpdateUI(GameTime gameTime)
     {
-        bool showDebugDrawer = ModContent.GetInstance<ClientConfig>().ShowDebugDrawer;
-
         if (KeyboardHelper.Pressed(Keys.F6))
-            DebugDrawer.ToggleDebugButtons(showDebugDrawer);
+            DebugDrawer.Toggle();
 
-#if DEBUG
-        if (KeyboardHelper.Pressed(Keys.NumPad0))
-        {
-            if (Main.LocalPlayer.ghost)
-                Main.LocalPlayer.ghost = false;
-            else
-                Main.LocalPlayer.ghost = true;
-        }
-#endif
+//#if DEBUG
+//        if (KeyboardHelper.Pressed(Keys.NumPad0))
+//            Main.LocalPlayer.ghost = !Main.LocalPlayer.ghost;
+//#endif
 
         debugInterface?.Update(gameTime);
     }
 
     public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
-        bool showDebugDrawer = ModContent.GetInstance<ClientConfig>().ShowDebugDrawer;
-        bool showDebugButtons = DebugDrawer.AreDebugButtonsVisible(showDebugDrawer);
-
-        if (!showDebugDrawer && !showDebugButtons)
+        if (!DebugDrawer.Visible)
             return;
 
         int index = layers.FindIndex(layer => layer.Name.Equals("Vanilla: Mouse Text"));
@@ -66,11 +56,8 @@ internal sealed class DebugDrawerSystem : ModSystem
             {
                 debugInterface?.Draw(Main.spriteBatch, new GameTime());
 
-                if (showDebugButtons)
-                    DebugDrawer.DrawButtons();
-
-                if (showDebugDrawer)
-                    DebugDrawer.DrawDebugInfo();
+                DebugDrawer.DrawButtons();
+                DebugDrawer.DrawDebugInfo();
 
                 DebugDrawer.Flush(Main.spriteBatch);
 

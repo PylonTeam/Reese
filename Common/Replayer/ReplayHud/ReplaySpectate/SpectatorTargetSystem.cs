@@ -82,6 +82,14 @@ public class SpectatorTargetSystem : ModSystem
         SpectateCameraFade.Reset();
     }
 
+    public static void PreserveTargetForSeek()
+    {
+        previewTarget = -1;
+        cameraTarget = -1;
+        autoSpectatedFirstPlayer = true;
+        SpectateCameraFade.Reset();
+    }
+
     public static void SetPreviewTarget(int slot)
     {
         previewTarget = CanTarget(slot) ? slot : -1;

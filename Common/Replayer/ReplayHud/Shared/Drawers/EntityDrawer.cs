@@ -122,18 +122,20 @@ public static class EntityDrawer
 
     private static void DrawRespawnTime(SpriteBatch sb, Player player, Rectangle area)
     {
-        DrawCenteredTexture(sb, Ass.IconDead.Value, area, 1.5f);
+        area.Y -= 6;
+        DrawCenteredTexture(sb, Ass.IconDead.Value, area, 0.45f);
+        area.Y += 8;
 
         int seconds = Math.Max(0, (int)Math.Ceiling(player.respawnTimer / 60f));
         string text = seconds.ToString();
 
         DynamicSpriteFont font = FontAssets.DeathText.Value;
-        float textScale = 1f;
+        float textScale = 0.6f;
 
         Vector2 textSize = font.MeasureString(text) * textScale;
         Vector2 textPosition = new(
             area.X + (area.Width - textSize.X) * 0.5f,
-            area.Y + (area.Height - textSize.Y) * 0.5f + 10f
+            area.Y + (area.Height - textSize.Y) * 0.5f + 8f
         );
 
         Utils.DrawBorderStringBig(sb, text, textPosition, Color.White*0.5f, textScale, 0f, 0f);
@@ -206,6 +208,8 @@ public static class EntityDrawer
 
             if (drawAsGhost)
             {
+                position.X += 2f;
+                position.Y += 8f;
                 DrawGhost(Main.Camera, drawPlayer, position + Main.screenPosition, scale);
             }
             else

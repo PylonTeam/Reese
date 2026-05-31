@@ -1,10 +1,13 @@
 using Microsoft.Xna.Framework.Input;
 using MonoMod.Cil;
+using Reese.Common.Replayer;
 using Reese.Core.Configs;
 using System;
+using System.Threading;
 using Terraria.Audio;
 using Terraria.ID;
 using Terraria.UI;
+using static Reese.Common.MainMenu.MainMenuActions;
 
 namespace Reese.Common.MainMenu;
 
@@ -63,6 +66,7 @@ public class MainMenuSystem : ModSystem
         reeseButtonIndex = -1;
     }
 
+    #region Add menu button
     private void InjectMatchmakingButton(ILContext il)
     {
         IL.Edit(il, c =>
@@ -257,6 +261,7 @@ public class MainMenuSystem : ModSystem
 
         c.EmitBrtrue(jumpColorCtorTarget);
     }
+    #endregion
 
     private void DrawMenuUI(On_Main.orig_DrawVersionNumber orig, Color menuColor, float upBump)
     {
@@ -265,35 +270,33 @@ public class MainMenuSystem : ModSystem
         if (!Main.gameMenu)
             return;
 
-        if (ui?.CurrentState != null)
+        if (Main.menuMode == SharedMenuMode && ui?.CurrentState != null)
         {
             DrawInterface(ui);
-            return;
         }
-
-        DrawReplayOverlay();
-    }
-
-    private static bool ShouldShowOverlay()
-    {
-        return Main.gameMenu && Main.menuMode == 0 && ModContent.GetInstance<ClientConfig>().ShowInMainMenu;
-    }
-
-    private void DrawReplayOverlay()
-    {
-        if (ShouldShowOverlay() && reeseMainMenuUI?.CurrentState != null)
-            DrawInterface(reeseMainMenuUI);
     }
 
     private void PostUpdateUIStates(On_Main.orig_UpdateUIStates orig, GameTime gameTime)
     {
-        if (Main.gameMenu && KeyboardHelper.Pressed(Keys.Escape) && ui?.CurrentState != null)
-            MainMenuActions.CloseReplayBrowser(ui, reeseMainMenuUI);
+        // Hotfix menuMode 14 not cancelling properly
+        if (IsLaunchingReplay && Netplay.Disconnect)
+        {
+            Netplay.Disconnect = false;
+            CancelReplayLaunch();
+        }
 
-        if (Main.gameMenu && ui?.CurrentState != null)
+        // Escape
+        if (Main.gameMenu && KeyboardHelper.Pressed(Keys.Escape))
+        {
+            if (IsLaunchingReplay)
+                CancelReplayLaunch();
+            else if (ui?.CurrentState != null)
+                MainMenuActions.CloseReplayBrowser(ui, reeseMainMenuUI);
+        }
+
+        // Update interface
+        if (Main.gameMenu && Main.menuMode == SharedMenuMode && ui?.CurrentState != null)
             UpdateInterface(ui, gameTime);
-        else
-            UpdateReplayOverlay(gameTime);
 
         orig(gameTime);
 
@@ -305,24 +308,6 @@ public class MainMenuSystem : ModSystem
 
         if (ui?.CurrentState != null)
             Main.menuMode = SharedMenuMode;
-    }
-
-    private void UpdateReplayOverlay(GameTime gameTime)
-    {
-        if (ShouldShowOverlay())
-        {
-            if (reeseMainMenuUI == null)
-                return;
-
-            if (reeseMainMenuUI.CurrentState == null)
-                reeseMainMenuUI.SetState(reeseMainMenuState);
-
-            UpdateInterface(reeseMainMenuUI, gameTime);
-        }
-        else if (reeseMainMenuUI?.CurrentState != null)
-        {
-            reeseMainMenuUI.SetState(null);
-        }
     }
 
     private static void DrawInterface(UserInterface userInterface)
@@ -354,6 +339,37 @@ public class MainMenuSystem : ModSystem
             UserInterface.ActiveInstance = old;
         }
     }
+    private ReplayLaunchSession activeSession;
+
+    public ReplayLaunchSession BeginReplayLaunch()
+    {
+        activeSession?.Cancel();
+        activeSession?.Dispose();
+        Netplay.Disconnect = false;
+        activeSession = new ReplayLaunchSession(ReplayPlayback.BeginLaunchAttempt());
+        MainMenuActions.BeginReplayLaunch(ui, reeseMainMenuUI);
+        return activeSession;
+    }
+
+    public void CancelReplayLaunch()
+    {
+        ReplayPlayback.CancelLaunchAttempt(activeSession?.Generation ?? 0);
+        ReplayPlayback.IsLaunchCancelled = null;
+        activeSession?.Cancel();
+        activeSession?.Dispose();
+        activeSession = null;
+        MainMenuActions.CloseAllMenuUI(ui, reeseMainMenuUI, resetMenuMode: true);
+    }
+
+    public void CompleteReplayLaunch()
+    {
+        ReplayPlayback.CompleteLaunchAttempt(activeSession?.Generation ?? 0);
+        ReplayPlayback.IsLaunchCancelled = null;
+        activeSession?.Dispose();
+        activeSession = null;
+    }
+
+    public bool IsLaunchingReplay => activeSession != null && !activeSession.IsCancelled && ReplayPlayback.IsReplayLaunchActive;
 
     // Actions
     internal void OpenConfirmDelete(string targetName, Action onConfirm)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using Terraria;
 using Terraria.Localization;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
@@ -22,6 +23,42 @@ public static class ReplayPlayback
     public static uint CurrentTick => ModContent.GetInstance<Replayer>().Ticks;
     public static ReplayMetadata Metadata { get; private set; }
     private static bool hasReappliedStartAfterWorldEntry;
+    private static int launchGeneration;
+    private static int activeLaunchGeneration;
+    internal static Func<bool> IsLaunchCancelled;
+
+    internal static bool LaunchCancelled()
+    {
+        try
+        {
+            return IsLaunchCancelled?.Invoke() == true;
+        }
+        catch (ObjectDisposedException)
+        {
+            return true;
+        }
+    }
+
+    internal static int BeginLaunchAttempt()
+    {
+        int generation = Interlocked.Increment(ref launchGeneration);
+        Volatile.Write(ref activeLaunchGeneration, generation);
+        return generation;
+    }
+
+    internal static void CancelLaunchAttempt(int generation)
+    {
+        if (generation == 0 || Volatile.Read(ref activeLaunchGeneration) == generation)
+            Volatile.Write(ref activeLaunchGeneration, 0);
+    }
+
+    internal static void CompleteLaunchAttempt(int generation)
+    {
+        if (Volatile.Read(ref activeLaunchGeneration) == generation)
+            Volatile.Write(ref activeLaunchGeneration, 0);
+    }
+
+    internal static bool IsReplayLaunchActive => Volatile.Read(ref activeLaunchGeneration) != 0;
 
     public static bool IsPlayerReplayClient(Player player)
     {
@@ -36,6 +73,7 @@ public static class ReplayPlayback
         CurrentPath = path;
 		HasEnteredReplayWorld = false;
         hasReappliedStartAfterWorldEntry = false;
+        SpectatorTargetSystem.ResetForReplayStart();
         Metadata = ReplayMetadata.FromFile(path);
         DurationTicks = Metadata?.DurationTicks ?? 0;
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
@@ -56,6 +94,7 @@ public static class ReplayPlayback
 		if (IsReplayPlayback)
 			Log.Info($"Replay playback ended: {reason ?? "no reason supplied"}");
 
+        //FileNotFoundException?
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 		IsReplayPlayback = false;
 		HasEnteredReplayWorld = false;
@@ -146,8 +185,9 @@ public static class ReplayPlayback
             return;
         }
 
-        if (targetTick < replayer.Ticks && ModContent.GetInstance<ClientConfig>()?.EnableBackwardsSeeking != true)
-            return;
+        // backwards seek. we allow it now
+        //if (targetTick < replayer.Ticks)
+            //return;
 
         Replayer.ReplaySocket socket = CurrentReplaySocket;
         if (socket == null)
@@ -185,7 +225,7 @@ public static class ReplayPlayback
             else
             {
                 replayer.SetTicks(entry.Tick);
-                ResetReplayStateForBaseline(entry.Tick, "baseline");
+                ResetReplayStateForSeek(entry.Tick, "baseline");
                 startTick = entry.Tick;
                 startDescription = $"baseline tick {entry.Tick}";
             }
@@ -225,7 +265,7 @@ public static class ReplayPlayback
 
         CancelSeek();
         replayer.SetTicks(0);
-        ResetReplayStateForBaseline(0, "start");
+        ResetReplayStateForSeek(0, "start");
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 
         if (Netplay.Connection != null)
@@ -252,7 +292,7 @@ public static class ReplayPlayback
         hasReappliedStartAfterWorldEntry = true;
         CancelSeek();
         replayer.SetTicks(0);
-        ResetReplayStateForBaseline(0, "world-entry-start-reapply");
+        ResetReplayStateForReplayStart(0, "world-entry-start-reapply");
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 
         if (Netplay.Connection != null)
@@ -310,12 +350,32 @@ public static class ReplayPlayback
         }
 
         replayer.SetTicks(0);
-        ResetReplayStateForBaseline(0, "start");
+        ResetReplayStateForSeek(0, "start");
         return true;
     }
 
-    private static void ResetReplayStateForBaseline(uint tick = 0, string reason = "unknown")
+    private static void ResetReplayStateForSeek(uint tick = 0, string reason = "unknown")
     {
+        ResetReplayState();
+        SpectatorTargetSystem.PreserveTargetForSeek();
+        ReplayPlaybackEvents.RaiseReplayStateReset(tick, reason);
+    }
+
+    private static void ResetReplayStateForReplayStart(uint tick = 0, string reason = "unknown")
+    {
+        ResetReplayState();
+        SpectatorTargetSystem.ResetForReplayStart();
+        ReplayPlaybackEvents.RaiseReplayStateReset(tick, reason);
+    }
+
+    private static void ResetReplayState()
+    {
+        Player local = Main.LocalPlayer;
+        bool wasGhost = local?.ghost == true;
+        bool wasDead = local?.dead == true;
+        int selectedItem = local?.selectedItem ?? 0;
+        bool playerInventory = Main.playerInventory;
+
         for (int i = 0; i < Main.maxPlayers; i++)
         {
             if (i != Main.myPlayer && Main.player[i] != null)
@@ -340,8 +400,14 @@ public static class ReplayPlayback
                 Main.item[i].active = false;
         }
 
-        SpectatorTargetSystem.ResetForReplayStart();
-        ReplayPlaybackEvents.RaiseReplayStateReset(tick, reason);
+        if (local != null)
+        {
+            local.ghost = wasGhost;
+            local.dead = wasDead;
+            local.selectedItem = selectedItem;
+        }
+
+        Main.playerInventory = playerInventory;
     }
     #endregion
 }

@@ -2,9 +2,9 @@ using Reese.Common.Replayer;
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using Terraria.Audio;
 using Terraria.ID;
-using Terraria.ModLoader;
 
 namespace Reese.Common.MainMenu;
 
@@ -16,51 +16,96 @@ internal static class ReplayActions
     public static void EnterReplay(string replayPath)
     {
         SoundEngine.PlaySound(SoundID.MenuOpen);
-
         Main.QueueMainThreadAction(() =>
         {
-            ModContent.GetInstance<MainMenuSystem>().CloseForReplayLaunch();
+            string fileName = Path.GetFileName(replayPath);
 
+            // Owns the lifetime of this launch attempt
+            ReplayLaunchSession session = ModContent.GetInstance<MainMenuSystem>().BeginReplayLaunch();
+            ReplayPlayback.IsLaunchCancelled = () => session.IsCancelled;
+
+            Log.Info($"Loading {fileName}...");
             Main.LoadPlayers();
-            var player = Main.PlayerList.FirstOrDefault();
 
+            var player = Main.PlayerList.FirstOrDefault();
             if (player == null)
             {
                 Log.Chat("Could not enter replay: no player found.");
-                Main.menuMode = 0;
+                ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
                 return;
             }
 
             Main.SelectPlayer(player);
-            Log.Debug($"Successfully selected {player.Player.name} for replay");
+            Log.Info("Selected player: " + player.Name + " for replay");
 
             if (!File.Exists(replayPath))
             {
                 Log.Error("Error: No replay file found at: " + replayPath);
-                Main.menuMode = 0;
+                ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
                 return;
             }
 
-            long replayMegaBytes = new FileInfo(replayPath).Length / (1024 * 1024);
-            Log.Debug("Successfully found replay file, size: " + replayMegaBytes + " MB");
+            Log.Info($"Entering menuMode 14...");
+            Main.menuMode = 14; // status text only loading screen is 10. maybe 14 is better to allow for cancellation?
 
-            try
+            Task.Run(() =>
             {
-                ReplayPlayback.BeginPlayback(replayPath);
-                ReplayFlags.MarkWatched(replayPath);
+                try
+                {
+                    Main.statusText = $"Reading {fileName}..."; // file scan + baseline index takes a few seconds.
+                    ReplayPlayback.BeginPlayback(replayPath);
+                }
+                catch (Exception e)
+                {
+                    Main.QueueMainThreadAction(() =>
+                    {
+                        if (session.IsCancelled)
+                        {
+                            ReplayPlayback.End("replay launch cancelled before connection");
+                            return;
+                        }
+                        Log.Error("Failed to start replay: " + e);
+                        Main.statusText = "Failed to start replay";
+                        ReplayPlayback.End("playback launch failed");
+                        ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
+                    });
+                    return;
+                }
 
-                Netplay.SetRemoteIP("10.2.3.4");
-                Main.autoPass = true;
-                Netplay.StartTcpClient();
-                Main.menuMode = 10;
-            }
-            catch (Exception e)
-            {
-                Log.Error("[ReplayBrowser] Failed to start replay: " + e);
-                Main.statusText = "Failed to start replay";
-                ReplayPlayback.End("playback launch failed");
-                Main.menuMode = 0;
-            }
+                Main.QueueMainThreadAction(() =>
+                {
+                    if (session.IsCancelled)
+                    {
+                        ReplayPlayback.End("replay launch cancelled before connection");
+                        return;
+                    }
+
+                    try
+                    {
+                        if (session.IsCancelled)
+                        {
+                            ReplayPlayback.End("replay launch cancelled before connection");
+                            ReplayPlayback.IsLaunchCancelled = null;
+                            return;
+                        }
+
+                        // Connect to magic ip
+                        Main.statusText = "Connecting...";
+                        ReplayFlags.MarkWatched(replayPath);
+                        Netplay.SetRemoteIP("10.2.3.4");
+                        Main.autoPass = true;
+                        Netplay.StartTcpClient();
+                        Main.menuMode = 10;
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error("Failed to start replay: " + e);
+                        Main.statusText = "Failed to start replay";
+                        ReplayPlayback.End("playback launch failed");
+                        ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
+                    }
+                });
+            }, session.Token);
         });
     }
 

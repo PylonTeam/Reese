@@ -1,6 +1,7 @@
 ﻿using log4net;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
+using Reese.Common.MainMenu;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using System;
 using System.Collections.Generic;
@@ -33,32 +34,88 @@ public class Replayer : ModSystem, ITicker
 
     private void OnClientLoopSetup(On_Netplay.orig_ClientLoopSetup orig, RemoteAddress address)
     {
+        Log.Info("OnClientLoopSetup");
+
+        bool isReplayAddress = address.GetIdentifier() == "10.2.3.4";
+        if (isReplayAddress && IsReplayLaunchCancelled())
+        {
+            AbortCancelledReplayLaunch("replay launch cancelled before client setup");
+            return;
+        }
+
         orig(address);
 
         // FIXME: shitty way to start watching replays from a specific magic IP lol
-        if (address.GetIdentifier() == "10.2.3.4")
+        if (!isReplayAddress)
+            return;
+
+        if (IsReplayLaunchCancelled())
         {
-            Ticks = 0;
-            Log.Info("Connecting to magic replay IP thingy!");
-            Netplay.Connection = new RemoteServer();
-            Netplay.Connection.ReadBuffer = new byte[ushort.MaxValue]; // TML: 1024 -> ushort.MaxValue
-            //Netplay.Connection.Socket = new ReplaySocket(this, ReplayFile.Read(File.OpenRead("record.bin")));
-
-            string replayPath = ReplayPlayback.CurrentPath;
-
-            if (string.IsNullOrWhiteSpace(replayPath) || !File.Exists(replayPath))
-            {
-                Log.Error($"Replay path missing or invalid: {replayPath ?? "<null>"}");
-                ReplayPlayback.End("missing replay path");
-                Main.menuMode = 0;
-                return;
-            }
-
-            Log.Info($"Opening replay file: {replayPath}");
-
-            FileStream stream = File.Open(replayPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            Netplay.Connection.Socket = new ReplaySocket(this, ReplayFile.Read(stream));
+            AbortCancelledReplayLaunch("replay launch cancelled before socket setup");
+            return;
         }
+
+        Ticks = 0;
+        Log.Info("Connecting to magic replay IP thingy!");
+        Netplay.Connection = new RemoteServer();
+        Netplay.Connection.ReadBuffer = new byte[ushort.MaxValue]; // TML: 1024 -> ushort.MaxValue
+        //Netplay.Connection.Socket = new ReplaySocket(this, ReplayFile.Read(File.OpenRead("record.bin")));
+
+        string replayPath = ReplayPlayback.CurrentPath;
+        string fileName = Path.GetFileNameWithoutExtension(replayPath);
+
+        if (!File.Exists(replayPath))
+        {
+            string fileNotExistMessage = $"Replay not found";
+            Log.Error(fileNotExistMessage);
+            ReplayPlayback.End(fileNotExistMessage);
+            Main.statusText = fileNotExistMessage;
+            Main.menuMode = 0; // back to main menu
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(replayPath))
+        {
+            string replayNull = $"Replay {fileName} not found or null";
+            Log.Error(replayNull);
+            ReplayPlayback.End(replayNull);
+            Main.statusText = replayNull;
+            Main.menuMode = 0; // back to main menu
+            return;
+        }
+
+        Log.Info($"Opening replay file: {fileName}");
+
+        FileStream stream = File.Open(replayPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        ReplayFile replayFile = ReplayFile.Read(stream);
+
+        if (IsReplayLaunchCancelled())
+        {
+            replayFile.Dispose();
+            AbortCancelledReplayLaunch("replay launch cancelled after replay file read");
+            return;
+        }
+
+        Netplay.Connection.Socket = new ReplaySocket(this, replayFile);
+    }
+
+    private static bool IsReplayLaunchCancelled()
+    {
+        return !ReplayPlayback.IsReplayLaunchActive ||
+               ReplayPlayback.LaunchCancelled() ||
+               !ModContent.GetInstance<MainMenuSystem>().IsLaunchingReplay;
+    }
+
+    private static void AbortCancelledReplayLaunch(string reason)
+    {
+        Log.Info($"{reason}, aborting.");
+        ReplayPlayback.End(reason);
+        Netplay.Disconnect = true;
+        Main.QueueMainThreadAction(() =>
+        {
+            ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
+            Main.menuMode = 0;
+        });
     }
 
     public void AdvancePlaybackTick()
