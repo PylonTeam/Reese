@@ -33,7 +33,7 @@ public sealed class RenderEdits : ModSystem
 
     private static Point GetScreenOverdrawOffset(On_Main.orig_GetScreenOverdrawOffset orig)
     {
-        return ReplayClientSettings.ReplayZoom < 1f ? Point.Zero : orig();
+        return ReplayPlayback.IsReplayPlayback && ReplayClientSettings.ReplayZoom < 1f ? Point.Zero : orig();
     }
 
     private static void PatchRenderTargets(ILContext il)

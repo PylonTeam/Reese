@@ -19,6 +19,9 @@ internal static class ReplayClientSettings
 
     public static void SetReplayZoom(float value)
     {
+        if (!ReplayPlayback.IsReplayPlayback)
+            return;
+
         value = Math.Clamp(value, ReplayZoomMin, ReplayZoomMax);
 
         if (Math.Abs(ReplayZoom - value) <= 0.001f)
@@ -31,6 +34,9 @@ internal static class ReplayClientSettings
 
     public static void ImportReplayZoomFromGame(float value)
     {
+        if (!ReplayPlayback.IsReplayPlayback)
+            return;
+
         value = Math.Clamp(value, ReplayZoomMin, ReplayZoomMax);
 
         if (Math.Abs(ReplayZoom - value) <= 0.001f)

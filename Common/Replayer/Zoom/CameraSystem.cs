@@ -10,15 +10,37 @@ namespace Reese.Common.Replayer.Zoom;
 [Autoload(Side = ModSide.Client)]
 public sealed class CameraSystem : ModSystem
 {
+    private float vanillaGameZoomTarget = 1f;
+    private bool wasReplayPlayback;
+
     public override void PostUpdateInput()
     {
-        if (!Main.gameMenu)
-            Main.GameZoomTarget = ReplayClientSettings.ReplayZoom;
+        if (Main.gameMenu)
+            return;
+
+        if (!ReplayPlayback.IsReplayPlayback)
+        {
+            if (wasReplayPlayback)
+            {
+                Main.GameZoomTarget = vanillaGameZoomTarget;
+                wasReplayPlayback = false;
+            }
+
+            return;
+        }
+
+        if (!wasReplayPlayback)
+        {
+            vanillaGameZoomTarget = MathHelper.Clamp(Main.GameZoomTarget, 1f, 2f);
+            wasReplayPlayback = true;
+        }
+
+        Main.GameZoomTarget = ReplayClientSettings.ReplayZoom;
     }
 
     public override void ModifyTransformMatrix(ref SpriteViewMatrix transform)
     {
-        if (Main.gameMenu)
+        if (Main.gameMenu || !ReplayPlayback.IsReplayPlayback)
             return;
 
         float zoom = ReplayClientSettings.ReplayZoom;

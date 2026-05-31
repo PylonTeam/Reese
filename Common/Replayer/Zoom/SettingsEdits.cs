@@ -36,10 +36,10 @@ internal sealed class SettingsEdits : ModSystem
             throw new InvalidOperationException("Could not find vanilla zoom slider input.");
 
         c.Emit(OpCodes.Pop);
-        c.EmitDelegate(() => ReplayClientSettings.ReplayZoom);
+        c.EmitDelegate(GetZoomValue);
 
         c.Remove();
-        c.EmitDelegate(() => ReplayClientSettings.ReplayZoomMin);
+        c.EmitDelegate(GetZoomMin);
 
         if (!c.TryGotoNext(MoveType.After, i => i.MatchSub()))
             throw new InvalidOperationException("Could not find vanilla zoom slider normalization.");
@@ -62,7 +62,7 @@ internal sealed class SettingsEdits : ModSystem
         c.Remove();
         c.EmitDelegate(GetZoomRange);
         c.Emit(OpCodes.Mul);
-        c.EmitDelegate(() => ReplayClientSettings.ReplayZoomMin);
+        c.EmitDelegate(GetZoomMin);
 
         if (!c.TryGotoNext(MoveType.After, i => i.MatchStsfld<Main>(nameof(Main.GameZoomTarget))))
             throw new InvalidOperationException("Could not find vanilla zoom assignment.");
@@ -73,6 +73,16 @@ internal sealed class SettingsEdits : ModSystem
 
     private static float GetZoomRange()
     {
-        return ReplayClientSettings.ReplayZoomMax - ReplayClientSettings.ReplayZoomMin;
+        return ReplayPlayback.IsReplayPlayback ? ReplayClientSettings.ReplayZoomMax - ReplayClientSettings.ReplayZoomMin : 1f;
+    }
+
+    private static float GetZoomMin()
+    {
+        return ReplayPlayback.IsReplayPlayback ? ReplayClientSettings.ReplayZoomMin : 1f;
+    }
+
+    private static float GetZoomValue()
+    {
+        return ReplayPlayback.IsReplayPlayback ? ReplayClientSettings.ReplayZoom : Main.GameZoomTarget;
     }
 }
