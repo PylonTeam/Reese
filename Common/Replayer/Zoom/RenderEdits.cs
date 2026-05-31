@@ -1,5 +1,6 @@
 ﻿using Mono.Cecil.Cil;
 using MonoMod.Cil;
+using Mono.Cecil;
 using Reese.Common.Replayer.ReplayHud;
 using System;
 using System.Reflection;
@@ -10,15 +11,20 @@ namespace Reese.Common.Replayer.Zoom;
 /// Edits rendering code to support zooming out beyond 100% in replays.
 /// This includes increasing the off-screen range for culling and removing the black borders that appear when zooming out.
 /// </summary>
+[Autoload(Side = ModSide.Client)]
 public sealed class RenderEdits : ModSystem
 {
+    private bool wasReplayPlayback;
+
     public override void Load()
     {
         On_Main.GetScreenOverdrawOffset += GetScreenOverdrawOffset;
         IL_Main.InitTargets_int_int += PatchRenderTargets;
         IL_Main.DrawBlack += PatchWorldBlackout;
 
-        ReloadRenderTargets();
+        wasReplayPlayback = ReplayPlayback.IsReplayPlayback;
+        if (wasReplayPlayback)
+            ReloadRenderTargets();
     }
 
     public override void Unload()
@@ -29,6 +35,16 @@ public sealed class RenderEdits : ModSystem
 
         ReloadRenderTargets();
         base.Unload();
+    }
+
+    public override void PostUpdateEverything()
+    {
+        bool isReplayPlayback = ReplayPlayback.IsReplayPlayback;
+        if (wasReplayPlayback == isReplayPlayback)
+            return;
+
+        wasReplayPlayback = isReplayPlayback;
+        ReloadRenderTargets();
     }
 
     private static Point GetScreenOverdrawOffset(On_Main.orig_GetScreenOverdrawOffset orig)
@@ -67,35 +83,62 @@ public sealed class RenderEdits : ModSystem
 
     private static void ReplacePointFieldLocal(ILCursor c, string fieldName, int value, string editName)
     {
-        int localIndex = -1;
+        int pointLocalIndex = -1;
+        int outputLocalIndex = -1;
 
-        if (!c.TryGotoNext(MoveType.Before, i => i.MatchLdloc(out _), i => i.MatchLdfld<Point>(fieldName), i => i.MatchStloc(out localIndex)))
+        if (!c.TryGotoNext(MoveType.Before, i => i.MatchLdloc(out pointLocalIndex), i => i.MatchLdfld<Point>(fieldName), i => i.MatchStloc(out outputLocalIndex)))
             throw new InvalidOperationException($"Could not patch {editName}.");
 
         c.RemoveRange(3);
+        c.Emit(OpCodes.Ldloc, c.Body.Variables[pointLocalIndex]);
+        c.Emit(OpCodes.Ldfld, typeof(Point).GetField(fieldName));
         c.Emit(OpCodes.Ldc_I4, value);
-        c.Emit(OpCodes.Stloc, c.Body.Variables[localIndex]);
+        c.EmitDelegate(GetBlackoutStart);
+        c.Emit(OpCodes.Stloc, c.Body.Variables[outputLocalIndex]);
     }
 
     private static void RemoveMaxTilesMinusPointField(ILCursor c, string fieldName, string editName)
     {
-        if (!c.TryGotoNext(MoveType.Before, i => i.MatchLdsfld(out _), i => i.MatchLdloc(out _), i => i.MatchLdfld<Point>(fieldName), i => i.MatchSub(), i => i.MatchStloc(out _)))
+        FieldReference maxTilesField = null;
+        int pointLocalIndex = -1;
+        int outputLocalIndex = -1;
+
+        if (!c.TryGotoNext(MoveType.Before, i => i.MatchLdsfld(out maxTilesField), i => i.MatchLdloc(out pointLocalIndex), i => i.MatchLdfld<Point>(fieldName), i => i.MatchSub(), i => i.MatchStloc(out outputLocalIndex)))
             throw new InvalidOperationException($"Could not patch {editName}.");
 
-        c.Index++;
-        c.RemoveRange(3);
+        c.RemoveRange(5);
+        c.Emit(OpCodes.Ldsfld, maxTilesField);
+        c.Emit(OpCodes.Ldloc, c.Body.Variables[pointLocalIndex]);
+        c.Emit(OpCodes.Ldfld, typeof(Point).GetField(fieldName));
+        c.EmitDelegate(GetBlackoutEnd);
+        c.Emit(OpCodes.Stloc, c.Body.Variables[outputLocalIndex]);
+    }
+
+    private static int GetBlackoutStart(int vanillaValue, int replayValue)
+    {
+        return ReplayPlayback.IsReplayPlayback ? replayValue : vanillaValue;
+    }
+
+    private static int GetBlackoutEnd(int maxTiles, int overdrawOffset)
+    {
+        return ReplayPlayback.IsReplayPlayback ? maxTiles : maxTiles - overdrawOffset;
     }
 
     private static int GetExtraOffscreenRange(int dimension)
     {
-        float zoom = Math.Min(1f, ReplayClientSettings.ReplayZoomMin);
+        float zoom = GetRenderTargetZoom();
         return (int)(dimension * (1f / zoom - 1f) * 0.5f);
     }
 
     private static int GetRenderTargetMaxSize()
     {
-        float zoom = Math.Min(1f, ReplayClientSettings.ReplayZoomMin);
+        float zoom = GetRenderTargetZoom();
         return (int)(Main.maxScreenW / zoom) + 400 * Main.maxScreenW / 1920;
+    }
+
+    private static float GetRenderTargetZoom()
+    {
+        return ReplayPlayback.IsReplayPlayback ? Math.Min(1f, ReplayClientSettings.ReplayZoomMin) : 1f;
     }
 
     private static FieldInfo MainField(string name, BindingFlags flags)

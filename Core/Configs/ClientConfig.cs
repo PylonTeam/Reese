@@ -28,7 +28,7 @@ public class ClientConfig : ModConfig
     [DefaultValue(true)] public bool ShowWelcomeMessageOnEnterWorld;
 
     [BackgroundColor(250, 60, 60, 150)]
-    [DefaultValue(true)] public bool AutoStartRecordingOnEnterWorld = true;
+    [DefaultValue(false)] public bool AutoStartRecordingOnEnterWorld = false;
 
     [BackgroundColor(250, 60, 60, 150)]
     [DefaultValue(DefaultMaxRecordingLengthMinutes)] public int MaxRecordingLengthMinutes = DefaultMaxRecordingLengthMinutes;
