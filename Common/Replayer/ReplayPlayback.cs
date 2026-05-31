@@ -185,7 +185,7 @@ public static class ReplayPlayback
             else
             {
                 replayer.SetTicks(entry.Tick);
-                ResetReplayStateForBaseline();
+                ResetReplayStateForBaseline(entry.Tick, "baseline");
                 startTick = entry.Tick;
                 startDescription = $"baseline tick {entry.Tick}";
             }
@@ -225,7 +225,7 @@ public static class ReplayPlayback
 
         CancelSeek();
         replayer.SetTicks(0);
-        ResetReplayStateForBaseline();
+        ResetReplayStateForBaseline(0, "start");
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 
         if (Netplay.Connection != null)
@@ -252,7 +252,7 @@ public static class ReplayPlayback
         hasReappliedStartAfterWorldEntry = true;
         CancelSeek();
         replayer.SetTicks(0);
-        ResetReplayStateForBaseline();
+        ResetReplayStateForBaseline(0, "world-entry-start-reapply");
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 
         if (Netplay.Connection != null)
@@ -310,11 +310,11 @@ public static class ReplayPlayback
         }
 
         replayer.SetTicks(0);
-        ResetReplayStateForBaseline();
+        ResetReplayStateForBaseline(0, "start");
         return true;
     }
 
-    private static void ResetReplayStateForBaseline()
+    private static void ResetReplayStateForBaseline(uint tick = 0, string reason = "unknown")
     {
         for (int i = 0; i < Main.maxPlayers; i++)
         {
@@ -341,6 +341,7 @@ public static class ReplayPlayback
         }
 
         SpectatorTargetSystem.ResetForReplayStart();
+        ReplayPlaybackEvents.RaiseReplayStateReset(tick, reason);
     }
     #endregion
 }

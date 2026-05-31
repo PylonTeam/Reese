@@ -249,6 +249,7 @@ public class Recorder : ModSystem, ITicker
         }
 
         SendReplayPlayerSnapshot(recordClient, initial);
+        ReplaySnapshotEvents.RaiseReplaySnapshotWriting(recordClient.Id, Ticks, initial);
     }
 
     private static int ClearFakeClientSentSections(RemoteClient recordClient)

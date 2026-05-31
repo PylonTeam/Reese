@@ -1,4 +1,5 @@
 using Reese.Common.Recorder;
+using Reese.Common.Replayer;
 using System;
 using System.IO;
 
@@ -57,6 +58,46 @@ public class Reese : Mod
 
                 Log.Warn("UnregisterRecordingFinishedCallback expected Action<string, string, string[], uint, string>");
                 return false;
+
+            case "RegisterReplaySnapshotWriter":
+                if (args.Length > 1 && args[1] is Action<int, uint, bool> registerSnapshotWriter)
+                {
+                    ReplaySnapshotEvents.RegisterReplaySnapshotWriter(registerSnapshotWriter);
+                    return true;
+                }
+
+                Log.Warn("RegisterReplaySnapshotWriter expected Action<int, uint, bool>");
+                return false;
+
+            case "UnregisterReplaySnapshotWriter":
+                if (args.Length > 1 && args[1] is Action<int, uint, bool> unregisterSnapshotWriter)
+                {
+                    ReplaySnapshotEvents.UnregisterReplaySnapshotWriter(unregisterSnapshotWriter);
+                    return true;
+                }
+
+                Log.Warn("UnregisterReplaySnapshotWriter expected Action<int, uint, bool>");
+                return false;
+
+            case "RegisterReplayStateResetCallback":
+                if (args.Length > 1 && args[1] is Action<uint, string> registerReplayReset)
+                {
+                    ReplayPlaybackEvents.RegisterReplayStateResetCallback(registerReplayReset);
+                    return true;
+                }
+
+                Log.Warn("RegisterReplayStateResetCallback expected Action<uint, string>");
+                return false;
+
+            case "UnregisterReplayStateResetCallback":
+                if (args.Length > 1 && args[1] is Action<uint, string> unregisterReplayReset)
+                {
+                    ReplayPlaybackEvents.UnregisterReplayStateResetCallback(unregisterReplayReset);
+                    return true;
+                }
+
+                Log.Warn("UnregisterReplayStateResetCallback expected Action<uint, string>");
+                return false;
         }
 
         return null;
@@ -65,6 +106,8 @@ public class Reese : Mod
     public override void Unload()
     {
         RecorderEvents.ClearSubscribers();
+        ReplaySnapshotEvents.ClearSubscribers();
+        ReplayPlaybackEvents.ClearSubscribers();
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)
