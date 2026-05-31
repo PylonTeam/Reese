@@ -1,6 +1,5 @@
 using Reese.Content;
 using Reese.Core.Configs;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using System.IO;
 using Terraria.Chat;
 using Terraria.ID;
@@ -22,10 +21,6 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
             return;
 
         ReplayPlayback.MarkEnteredReplayWorld();
-        
-        // Replaying the start once after entry to repair missing sections forcefully
-        // Note: make this smoother in the future 
-        Main.QueueMainThreadAction(ReplayPlayback.ReapplyStartAfterWorldEntry);
 
         string fileName = string.IsNullOrWhiteSpace(ReplayPlayback.CurrentPath)
             ? "Unknown replay"

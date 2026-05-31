@@ -22,7 +22,6 @@ public static class ReplayPlayback
 	public static uint DurationTicks { get; private set; }
     public static uint CurrentTick => ModContent.GetInstance<Replayer>().Ticks;
     public static ReplayMetadata Metadata { get; private set; }
-    private static bool hasReappliedStartAfterWorldEntry;
     private static int launchGeneration;
     private static int activeLaunchGeneration;
     internal static Func<bool> IsLaunchCancelled;
@@ -72,7 +71,6 @@ public static class ReplayPlayback
         IsReplayPlayback = true;
         CurrentPath = path;
 		HasEnteredReplayWorld = false;
-        hasReappliedStartAfterWorldEntry = false;
         SpectatorTargetSystem.ResetForReplayStart();
         Metadata = ReplayMetadata.FromFile(path);
         DurationTicks = Metadata?.DurationTicks ?? 0;
@@ -98,7 +96,6 @@ public static class ReplayPlayback
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
 		IsReplayPlayback = false;
 		HasEnteredReplayWorld = false;
-        hasReappliedStartAfterWorldEntry = false;
 		CurrentPath = null;
 		DurationTicks = 0;
         CancelSeek();
@@ -275,33 +272,6 @@ public static class ReplayPlayback
         Log.Chat("Replay restarted from the beginning.");
     }
 
-    public static void ReapplyStartAfterWorldEntry()
-    {
-        if (!IsReplayPlayback || hasReappliedStartAfterWorldEntry)
-            return;
-
-        Replayer replayer = ModContent.GetInstance<Replayer>();
-        Replayer.ReplaySocket socket = CurrentReplaySocket;
-
-        if (socket?.ResetToStart() != true)
-        {
-            Log.Warn("Unable to reapply replay start after world entry: stream reset failed.");
-            return;
-        }
-
-        hasReappliedStartAfterWorldEntry = true;
-        CancelSeek();
-        replayer.SetTicks(0);
-        ResetReplayStateForReplayStart(0, "world-entry-start-reapply");
-        ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
-
-        if (Netplay.Connection != null)
-            Netplay.Connection.StatusText = string.Empty;
-
-        Replayer.ReplaySocket.ResetTimeoutTimer();
-        Log.Info("Reapplied replay start after world entry.");
-    }
-
     public static void SeekToEnd()
     {
         SeekToTick(DurationTicks);
@@ -358,13 +328,6 @@ public static class ReplayPlayback
     {
         ResetReplayState();
         SpectatorTargetSystem.PreserveTargetForSeek();
-        ReplayPlaybackEvents.RaiseReplayStateReset(tick, reason);
-    }
-
-    private static void ResetReplayStateForReplayStart(uint tick = 0, string reason = "unknown")
-    {
-        ResetReplayState();
-        SpectatorTargetSystem.ResetForReplayStart();
         ReplayPlaybackEvents.RaiseReplayStateReset(tick, reason);
     }
 
