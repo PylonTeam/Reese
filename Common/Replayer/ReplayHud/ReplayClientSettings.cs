@@ -1,3 +1,4 @@
+using Reese.Common.Spectator;
 using System;
 
 namespace Reese.Common.Replayer.ReplayHud;

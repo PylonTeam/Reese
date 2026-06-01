@@ -2,6 +2,7 @@
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
 using Reese.Common.Replayer.ReplayHud.Shared.UI;
+using Reese.Common.Spectator;
 using Reese.Core.Compat;
 using ReLogic.Content;
 using System;

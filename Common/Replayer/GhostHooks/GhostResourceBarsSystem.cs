@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using Reese.Common.Spectator;
+using System.Collections.Generic;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.GhostHooks;

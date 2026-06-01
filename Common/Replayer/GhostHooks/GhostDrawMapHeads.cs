@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
+using Reese.Common.Spectator;
 using Reese.Core.Utilities;
 using Terraria.DataStructures;
 using Terraria.Graphics;
@@ -38,10 +39,7 @@ internal sealed class GhostMapHeadLayer : ModMapLayer
 {
     public override void Draw(ref MapOverlayDrawContext context, ref string text)
     {
-        if (!SpectatorMode.CanSpectate)
-            return;
-
-        if (!ReplayClientSettings.IsDrawGhostsOn)
+        if (!SpectatorMode.CanSpectate && !SpectatorMode.CanDrawOtherGhosts && Main.LocalPlayer?.ghost != true)
             return;
 
         Texture2D ghostRight = Ass.GhostRight.Value;
@@ -51,7 +49,7 @@ internal sealed class GhostMapHeadLayer : ModMapLayer
         {
             Player player = Main.player[i];
 
-            if (player?.active != true || !player.ghost)
+            if (player?.active != true || !player.ghost || !ReplayDrawGate.ShouldDrawGhost(player))
                 continue;
 
             Texture2D texture = player.direction == -1 ? ghostLeft : ghostRight;

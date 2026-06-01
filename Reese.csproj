@@ -5,4 +5,10 @@
     <LangVersion>12.0</LangVersion>
   </PropertyGroup>
 
+	<!-- Publicizer-->
+	<ItemGroup>
+		<PackageReference Include="Krafs.Publicizer" PrivateAssets="true" Version="2.2.1" />
+		<Publicize Include="tModLoader" IncludeVirtualMembers="false" IncludeCompilerGeneratedMembers="false" />
+	</ItemGroup>
+
 </Project>

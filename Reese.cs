@@ -1,5 +1,7 @@
 using Reese.Common.Recorder;
 using Reese.Common.Replayer;
+using Reese.Common.Spectator;
+using Reese.Core.Net;
 using System;
 using System.IO;
 
@@ -118,6 +120,10 @@ public class Reese : Mod
         {
             case ReesePacketType.RecorderStatus:
                 RecorderStatus.Receive(reader);
+                break;
+
+            case ReesePacketType.RequestToggleSpectateMode:
+                SpectatorModeNetHandler.Receive(reader, whoAmI);
                 break;
 
             default:

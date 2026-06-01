@@ -4,6 +4,7 @@ using Mono.Cecil;
 using Reese.Common.Replayer.ReplayHud;
 using System;
 using System.Reflection;
+using Reese.Common.Spectator;
 
 namespace Reese.Common.Replayer.Zoom;
 

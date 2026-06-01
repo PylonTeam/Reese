@@ -1,5 +1,4 @@
-﻿using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
+﻿using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using ReLogic.Graphics;
 using System.Collections.Generic;
 using System.Reflection;
@@ -8,6 +7,7 @@ using Terraria.GameContent.UI;
 using Terraria.GameInput;
 using Terraria.Localization;
 using Terraria.UI.Chat;
+using Reese.Common.Spectator;
 
 namespace Reese.Common.Replayer.GhostHooks;
 
@@ -116,6 +116,9 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
 
         public void DrawPlayerHead()
         {
+            if (player.ghost && !ReplayDrawGate.ShouldDrawGhost(player))
+                return;
+
             float num = 20f;
             float num2 = -27f;
             num2 -= (this.measurement.X - 85f) / 2f;
@@ -127,17 +130,14 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
             vec = vec.Floor();
             Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, this.player, vec, 1f, 0.8f, playerHeadBordersColor);
 
-            if (player.ghost)
-            {
-                if (!ReplayDrawGate.ShouldDrawGhost(player))
-                    return;
+            if (!player.ghost)
+                return;
 
-                Texture2D texture = this.player.direction == -1 ? Ass.GhostLeft.Value : Ass.GhostRight.Value;
-                Vector2 ghostPos = vec + new Vector2(12f, 0f);
-                float ghostScale = 1.0f;
+            Texture2D texture = this.player.direction == -1 ? Ass.GhostLeft.Value : Ass.GhostRight.Value;
+            Vector2 ghostPos = vec + new Vector2(12f, 0f);
+            float ghostScale = 1.0f;
 
-                Main.spriteBatch.Draw(texture, ghostPos, null, Color.White, 0f, texture.Size() * 0.5f, ghostScale, SpriteEffects.None, 0f);
-            }
+            Main.spriteBatch.Draw(texture, ghostPos, null, Color.White, 0f, texture.Size() * 0.5f, ghostScale, SpriteEffects.None, 0f);
         }
 
         // What??
@@ -189,7 +189,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
         _ = Main.screenPosition;
         Player player2 = player[myPlayer];
         float num2 = (float)(int)mouseTextColor / 255f;
-        if (player2.team == 0 && !SpectatorMode.CanSpectate)
+        if (player2.team == 0 && !SpectatorMode.CanSpectate && !SpectatorMode.CanDrawOtherGhostNameplates)
         {
             return;
         }
@@ -268,12 +268,15 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
         if (otherPlayer.dead && !otherIsSpectator)
             return false;
 
+        if (otherPlayer.ghost && !ReplayDrawGate.ShouldDrawNameplate(otherPlayer, otherIsSpectator))
+            return false;
+
         if (otherIsSpectator)
             return true;
 
-        if (SpectatorMode.CanSpectate)
-            return true;
+        if (!SpectatorMode.CanSpectate)
+            return localPlayer.team != 0 && otherPlayer.team == localPlayer.team;
 
-        return localPlayer.team != 0 && otherPlayer.team == localPlayer.team;
+        return true;
     }
 }

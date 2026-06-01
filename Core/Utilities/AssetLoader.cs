@@ -1,12 +1,8 @@
-﻿using Microsoft.Xna.Framework.Graphics;
-using ReLogic.Content;
+﻿using ReLogic.Content;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Terraria;
-using Terraria.ModLoader;
-using Terraria.ModLoader.Exceptions;
 
 namespace Reese.Core.Utilities;
 
@@ -18,6 +14,13 @@ namespace Reese.Core.Utilities;
 /// </summary>
 public static class Ass
 {
+    // Config
+    public static Asset<Texture2D> IconLock;
+    public static Asset<Texture2D> Ghost;
+    public static Asset<Texture2D> IconCheckGreen;
+    public static Asset<Texture2D> IconXGray;
+    public static Asset<Texture2D> Stopwatch;
+
     // Main menu
     public static Asset<Texture2D> IconNewlyGenerated;
     public static Asset<Texture2D> IconArrowDown;

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Reese.Common.Spectator;
+using System;
 using System.Collections.Generic;
 using Terraria.ID;
 

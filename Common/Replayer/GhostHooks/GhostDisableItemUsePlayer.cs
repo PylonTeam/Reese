@@ -1,4 +1,6 @@
-﻿namespace Reese.Common.Replayer.GhostHooks;
+﻿using Reese.Common.Spectator;
+
+namespace Reese.Common.Replayer.GhostHooks;
 
 internal class GhostDisableItemUsePlayer : ModPlayer
 {

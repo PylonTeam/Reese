@@ -1,4 +1,5 @@
 ﻿using Reese.Common.Replayer.ReplayHud;
+using Reese.Common.Spectator;
 using Terraria.GameContent;
 
 namespace Reese.Common.Replayer.GhostHooks;

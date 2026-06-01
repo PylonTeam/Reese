@@ -1,4 +1,6 @@
-﻿namespace Reese.Common.Replayer.GhostHooks;
+﻿using Reese.Common.Spectator;
+
+namespace Reese.Common.Replayer.GhostHooks;
 
 /// <summary>
 /// Draws all player heads on the map if we are a spectator

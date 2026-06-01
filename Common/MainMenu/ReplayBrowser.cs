@@ -196,7 +196,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         buttonStrip.Height.Set(headerButtonSize, 0f);
         header.Append(buttonStrip);
 
-        UIHoverImage openFolderButton = new(Ass.ButtonOpenFolder, "Open folder")
+        UI.UIHoverImage openFolderButton = new(Ass.ButtonOpenFolder, "Open folder")
         {
             ImageScale = 0.9f,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -212,7 +212,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         };
         buttonStrip.Append(openFolderButton);
 
-        UIHoverImage configButton = new(UICommon.ButtonModConfigTexture, "Open config")
+        UI.UIHoverImage configButton = new(UICommon.ButtonModConfigTexture, "Open config")
         {
             ImageScale = 0.9f,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -224,7 +224,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         configButton.OnLeftClick += (_, _) => OpenReeseClientConfig();
         buttonStrip.Append(configButton);
 
-        UIHoverImage refreshButton = new(Ass.ButtonRefresh, "Refresh")
+        UI.UIHoverImage refreshButton = new(Ass.ButtonRefresh, "Refresh")
         {
             ImageScale = 0.9f,
             RemoveFloatingPointsFromDrawPosition = true,

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Reese.Common.Spectator;
+using System;
 using Terraria.Graphics.Light;
 
 namespace Reese.Common.Replayer.GhostHooks;

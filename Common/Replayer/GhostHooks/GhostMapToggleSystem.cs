@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Input;
+using Reese.Common.Spectator;
 using Terraria.GameInput;
 
 namespace Reese.Common.Replayer.GhostHooks;

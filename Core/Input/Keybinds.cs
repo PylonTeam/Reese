@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework.Input;
-using Reese.Common;
 using Reese.Common.Replayer.ReplayHud;
 using Reese.Common.Replayer.ReplayHud.Ghost;
+using Reese.Common.Spectator;
 using Reese.Content;
 using Terraria.GameInput;
 

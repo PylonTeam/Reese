@@ -373,8 +373,7 @@ public class Recorder : ModSystem, ITicker
         if (Main.netMode == NetmodeID.Server)
         {
             bool hasPlayers = ReplayPlayback.HasActivePlayers();
-            bool autoStartRecording = ModContent.GetInstance<ServerConfig>()?.AutoStartRecordingOnEnterWorld
-                ?? ServerConfig.DefaultAutoStartRecordingOnEnterWorld;
+            bool autoStartRecording = GetAutoRecordingConfig()?.AutoStartRecordingOnEnterWorld ?? false;
 
             if (!hasPlayers)
             {
@@ -478,8 +477,10 @@ public class Recorder : ModSystem, ITicker
 
     private static uint GetBaselineIntervalTicks()
     {
-        int configuredTicks = ModContent.GetInstance<ServerConfig>()?.BaselineIntervalTicks
-            ?? ServerConfig.DefaultBaselineIntervalTicks;
+        int configuredSeconds = ModContent.GetInstance<ServerConfig>()?.BaselineIntervalSeconds
+            ?? ServerConfig.DefaultBaselineIntervalSeconds;
+        configuredSeconds = Math.Clamp(configuredSeconds, 0, ServerConfig.MaxBaselineIntervalSeconds);
+        int configuredTicks = checked(configuredSeconds * 60);
 
         return (uint)Math.Max(0, configuredTicks);
     }
@@ -496,8 +497,7 @@ public class Recorder : ModSystem, ITicker
 
     private static int GetMaxRecordingLengthMinutes()
     {
-        int configuredMinutes = ModContent.GetInstance<ServerConfig>()?.MaxRecordingLengthMinutes
-            ?? ServerConfig.DefaultMaxRecordingLengthMinutes;
+        int configuredMinutes = GetAutoRecordingConfig()?.MaxRecordingLengthMinutes ?? 0;
 
         return Math.Max(0, configuredMinutes);
     }
@@ -509,7 +509,12 @@ public class Recorder : ModSystem, ITicker
 
     private static bool ShouldAutoStartRecordingAfterMaxLength()
     {
-        return ModContent.GetInstance<ServerConfig>()?.AutoStartRecordingAfterMaxLength ?? false;
+        return GetAutoRecordingConfig()?.AutoStartRecordingAfterMaxLength ?? false;
+    }
+
+    private static ServerConfig.AutoRecordingConfig GetAutoRecordingConfig()
+    {
+        return ModContent.GetInstance<ServerConfig>()?.autoRecordingConfig;
     }
 
     public override void OnWorldUnload()

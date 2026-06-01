@@ -1,3 +1,4 @@
+using Reese.Core.Configs.ConfigElements;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
@@ -5,30 +6,73 @@ namespace Reese.Core.Configs;
 
 public class ServerConfig : ModConfig
 {
-    public const bool DefaultAutoStartRecordingOnEnterWorld = false;
-    public const int DefaultBaselineIntervalTicks = 1800;
-    public const int MaxBaselineIntervalTicks = 60 * 60 * 60;
-    public const int DefaultMaxRecordingLengthMinutes = 0;
+    public const int DefaultBaselineIntervalSeconds = 30;
+    public const int MaxBaselineIntervalSeconds = 60 * 5;
 
     public override ConfigScope Mode => ConfigScope.ServerSide;
 
     [Header("Recording")]
     [BackgroundColor(250, 60, 60, 150)]
-    [DefaultValue(DefaultAutoStartRecordingOnEnterWorld)]
-    public bool AutoStartRecordingOnEnterWorld = DefaultAutoStartRecordingOnEnterWorld;
+    [ConfigIcon(nameof(Ass.IconCameraSmall), ConfigIconPlacement.Cut)]
+    [Expand(false, false)]
+    public AutoRecordingConfig autoRecordingConfig = new();
 
     [BackgroundColor(250, 60, 60, 150)]
-    [DefaultValue(DefaultMaxRecordingLengthMinutes)]
-    public int MaxRecordingLengthMinutes = DefaultMaxRecordingLengthMinutes;
+    [Range(0, MaxBaselineIntervalSeconds)]
+    [DefaultValue(DefaultBaselineIntervalSeconds)]
+    [Slider]
+    [DrawTicks]
+    [Increment(30)]
+    [ConfigIcon(nameof(Ass.Stopwatch), ConfigIconPlacement.Cut)]
+    public int BaselineIntervalSeconds = DefaultBaselineIntervalSeconds;
 
-    [BackgroundColor(250, 60, 60, 150)]
-    [DefaultValue(false)]
-    public bool AutoStartRecordingAfterMaxLength;
+    [Header("Spectating")]
+    [ConfigIcon(nameof(Ass.Ghost), ConfigIconPlacement.Cut)]
+    [BackgroundColor(30, 150, 150)]
+    [Expand(false, false)]
+    public GhostSpectatingConfig ghostSpectatingConfig = new();
 
-    // Shorter baseline intervals make replay seeking smoother and quicker, but increase file size quickly.
-    // Larger baseline intervals keep file size small, but make replay seeking take longer.
-    [BackgroundColor(250, 60, 60, 150)]
-    [Range(0, MaxBaselineIntervalTicks)]
-    [DefaultValue(DefaultBaselineIntervalTicks)]
-    public int BaselineIntervalTicks = DefaultBaselineIntervalTicks;
+    public class AutoRecordingConfig
+    {
+        [BackgroundColor(250, 60, 60, 150)]
+        [DefaultValue(true)]
+        public bool AutoStartRecordingOnEnterWorld = true;
+
+        [BackgroundColor(250, 60, 60, 150)]
+        [DefaultValue(60)]
+        public int MaxRecordingLengthMinutes = 60;
+
+        [BackgroundColor(250, 60, 60, 150)]
+        [DefaultValue(false)]
+        public bool AutoStartRecordingAfterMaxLength;
+    }
+
+    public class GhostSpectatingConfig
+    {
+        [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), grayWhenOff: true)]
+        [BackgroundColor(30, 150, 150)]
+        [DefaultValue(true)]
+        public bool IsGhostSpectatingEnabled = true;
+
+        [RequiresField(nameof(IsGhostSpectatingEnabled))]
+        [BackgroundColor(30, 150, 150)]
+        [DefaultValue(false)]
+        public bool ForceSpectateWhenJoining;
+
+        [RequiresField(nameof(IsGhostSpectatingEnabled))]
+        [BackgroundColor(30, 150, 150)]
+        [DefaultValue(false)]
+        public bool ShowSpectatorJoinPanel;
+
+        [RequiresField(nameof(IsGhostSpectatingEnabled))]
+        [BackgroundColor(30, 150, 150)]
+        [DefaultValue(false)]
+        public bool DrawGhosts;
+
+        [RequiresField(nameof(IsGhostSpectatingEnabled))]
+        [BackgroundColor(30, 150, 150)]
+        [DefaultValue(false)]
+        public bool DrawGhostsNameplates;
+    }
+
 }

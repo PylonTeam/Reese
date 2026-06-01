@@ -1,5 +1,6 @@
 Mods: {
 	Reese: {
+		ServerStartedSsl: Starting server...
 		Keybinds.ReplayUI.DisplayName: Open Replay UI
 
 		Configs: {
@@ -8,53 +9,68 @@ Mods: {
 
 				Headers: {
 					MainMenu: Main Menu
-					Debug: Debug
 					Replay: Replay
+					Debug: Debug
 				}
 
 				AddExtraMenuState: {
-					Label: Show [c/5ad2ff:Reese] Button
-					Tooltip: Adds the [c/5ad2ff:Reese] button that opens a state with the replay browser
-				}
-
-				ShowInMainMenu: {
-					Label: Show Replay Browser In Main Menu
-					Tooltip: Always show the replay browser in main menu
+					Label: Show Reese Button
+					Tooltip: Adds the Reese button that opens the replay browser from the main menu.
 				}
 
 				ShowWelcomeMessageOnEnterWorld: {
-					Label: Show Welcome Message On Enter World
+					Label: Show Replay Welcome Message
 					Tooltip: ""
 				}
 
 				SeekMaxMillisecondsPerFrame: {
 					Label: Seek Milliseconds Per Frame
-					Tooltip: Maximum milliseconds Reese spends per frame catching up during seeking. Higher values make seeking faster but may briefly freeze the game.
+					Tooltip:
+						'''
+						Maximum milliseconds Reese spends per frame catching up during seeking.
+						Higher values make seeking faster but may briefly freeze the game.
+						'''
 				}
 
 				ShowDebugMessages: {
 					Label: Show Debug Messages
-					Tooltip: For developers and testers
-				}
-
-				ShowDebugDrawer: {
-					Label: Show Debug Drawer
-					Tooltip: For developer use only, draws debug stats in the top left corner in-game.
-				}
-
-				EnableBackwardsSeeking: {
-					Label: Enable Backwards Seeking (experimental)
-					Tooltip: ""
+					Tooltip: Enables extra chat and log messages for debugging Reese.
 				}
 			}
 
 			ServerConfig: {
 				DisplayName: Server Config
-				Headers.Recording: Recording
 
+				Headers: {
+					Recording: Recording
+					Spectating: Spectating
+				}
+
+				autoRecordingConfig: {
+					Label: Auto Record
+					Tooltip: ""
+				}
+
+				BaselineIntervalSeconds: {
+					Label: Baseline Interval Seconds
+					Tooltip:
+						'''
+						How often Reese writes replay baseline checkpoints.
+						Shorter values makes replay seeking faster, but increases file size quickly.
+						Larger values keep file size small, but makes replay seeking slower.
+						'''
+				}
+
+				ghostSpectatingConfig: {
+					Label: Ghost Spectating
+					Tooltip: ""
+				}
+			}
+
+			AutoRecordingConfig: {
 				AutoStartRecordingOnEnterWorld: {
-					Label: Auto Start Recording On Enter World
-					Tooltip: When disabled, recordings only start when the record console command is used.
+					Label: Auto Start Recording
+					Tooltip: Starts recording automatically when players are active in the world.
 				}
 
 				MaxRecordingLengthMinutes: {
@@ -63,14 +79,40 @@ Mods: {
 				}
 
 				AutoStartRecordingAfterMaxLength: {
-					Label: Auto Start Recording After Max Length
-					Tooltip: When enabled, Reese starts a new recording part after a recording reaches the configured maximum length.
+					Label: Auto Start After Max Length
+					Tooltip: Starts a new recording part after a recording reaches the configured maximum length.
 				}
 
-				BaselineIntervalTicks: {
-					Label: Baseline Interval Ticks
-					Tooltip: How often Reese writes replay baseline checkpoints, in ticks. 60 ticks is about 1 second. Set to 0 to disable baselines. Max: 216000 ticks (1 hour).
+				Tooltip: ""
+			}
+
+			GhostSpectatingConfig: {
+				IsGhostSpectatingEnabled: {
+					Label: Enable Ghost Spectating
+					Tooltip: Whether ghosts have extra spectating features
 				}
+
+				ForceSpectateWhenJoining: {
+					Label: Force Spectate When Joining
+					Tooltip: Makes everyone who joins a ghost automatically
+				}
+
+				DrawGhosts: {
+					Label: Draw Ghosts
+					Tooltip: Whether players can see other ghosts' sprites
+				}
+
+				DrawGhostsNameplates: {
+					Label: Draw Ghost Nameplates
+					Tooltip: Whether players can see other ghosts' nameplates
+				}
+
+				ShowSpectatorJoinPanel: {
+					Label: Show Spectator Join Panel
+					Tooltip: Let players pick player or spectator when entering the world
+				}
+
+				Tooltip: ""
 			}
 		}
 

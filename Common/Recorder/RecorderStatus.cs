@@ -1,6 +1,7 @@
 ﻿using Microsoft.Xna.Framework;
 using Reese.Common.Replayer;
 using Reese.Content;
+using Reese.Core.Net;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -11,13 +12,9 @@ using Terraria.Chat;
 using Terraria.ID;
 using Terraria.Localization;
 using Terraria.ModLoader;
+using static Reese.Reese;
 
 namespace Reese.Common.Recorder;
-
-internal enum ReesePacketType : byte
-{
-    RecorderStatus
-}
 
 /// <summary>
 /// Keeps track of recorder state and syncs it from server to clients.

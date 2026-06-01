@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.Spectator;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud;

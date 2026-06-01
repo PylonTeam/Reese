@@ -1,4 +1,5 @@
 ﻿using Microsoft.Xna.Framework.Input;
+using Reese.Common.Spectator;
 using System.Collections.Generic;
 using Terraria.UI;
 

@@ -1,4 +1,6 @@
 using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.Replayer;
+using Reese.Common.Spectator;
 using Terraria.DataStructures;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
@@ -7,23 +9,40 @@ internal static class ReplayDrawGate
 {
     public static bool ShouldDrawPlayer(Player player)
     {
-        if (!SpectatorMode.CanSpectate || player?.active != true)
+        if (player?.active != true)
             return true;
 
-        return player.ghost ? ReplayClientSettings.IsDrawGhostsOn : ReplayClientSettings.IsDrawPlayersOn;
+        if (player.ghost)
+            return ShouldDrawGhost(player);
+
+        return !SpectatorMode.CanSpectate || ReplayClientSettings.IsDrawPlayersOn;
     }
 
     public static bool ShouldDrawGhost(Player player)
     {
-        return !SpectatorMode.CanSpectate || player?.ghost != true || ReplayClientSettings.IsDrawGhostsOn;
+        if (player?.active != true || !player.ghost)
+            return true;
+
+        if (ReplayPlayback.IsReplayPlayback)
+            return ReplayClientSettings.IsDrawGhostsOn;
+
+        return SpectatorMode.ShouldDrawGhost(player);
     }
 
     public static bool ShouldDrawNameplate(Player player, bool isSpectator)
     {
-        if (!SpectatorMode.CanSpectate || player?.active != true)
+        if (player?.active != true)
             return true;
 
-        return ReplayClientSettings.IsNameplatesOn;
+        if (player.ghost)
+        {
+            if (ReplayPlayback.IsReplayPlayback)
+                return ReplayClientSettings.IsNameplatesOn;
+
+            return SpectatorMode.ShouldDrawGhostNameplate(player);
+        }
+
+        return !SpectatorMode.CanSpectate || ReplayClientSettings.IsNameplatesOn;
     }
 }
 
