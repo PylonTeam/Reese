@@ -20,7 +20,6 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
 {
     public static readonly float[] SnapValues = [0f, 0.125f, 0.25f, 0.5f, 0.75f, 1f, 2f, 4f, 8f, 16f, 32f];
     private const int MaxSeekUpdatesPerFrame = 128;
-    private const uint AutoRestartBootstrapTicks = 180;
 
     /// <summary>
     /// Gets the current time scale factor applied to time-dependent operations.
@@ -40,8 +39,6 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
     private bool consumedWorldStep;
     private bool consumedTimeStep;
     private bool bootstrapTickAdvancementActive;
-    private bool autoRestartAfterBootstrapAttempted;
-    private string autoRestartPlaybackPath;
     private uint bootstrapTicksAdvanced;
 
     public override void Load()
@@ -197,15 +194,7 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
         if (!ReplayPlayback.IsReplayPlayback)
         {
             ResetBootstrapTickAdvancement();
-            autoRestartAfterBootstrapAttempted = false;
-            autoRestartPlaybackPath = null;
             return;
-        }
-
-        if (!string.Equals(autoRestartPlaybackPath, ReplayPlayback.CurrentPath, StringComparison.Ordinal))
-        {
-            autoRestartPlaybackPath = ReplayPlayback.CurrentPath;
-            autoRestartAfterBootstrapAttempted = false;
         }
 
         if (ReplayPlayback.HasEnteredReplayWorld)
@@ -225,14 +214,6 @@ internal sealed class ReplayTimeScaleSystem : ModSystem
             bootstrapTickAdvancementActive = true;
             bootstrapTicksAdvanced = 0;
             Log.Info($"Replay bootstrap tick advancement started at replay tick {ReplayPlayback.CurrentTick}.");
-        }
-
-        if (!autoRestartAfterBootstrapAttempted && bootstrapTicksAdvanced >= AutoRestartBootstrapTicks)
-        {
-            autoRestartAfterBootstrapAttempted = true;
-            Log.Info($"Replay has not entered the world after {bootstrapTicksAdvanced} bootstrap ticks; automatically invoking Go to start once.");
-            ReplayPlayback.SeekToStart();
-            return;
         }
 
         ModContent.GetInstance<global::Reese.Common.Replayer.Replayer>()?.AdvancePlaybackTick();

@@ -1,5 +1,6 @@
 using Reese.Content;
 using Reese.Core.Configs;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using System.IO;
 using Terraria.Chat;
 using Terraria.ID;
@@ -21,7 +22,7 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
             return;
 
         ReplayPlayback.MarkEnteredReplayWorld();
-
+        
         string fileName = string.IsNullOrWhiteSpace(ReplayPlayback.CurrentPath)
             ? "Unknown replay"
             : Path.GetFileName(ReplayPlayback.CurrentPath);

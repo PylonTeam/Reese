@@ -331,6 +331,13 @@ public static class ReplayPlayback
         ReplayPlaybackEvents.RaiseReplayStateReset(tick, reason);
     }
 
+    private static void ResetReplayStateForReplayStart(uint tick = 0, string reason = "unknown")
+    {
+        ResetReplayState();
+        SpectatorTargetSystem.ResetForReplayStart();
+        ReplayPlaybackEvents.RaiseReplayStateReset(tick, reason);
+    }
+
     private static void ResetReplayState()
     {
         Player local = Main.LocalPlayer;
