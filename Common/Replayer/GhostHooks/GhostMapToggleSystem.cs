@@ -15,7 +15,7 @@ internal sealed class GhostMapToggleSystem : ModSystem
         if (Main.dedServ || Main.LocalPlayer?.active != true)
             return;
 
-        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer) && !Main.LocalPlayer.dead && !Main.LocalPlayer.ghost)
+        if (!SpectatorMode.CanSpectate && !Main.LocalPlayer.dead)
             return;
 
         if (Main.drawingPlayerChat || Main.editSign || Main.editChest || Main.blockInput)
@@ -46,7 +46,7 @@ internal sealed class GhostMapToggleSystem : ModSystem
         if (Main.mapFullscreen)
             UpdateFullscreenMapZoom();
 
-        if (ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer) && PlayerInput.Triggers.Current.MapStyle && !PlayerInput.Triggers.Old.MapStyle)
+        if (SpectatorMode.CanSpectate && PlayerInput.Triggers.Current.MapStyle && !PlayerInput.Triggers.Old.MapStyle)
             CycleMapStyle();
     }
 
@@ -78,7 +78,6 @@ internal sealed class GhostMapToggleSystem : ModSystem
 
     private static void CycleMapStyle()
     {
-
         if (Main.mapFullscreen)
         {
             Main.mapFullscreen = false;

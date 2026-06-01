@@ -544,7 +544,7 @@ internal sealed class SpectateHud : UIElement
         if (lockedNpc >= 0 && Main.npc[lockedNpc]?.active == true)
             return $"Spectating {Main.npc[lockedNpc].FullName}";
 
-        if (Main.LocalPlayer?.ghost == true)
+        if (SpectatorMode.IsLocalGhost)
             return "Ghost mode enabled";
 
         return "You are not spectating anyone";

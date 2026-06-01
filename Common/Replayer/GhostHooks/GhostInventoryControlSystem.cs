@@ -26,7 +26,7 @@ internal class GhostInventoryControlSystem : ModSystem
         //orig(self);
         //return;
 
-        bool inSpectateMode = ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer);
+        bool inSpectateMode = SpectatorMode.CanSpectate;
 
         if ((inSpectateMode || self.ghost) && KeyboardHelper.Pressed(Keys.Escape))
         {
@@ -62,20 +62,11 @@ internal class GhostInventoryControlSystem : ModSystem
 
     private void ModifyInterfaceLogic(On_Main.orig_DrawInterface_26_InterfaceLogic3 orig)
     {
-        //orig();
-        //return;
-
-        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
+        if (!SpectatorMode.CanSpectate)
         {
             orig();
             return;
         }
-
-        //if (SpectatorTargetSystem.IsInSpectateMode(Main.LocalPlayer) || Main.LocalPlayer.ghost)
-        //{
-        //    CloseOwnInventory();
-        //    return;
-        //}
 
         orig();
     }

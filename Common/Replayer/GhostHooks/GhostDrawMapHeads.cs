@@ -38,10 +38,10 @@ internal sealed class GhostMapHeadLayer : ModMapLayer
 {
     public override void Draw(ref MapOverlayDrawContext context, ref string text)
     {
-        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
+        if (!SpectatorMode.CanSpectate)
             return;
 
-        if (ReplayPlayback.IsReplayPlayback && !ReplayClientSettings.IsDrawGhostsOn)
+        if (!ReplayClientSettings.IsDrawGhostsOn)
             return;
 
         Texture2D ghostRight = Ass.GhostRight.Value;

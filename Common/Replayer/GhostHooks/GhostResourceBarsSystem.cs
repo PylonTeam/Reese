@@ -12,7 +12,7 @@ internal class GhostResourceBarsSystem : ModSystem
 {
     public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
     {
-        if (Main.LocalPlayer?.ghost != true)
+        if (!SpectatorMode.IsLocalGhost)
             return;
 
         GameInterfaceLayer layer = layers.Find(static layer => layer.Name == "Vanilla: Resource Bars");

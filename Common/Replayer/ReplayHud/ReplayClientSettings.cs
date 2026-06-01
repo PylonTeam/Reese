@@ -19,7 +19,7 @@ internal static class ReplayClientSettings
 
     public static void SetReplayZoom(float value)
     {
-        if (!ReplayPlayback.IsReplayPlayback)
+        if (!SpectatorMode.CanSpectate)
             return;
 
         value = Math.Clamp(value, ReplayZoomMin, ReplayZoomMax);
@@ -34,7 +34,7 @@ internal static class ReplayClientSettings
 
     public static void ImportReplayZoomFromGame(float value)
     {
-        if (!ReplayPlayback.IsReplayPlayback)
+        if (!SpectatorMode.CanSpectate)
             return;
 
         value = Math.Clamp(value, ReplayZoomMin, ReplayZoomMax);

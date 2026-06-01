@@ -16,7 +16,7 @@ public class SpectatorTargetSystem : ModSystem
 
     public static bool HasLockedTarget()
     {
-        return ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer) && (CanTarget(target) || CanTargetNPC(npcTarget));
+        return SpectatorMode.CanSpectate && (CanTarget(target) || CanTargetNPC(npcTarget));
     }
 
     private static bool CanTarget(int playerId)
@@ -25,7 +25,7 @@ public class SpectatorTargetSystem : ModSystem
             return false;
 
         Player p = Main.player[playerId];
-        bool isPlaybackClient = ReplayPlayback.IsPlayerReplayClient(p);
+        bool isPlaybackClient = SpectatorMode.IsReplayClient(p);
         bool isGhost = p.ghost;
         bool result = p.active && (!isPlaybackClient || isGhost);
 
@@ -148,7 +148,7 @@ public class SpectatorTargetSystem : ModSystem
 
     public static Player GetPlayerTarget()
     {
-        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
+        if (!SpectatorMode.CanSpectate)
             return null;
 
         if (CanTarget(previewTarget))
@@ -162,14 +162,14 @@ public class SpectatorTargetSystem : ModSystem
 
     public static Player GetLockedPlayerTarget()
     {
-        bool inReplayMode = ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer);
+        bool inSpectateMode = SpectatorMode.CanSpectate;
         bool canTarget = CanTarget(target);
-        return inReplayMode && canTarget ? Main.player[target] : null;
+        return inSpectateMode && canTarget ? Main.player[target] : null;
     }
 
     public static NPC GetLockedNPCTarget()
     {
-        return ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer) && CanTargetNPC(npcTarget) ? Main.npc[npcTarget] : null;
+        return SpectatorMode.CanSpectate && CanTargetNPC(npcTarget) ? Main.npc[npcTarget] : null;
     }
 
     public static string GetLockedTargetStatusText()
@@ -305,7 +305,7 @@ public class SpectatorTargetSystem : ModSystem
         if (autoSpectatedFirstPlayer || target != -1 || npcTarget != -1)
             return;
 
-        if (!ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer))
+        if (!SpectatorMode.CanSpectate)
             return;
 
         for (int i = 0; i < Main.maxPlayers; i++)

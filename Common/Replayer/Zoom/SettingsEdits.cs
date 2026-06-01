@@ -73,16 +73,16 @@ internal sealed class SettingsEdits : ModSystem
 
     private static float GetZoomRange()
     {
-        return ReplayPlayback.IsReplayPlayback ? ReplayClientSettings.ReplayZoomMax - ReplayClientSettings.ReplayZoomMin : 1f;
+        return SpectatorMode.CanSpectate ? ReplayClientSettings.ReplayZoomMax - ReplayClientSettings.ReplayZoomMin : 1f;
     }
 
     private static float GetZoomMin()
     {
-        return ReplayPlayback.IsReplayPlayback ? ReplayClientSettings.ReplayZoomMin : 1f;
+        return SpectatorMode.CanSpectate ? ReplayClientSettings.ReplayZoomMin : 1f;
     }
 
     private static float GetZoomValue()
     {
-        return ReplayPlayback.IsReplayPlayback ? ReplayClientSettings.ReplayZoom : Main.GameZoomTarget;
+        return SpectatorMode.CanSpectate ? ReplayClientSettings.ReplayZoom : Main.GameZoomTarget;
     }
 }

@@ -1,6 +1,7 @@
 using Microsoft.Xna.Framework.Input;
-using Reese.Common.Replayer;
+using Reese.Common;
 using Reese.Common.Replayer.ReplayHud;
+using Reese.Common.Replayer.ReplayHud.Ghost;
 using Reese.Content;
 using Terraria.GameInput;
 
@@ -34,12 +35,18 @@ public sealed class KeybindsPlayer : ModPlayer
         if (keybinds.ReplayUI?.JustPressed != true)
             return;
 
-        if (!ReplayPlayback.IsReplayPlayback)
+        if (SpectatorMode.CanUseReplayHud)
         {
-            Main.NewText($"[i:{ModContent.ItemType<CameraItem>()}] You are not in a replay, replay UI cannot be shown!", Color.Yellow);
+            ModContent.GetInstance<ReplayHudSystem>().ToggleReplayHud();
             return;
         }
 
-        ModContent.GetInstance<ReplayHudSystem>().ToggleReplayHud();
+        if (SpectatorMode.CanUseGhostHud)
+        {
+            ModContent.GetInstance<GhostHudSystem>().OpenFullHud();
+            return;
+        }
+
+        Main.NewText($"[i:{ModContent.ItemType<CameraItem>()}] You are not in a replay or ghost mode, spectate UI cannot be shown!", Color.Yellow);
     }
 }

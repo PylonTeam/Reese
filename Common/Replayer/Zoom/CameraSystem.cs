@@ -5,34 +5,34 @@ namespace Reese.Common.Replayer.Zoom;
 
 /// <summary>
 /// Adjusts camera zoom based on the ReplayZoom setting in ReplayClientSettings.
-/// This allows users to zoom in and out while viewing replays.
+/// This allows users to zoom in and out while spectating.
 /// </summary>
 [Autoload(Side = ModSide.Client)]
 public sealed class CameraSystem : ModSystem
 {
     private float vanillaGameZoomTarget = 1f;
-    private bool wasReplayPlayback;
+    private bool wasSpectating;
 
     public override void PostUpdateInput()
     {
         if (Main.gameMenu)
             return;
 
-        if (!ReplayPlayback.IsReplayPlayback)
+        if (!SpectatorMode.CanSpectate)
         {
-            if (wasReplayPlayback)
+            if (wasSpectating)
             {
                 Main.GameZoomTarget = vanillaGameZoomTarget;
-                wasReplayPlayback = false;
+                wasSpectating = false;
             }
 
             return;
         }
 
-        if (!wasReplayPlayback)
+        if (!wasSpectating)
         {
             vanillaGameZoomTarget = MathHelper.Clamp(Main.GameZoomTarget, 1f, 2f);
-            wasReplayPlayback = true;
+            wasSpectating = true;
         }
 
         Main.GameZoomTarget = ReplayClientSettings.ReplayZoom;
@@ -40,7 +40,7 @@ public sealed class CameraSystem : ModSystem
 
     public override void ModifyTransformMatrix(ref SpriteViewMatrix transform)
     {
-        if (Main.gameMenu || !ReplayPlayback.IsReplayPlayback)
+        if (Main.gameMenu || !SpectatorMode.CanSpectate)
             return;
 
         float zoom = ReplayClientSettings.ReplayZoom;

@@ -47,7 +47,7 @@ public sealed class ReplayHudSystem : ModSystem
 
     public void OpenFullHud()
     {
-        if (!ReplayPlayback.IsReplayPlayback)
+        if (!SpectatorMode.CanUseReplayHud)
             return;
 
         replayHudState?.ShowAllHuds();
@@ -76,6 +76,9 @@ public sealed class ReplayHudSystem : ModSystem
         }
 #endif
 
+        if (replayHudInterface?.CurrentState != null && !SpectatorMode.CanUseReplayHud)
+            CloseFullHud();
+
         replayHudInterface?.Update(gameTime);
     }
 
@@ -84,7 +87,7 @@ public sealed class ReplayHudSystem : ModSystem
         // Debug stuff here
         //Main.LocalPlayer.ghost = true;
 
-        if (replayHudInterface?.CurrentState == null)
+        if (replayHudInterface?.CurrentState == null || !SpectatorMode.CanUseReplayHud)
             return;
 
         bool configUiOpen = ConfigHelper.IsAnyConfigUIOpen();

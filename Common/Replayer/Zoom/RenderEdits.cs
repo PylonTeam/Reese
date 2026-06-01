@@ -8,13 +8,13 @@ using System.Reflection;
 namespace Reese.Common.Replayer.Zoom;
 
 /// <summary>
-/// Edits rendering code to support zooming out beyond 100% in replays.
+/// Edits rendering code to support zooming out beyond 100% while spectating.
 /// This includes increasing the off-screen range for culling and removing the black borders that appear when zooming out.
 /// </summary>
 [Autoload(Side = ModSide.Client)]
 public sealed class RenderEdits : ModSystem
 {
-    private bool wasReplayPlayback;
+    private bool wasSpectating;
 
     public override void Load()
     {
@@ -22,8 +22,8 @@ public sealed class RenderEdits : ModSystem
         IL_Main.InitTargets_int_int += PatchRenderTargets;
         IL_Main.DrawBlack += PatchWorldBlackout;
 
-        wasReplayPlayback = ReplayPlayback.IsReplayPlayback;
-        if (wasReplayPlayback)
+        wasSpectating = SpectatorMode.CanSpectate;
+        if (wasSpectating)
             ReloadRenderTargets();
     }
 
@@ -39,17 +39,17 @@ public sealed class RenderEdits : ModSystem
 
     public override void PostUpdateEverything()
     {
-        bool isReplayPlayback = ReplayPlayback.IsReplayPlayback;
-        if (wasReplayPlayback == isReplayPlayback)
+        bool isSpectating = SpectatorMode.CanSpectate;
+        if (wasSpectating == isSpectating)
             return;
 
-        wasReplayPlayback = isReplayPlayback;
+        wasSpectating = isSpectating;
         ReloadRenderTargets();
     }
 
     private static Point GetScreenOverdrawOffset(On_Main.orig_GetScreenOverdrawOffset orig)
     {
-        return ReplayPlayback.IsReplayPlayback && ReplayClientSettings.ReplayZoom < 1f ? Point.Zero : orig();
+        return SpectatorMode.CanSpectate && ReplayClientSettings.ReplayZoom < 1f ? Point.Zero : orig();
     }
 
     private static void PatchRenderTargets(ILContext il)
@@ -116,12 +116,12 @@ public sealed class RenderEdits : ModSystem
 
     private static int GetBlackoutStart(int vanillaValue, int replayValue)
     {
-        return ReplayPlayback.IsReplayPlayback ? replayValue : vanillaValue;
+        return SpectatorMode.CanSpectate ? replayValue : vanillaValue;
     }
 
     private static int GetBlackoutEnd(int maxTiles, int overdrawOffset)
     {
-        return ReplayPlayback.IsReplayPlayback ? maxTiles : maxTiles - overdrawOffset;
+        return SpectatorMode.CanSpectate ? maxTiles : maxTiles - overdrawOffset;
     }
 
     private static int GetExtraOffscreenRange(int dimension)
@@ -138,7 +138,7 @@ public sealed class RenderEdits : ModSystem
 
     private static float GetRenderTargetZoom()
     {
-        return ReplayPlayback.IsReplayPlayback ? Math.Min(1f, ReplayClientSettings.ReplayZoomMin) : 1f;
+        return SpectatorMode.CanSpectate ? Math.Min(1f, ReplayClientSettings.ReplayZoomMin) : 1f;
     }
 
     private static FieldInfo MainField(string name, BindingFlags flags)

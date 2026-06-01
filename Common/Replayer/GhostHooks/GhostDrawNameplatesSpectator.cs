@@ -189,7 +189,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
         _ = Main.screenPosition;
         Player player2 = player[myPlayer];
         float num2 = (float)(int)mouseTextColor / 255f;
-        if (player2.team == 0 && !ReplayPlayback.IsReplayPlayback)
+        if (player2.team == 0 && !SpectatorMode.CanSpectate)
         {
             return;
         }
@@ -260,7 +260,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
         if (otherPlayer == null || !otherPlayer.active || otherPlayer.whoAmI == Main.myPlayer)
             return false;
 
-        bool otherIsSpectator = otherPlayer.ghost || ReplayPlayback.IsPlayerReplayClient(otherPlayer);
+        bool otherIsSpectator = SpectatorMode.IsSpectator(otherPlayer);
 
         if (!ReplayDrawGate.ShouldDrawNameplate(otherPlayer, otherIsSpectator))
             return false;
@@ -271,7 +271,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
         if (otherIsSpectator)
             return true;
 
-        if (ReplayPlayback.IsReplayPlayback)
+        if (SpectatorMode.CanSpectate)
             return true;
 
         return localPlayer.team != 0 && otherPlayer.team == localPlayer.team;

@@ -1,4 +1,5 @@
-﻿using Terraria.GameContent;
+﻿using Reese.Common.Replayer.ReplayHud;
+using Terraria.GameContent;
 
 namespace Reese.Common.Replayer.GhostHooks;
 public class GhostMapTeleport : ModSystem
@@ -65,6 +66,7 @@ public class GhostMapTeleport : ModSystem
     {
         return Main.mapFullscreen &&
             Main.LocalPlayer?.active == true &&
-            ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer);
+            ReplayClientSettings.RightClickTeleport &&
+            SpectatorMode.CanSpectate;
     }
 }

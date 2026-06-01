@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Reese.Common.Replayer.ReplayHud;
+using Reese.Common.Replayer.ReplayHud.Ghost;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
@@ -42,6 +43,9 @@ public class ClientConfig : ModConfig
         // Rebuild replay HUD
         var replayHudSystem = ModContent.GetInstance<ReplayHudSystem>();
         replayHudSystem?.Rebuild();
+
+        var ghostHudSystem = ModContent.GetInstance<GhostHudSystem>();
+        ghostHudSystem?.Rebuild();
     }
     #endregion
 }
