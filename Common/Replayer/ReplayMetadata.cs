@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Reese.Common.Replayer.ReplayEvents;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -20,6 +21,7 @@ public sealed class ReplayMetadata
     public long SizeBytes { get; init; }
     public string[] ModNames { get; init; }
     public ReplayFileFlags Flags { get; init; }
+    public ReplayTimelineEvent[] Events { get; init; } = [];
 
     public bool IsNew => Flags.HasFlag(ReplayFileFlags.New);
     public bool HasWatched => Flags.HasFlag(ReplayFileFlags.Watched);
@@ -45,8 +47,11 @@ public sealed class ReplayMetadata
         string worldName = null;
         string[] modNames = null;
         ReplayFileFlags flags = ReplayFileFlags.None;
+        ReplayTimelineEvent[] events = [];
 
         bool hasSummary = fileExists && ReplayFile.TryReadCatalogInfo(path, out durationTicks, out worldName, out modNames, out flags);
+        if (fileExists)
+            ReplayFile.TryReadEvents(path, out events);
 
         FileInfo fileInfo = fileExists ? new FileInfo(path) : null;
 
@@ -61,7 +66,8 @@ public sealed class ReplayMetadata
             LastWriteTimeUtc = fileInfo?.LastWriteTimeUtc ?? DateTime.MinValue,
             SizeBytes = fileInfo?.Length ?? 0,
             ModNames = modNames,
-            Flags = flags
+            Flags = flags,
+            Events = events ?? []
         };
     }
 
@@ -78,7 +84,8 @@ public sealed class ReplayMetadata
             LastWriteTimeUtc = LastWriteTimeUtc,
             SizeBytes = SizeBytes,
             ModNames = ModNames,
-            Flags = flags
+            Flags = flags,
+            Events = Events
         };
     }
 

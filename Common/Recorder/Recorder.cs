@@ -1,5 +1,6 @@
 ﻿using MonoMod.Cil;
 using Reese.Common.Replayer;
+using Reese.Common.Replayer.ReplayEvents;
 using Reese.Core.Configs;
 using Reese.Core.Stats;
 using System;
@@ -100,6 +101,8 @@ public class Recorder : ModSystem, ITicker
         baselineIntervalTicks = GetBaselineIntervalTicks();
         nextBaselineTick = baselineIntervalTicks;
         suppressAutoStartAfterMaxLength = false;
+        ReplayTimelineRecorder.Begin();
+        ModContent.GetInstance<ReplayTimelineTrackerSystem>().ResetForRecordingStart();
         const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
         const string RecordClientName = "Recording";
 
@@ -306,6 +309,8 @@ public class Recorder : ModSystem, ITicker
             return;
 
         isRecording = false;
+        ReplayTimelineEvent[] timelineEvents = ReplayTimelineRecorder.Finish();
+        ModContent.GetInstance<ReplayTimelineTrackerSystem>().EndRecording();
 
         RecorderStatus.Stop(Ticks);
         RecorderStatus.SyncToClients(force: true);
@@ -320,7 +325,7 @@ public class Recorder : ModSystem, ITicker
 
         if (recordClient?.Socket is RecordSocket recordSocket)
         {
-            recordSocket.Finish(Ticks, ReplayStats.GetCurrentWorldName(), ReplayStats.GetCurrentModNames(), ReplayFileFlags.New);
+            recordSocket.Finish(Ticks, ReplayStats.GetCurrentWorldName(), ReplayStats.GetCurrentModNames(), ReplayFileFlags.New, timelineEvents);
             recordSocket.Close();
             savedReplayFinished = !string.IsNullOrWhiteSpace(savedReplayPath) && File.Exists(savedReplayPath);
         }
@@ -611,7 +616,7 @@ public class Recorder : ModSystem, ITicker
                 return baselinePacketDiagnostics?.GetCount(messageId) ?? 0;
         }
 
-        public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None)
+        public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None, IReadOnlyList<ReplayTimelineEvent> timelineEvents = null)
         {
             lock (writeLock)
             {
@@ -626,7 +631,7 @@ public class Recorder : ModSystem, ITicker
                 remoteClient.State = 0;
                 ClearBaselineCapture();
 
-                replayFile.Finish(finalTick, worldName, modNames, flags);
+                replayFile.Finish(finalTick, worldName, modNames, flags, timelineEvents);
             }
         }
 

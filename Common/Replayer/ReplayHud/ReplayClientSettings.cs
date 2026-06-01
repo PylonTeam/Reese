@@ -75,12 +75,20 @@ internal static class ReplayClientSettings
     public static bool ShowReplayHudSpeed { get; private set; } = true;
     public static bool ShowReplayHudPlaybackControls { get; private set; } = true;
     public static bool ShowReplayHudSeekbar { get; private set; } = true;
+    public static bool ShowEvents { get; private set; } = true;
+    public static bool ShowBossesDefeated { get; private set; } = true;
+    public static bool ShowPlayerDeaths { get; private set; } = true;
+    public static bool ShowInvasions { get; private set; } = true;
     public static int HudRevision { get; private set; }
     public static void ToggleShowSpectateHud() { ShowSpectateHud = !ShowSpectateHud; TouchHud(); }
     public static void ToggleShowPlaybackHud() { ShowPlaybackHud = !ShowPlaybackHud; TouchHud(); }
     public static void ToggleShowReplayHudSpeed() { ShowReplayHudSpeed = !ShowReplayHudSpeed; TouchHud(); }
     public static void ToggleShowReplayHudPlaybackControls() { ShowReplayHudPlaybackControls = !ShowReplayHudPlaybackControls; TouchHud(); }
     public static void ToggleShowReplayHudSeekbar() { ShowReplayHudSeekbar = !ShowReplayHudSeekbar; TouchHud(); }
+    public static void ToggleShowEvents() { ShowEvents = !ShowEvents; TouchHud(); }
+    public static void ToggleShowBossesDefeated() { ShowBossesDefeated = !ShowBossesDefeated; TouchHud(); }
+    public static void ToggleShowPlayerDeaths() { ShowPlayerDeaths = !ShowPlayerDeaths; TouchHud(); }
+    public static void ToggleShowInvasions() { ShowInvasions = !ShowInvasions; TouchHud(); }
     private static void TouchHud()
     {
         HudRevision++;

@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Terraria;
 using Terraria.Localization;
+using Reese.Common.Replayer.ReplayEvents;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Core.Configs;
 
@@ -22,6 +24,7 @@ public static class ReplayPlayback
 	public static uint DurationTicks { get; private set; }
     public static uint CurrentTick => ModContent.GetInstance<Replayer>().Ticks;
     public static ReplayMetadata Metadata { get; private set; }
+    public static IReadOnlyList<ReplayTimelineEvent> TimelineEvents { get; private set; } = Array.Empty<ReplayTimelineEvent>();
     private static int launchGeneration;
     private static int activeLaunchGeneration;
     internal static Func<bool> IsLaunchCancelled;
@@ -74,6 +77,7 @@ public static class ReplayPlayback
         SpectatorTargetSystem.ResetForReplayStart();
         Metadata = ReplayMetadata.FromFile(path);
         DurationTicks = Metadata?.DurationTicks ?? 0;
+        TimelineEvents = Metadata?.Events ?? Array.Empty<ReplayTimelineEvent>();
         ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
         Log.Info($"Replay playback started: {path}");
 	}
@@ -98,6 +102,7 @@ public static class ReplayPlayback
 		HasEnteredReplayWorld = false;
 		CurrentPath = null;
 		DurationTicks = 0;
+        TimelineEvents = Array.Empty<ReplayTimelineEvent>();
         CancelSeek();
 
         if (quitPlayer)

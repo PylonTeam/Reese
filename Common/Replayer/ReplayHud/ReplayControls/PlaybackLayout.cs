@@ -35,6 +35,7 @@ internal static class PlaybackLayout
     internal static float SeekbarSectionHeight;
     internal static float PositionLabelHeight;
     internal static float PositionLabelSliderGap;
+    internal static float EventIconLaneHeight;
     internal static float SliderHeight;
 
     internal static float ControlsSectionHeight;
@@ -49,6 +50,7 @@ internal static class PlaybackLayout
 
     internal static bool ShowSpeed;
     internal static bool ShowSeekbar;
+    internal static bool ShowEvents;
     internal static bool ShowControls;
     internal static bool ShowRightColumn;
 
@@ -67,6 +69,7 @@ internal static class PlaybackLayout
 
     internal static PlaybackLayoutBox PositionLabelBox;
     internal static PlaybackLayoutBox PositionSliderBox;
+    internal static PlaybackLayoutBox EventMarkerBox;
     internal static PlaybackLayoutBox HorizontalRuleBox;
 
     internal static PlaybackLayoutBox TransportStatusBox;
@@ -100,6 +103,7 @@ internal static class PlaybackLayout
 
         Set(ref PositionLabelHeight, 22f, ref changed);
         Set(ref PositionLabelSliderGap, 6f, ref changed);
+        Set(ref EventIconLaneHeight, 36f, ref changed);
         Set(ref SliderHeight, 18f, ref changed);
 
         Set(ref TransportStatusHeight, 22f, ref changed);
@@ -115,6 +119,7 @@ internal static class PlaybackLayout
 
         Set(ref ShowSpeed, ReplayClientSettings.ShowReplayHudSpeed, ref changed);
         Set(ref ShowSeekbar, ReplayClientSettings.ShowReplayHudSeekbar, ref changed);
+        Set(ref ShowEvents, ReplayClientSettings.ShowEvents && ReplayClientSettings.ShowReplayHudSeekbar, ref changed);
         Set(ref ShowControls, ReplayClientSettings.ShowReplayHudPlaybackControls, ref changed);
         Set(ref ShowRightColumn, ShowSeekbar || ShowControls, ref changed);
 
@@ -128,7 +133,7 @@ internal static class PlaybackLayout
 
         Set(ref SpeedSectionHeight, speedSectionHeight, ref changed);
 
-        float seekbarSectionHeight = PositionLabelHeight + PositionLabelSliderGap + SliderHeight;
+        float seekbarSectionHeight = PositionLabelHeight + PositionLabelSliderGap + (ShowEvents ? EventIconLaneHeight : 0f) + SliderHeight;
         Set(ref SeekbarSectionHeight, seekbarSectionHeight, ref changed);
 
         float controlsSectionHeight = TransportStatusHeight + TransportStatusButtonGap + TransportButtonHeight;
@@ -137,7 +142,8 @@ internal static class PlaybackLayout
         float transportButtonRowWidth = GetTransportButtonRowWidth(transportButtonCount);
         Set(ref TransportButtonRowWidth, transportButtonRowWidth, ref changed);
 
-        float rightColumnWidth = RightColumnAutoFitControls ? System.Math.Max(RightColumnWidth, transportButtonRowWidth) : RightColumnWidth;
+        float targetRightColumnWidth = ShowEvents ? GetEventRightColumnWidth(speedSectionWidth) : RightColumnWidth;
+        float rightColumnWidth = RightColumnAutoFitControls ? System.Math.Max(targetRightColumnWidth, transportButtonRowWidth) : targetRightColumnWidth;
 
         float innerWidth = 0f;
         if (ShowSpeed)
@@ -177,8 +183,9 @@ internal static class PlaybackLayout
 
         Set(ref PositionLabelBox, new PlaybackLayoutBox(RightLeft, Padding, rightColumnWidth, PositionLabelHeight), ref changed);
 
-        float sliderTop = Padding + PositionLabelHeight + PositionLabelSliderGap;
+        float sliderTop = Padding + PositionLabelHeight + PositionLabelSliderGap + (ShowEvents ? EventIconLaneHeight : 0f);
         Set(ref PositionSliderBox, new PlaybackLayoutBox(RightLeft, sliderTop, rightColumnWidth, SliderHeight), ref changed);
+        Set(ref EventMarkerBox, new PlaybackLayoutBox(RightLeft, sliderTop - (ShowEvents ? EventIconLaneHeight : 0f), rightColumnWidth, (ShowEvents ? EventIconLaneHeight : 0f) + SliderHeight), ref changed);
 
         float controlsTop = Padding + (ShowSeekbar ? SeekbarSectionHeight + SectionGap : 0f);
         Set(ref ControlsTop, controlsTop, ref changed);
@@ -198,6 +205,20 @@ internal static class PlaybackLayout
         return changed;
     }
 
+    private static float GetEventRightColumnWidth(float speedSectionWidth)
+    {
+        float screenWidth = Main.screenWidth > 0 ? Main.screenWidth : 1280f;
+        float occupiedWidth = Padding * 2f;
+
+        if (ShowSpeed)
+            occupiedWidth += speedSectionWidth + ColumnGap;
+
+        float availableWidth = screenWidth - 72f - occupiedWidth;
+        float preferredWidth = System.Math.Min(1280f, availableWidth);
+
+        return System.Math.Max(RightColumnWidth, preferredWidth);
+    }
+
     internal static void Apply(
         UIElement panel,
         UIElement speedLabel,
@@ -205,6 +226,7 @@ internal static class PlaybackLayout
         UIElement verticalRule,
         UIElement positionLabel,
         UIElement positionSlider,
+        UIElement eventMarkerLayer,
         UIElement horizontalRule,
         UIElement transportStatusLabel,
         UIElement transportTickLabel,
@@ -223,6 +245,7 @@ internal static class PlaybackLayout
         VerticalRuleBox.Apply(verticalRule);
         PositionLabelBox.Apply(positionLabel);
         PositionSliderBox.Apply(positionSlider);
+        EventMarkerBox.Apply(eventMarkerLayer);
         HorizontalRuleBox.Apply(horizontalRule);
         TransportStatusBox.Apply(transportStatusLabel);
         TransportTickBox.Apply(transportTickLabel);

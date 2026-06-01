@@ -1,3 +1,4 @@
+using Reese.Common.Replayer.ReplayEvents;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -28,6 +29,7 @@ public class ReplayFile : IDisposable
     private static readonly byte[] MetadataMarkerASCII = Encoding.ASCII.GetBytes("RMD1");
     private static readonly byte[] SummaryMarkerASCII = Encoding.ASCII.GetBytes("RSM1");
     private static readonly byte[] FlagsMarkerASCII = Encoding.ASCII.GetBytes("RFL1");
+    private static readonly byte[] EventsMarkerASCII = Encoding.ASCII.GetBytes("REV1");
 
     // Baseline blocks are embedded alongside packet blocks as:
     // [uint deltaTick][int -1][int baselineByteLength][baseline bytes].
@@ -40,8 +42,11 @@ public class ReplayFile : IDisposable
     private const uint SuspiciousDeltaTicks = 10 * 60 * 60;
     private const int RequiredRecoveryBlocks = 3;
     private const long MaxRecoveryScanBytes = 128L * 1024 * 1024;
-    private const int MaxCatalogTailScanBytes = 1024 * 1024;
+    private const int MaxCatalogTailScanBytes = 4 * 1024 * 1024;
     private const int MaxMetadataStringByteLength = 16 * 1024;
+    private const int MaxReplayEventStringByteLength = 4 * 1024;
+    private const int MaxReplayEventCount = 65536;
+    private const ushort ReplayEventsVersion = 1;
 
     private BinaryWriter _binaryWriter;
     private BinaryReader _binaryReader;
@@ -234,7 +239,7 @@ public class ReplayFile : IDisposable
         NumberOfPacketDataBytesRemaining = 0;
     }
 
-    public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None)
+    public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None, IReadOnlyList<ReplayTimelineEvent> timelineEvents = null)
     {
         if (_binaryWriter == null)
             return;
@@ -250,6 +255,7 @@ public class ReplayFile : IDisposable
         WriteHeaderDuration(finalTick);
         WriteMetadata(finalTick, worldName, modNames);
         WriteFlags(flags);
+        WriteEvents(timelineEvents);
         _binaryWriter.Flush();
 
         Tick = finalTick;
@@ -286,6 +292,39 @@ public class ReplayFile : IDisposable
             return;
 
         WriteFlags(_binaryWriter, flags);
+    }
+
+    private void WriteEvents(IReadOnlyList<ReplayTimelineEvent> timelineEvents)
+    {
+        if (timelineEvents == null || timelineEvents.Count == 0)
+            return;
+
+        ReplayTimelineEvent[] sortedEvents =
+        [
+            .. timelineEvents
+                .Where(e => !string.IsNullOrWhiteSpace(e.Text))
+                .OrderBy(e => e.Tick)
+                .ThenBy(e => e.Category)
+                .ThenBy(e => e.Key)
+                .Take(MaxReplayEventCount)
+        ];
+
+        if (sortedEvents.Length == 0)
+            return;
+
+        _binaryWriter.Write(EventsMarkerASCII);
+        _binaryWriter.Write(ReplayEventsVersion);
+        _binaryWriter.Write(sortedEvents.Length);
+
+        foreach (ReplayTimelineEvent timelineEvent in sortedEvents)
+        {
+            _binaryWriter.Write(timelineEvent.Tick);
+            _binaryWriter.Write((byte)timelineEvent.Category);
+            _binaryWriter.Write((byte)timelineEvent.IconKind);
+            _binaryWriter.Write(timelineEvent.IconId);
+            _binaryWriter.Write(timelineEvent.Key ?? string.Empty);
+            _binaryWriter.Write(timelineEvent.Text ?? string.Empty);
+        }
     }
 
     public static ReplayFile Write(Stream stream)
@@ -838,6 +877,16 @@ public class ReplayFile : IDisposable
         }
     }
 
+    public static bool TryReadEvents(string path, out ReplayTimelineEvent[] timelineEvents)
+    {
+        timelineEvents = [];
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return false;
+
+        return TryReadEventsFromTail(path, out timelineEvents);
+    }
+
     private static bool TryReadDurationTicksFromHeader(string path, out uint durationTicks)
     {
         durationTicks = 0;
@@ -950,6 +999,52 @@ public class ReplayFile : IDisposable
         return false;
     }
 
+    private static bool TryReadEventsFromTail(string path, out ReplayTimelineEvent[] timelineEvents)
+    {
+        timelineEvents = [];
+
+        try
+        {
+            using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+
+            byte[] identifier = reader.ReadBytes(Identifier.Length);
+            if (!identifier.SequenceEqual(IdentifierASCII))
+                return false;
+
+            int tailLength = (int)Math.Min(MaxCatalogTailScanBytes, Math.Max(0, stream.Length - IdentifierASCII.Length));
+            if (tailLength <= MetadataMarkerASCII.Length)
+                return false;
+
+            long tailStart = stream.Length - tailLength;
+            stream.Seek(tailStart, SeekOrigin.Begin);
+            byte[] tail = reader.ReadBytes(tailLength);
+
+            int searchIndex = tail.Length - MetadataMarkerASCII.Length;
+            while ((searchIndex = LastIndexOf(tail, MetadataMarkerASCII, searchIndex)) >= 0)
+            {
+                if (!LooksLikeMetadataAfterTerminator(tail, searchIndex))
+                {
+                    searchIndex--;
+                    continue;
+                }
+
+                stream.Seek(tailStart + searchIndex, SeekOrigin.Begin);
+
+                if (TryReadTimelineEventsFromMetadata(reader, out timelineEvents))
+                    return true;
+
+                searchIndex--;
+            }
+        }
+        catch
+        {
+            timelineEvents = [];
+        }
+
+        return false;
+    }
+
     private static bool TryReadMetadataAndFlags(BinaryReader reader, out string worldName, out string[] modNames, out ReplayFileFlags flags)
     {
         return TryReadMetadataAndFlags(reader, out worldName, out modNames, out flags, out _, out _);
@@ -1052,6 +1147,14 @@ public class ReplayFile : IDisposable
                 continue;
             }
 
+            if (marker.SequenceEqual(EventsMarkerASCII))
+            {
+                if (!TryReadReplayEventsBody(reader, out _, store: false))
+                    return false;
+
+                continue;
+            }
+
             stream.Seek(markerOffset, SeekOrigin.Begin);
             return true;
         }
@@ -1059,7 +1162,137 @@ public class ReplayFile : IDisposable
         return true;
     }
 
+    private static bool TryReadTimelineEventsFromMetadata(BinaryReader reader, out ReplayTimelineEvent[] timelineEvents)
+    {
+        timelineEvents = [];
+
+        Stream stream = reader.BaseStream;
+        if (stream.Position + MetadataMarkerASCII.Length > stream.Length)
+            return false;
+
+        byte[] marker = reader.ReadBytes(MetadataMarkerASCII.Length);
+        if (!marker.SequenceEqual(MetadataMarkerASCII))
+            return false;
+
+        if (!TrySkipMetadataBody(reader))
+            return false;
+
+        while (stream.Position + EventsMarkerASCII.Length <= stream.Length)
+        {
+            long markerOffset = stream.Position;
+            marker = reader.ReadBytes(EventsMarkerASCII.Length);
+
+            if (marker.SequenceEqual(SummaryMarkerASCII))
+            {
+                if (stream.Position + sizeof(uint) > stream.Length)
+                    return false;
+
+                stream.Seek(sizeof(uint), SeekOrigin.Current);
+                continue;
+            }
+
+            if (marker.SequenceEqual(FlagsMarkerASCII))
+            {
+                if (stream.Position + sizeof(byte) > stream.Length)
+                    return false;
+
+                stream.Seek(sizeof(byte), SeekOrigin.Current);
+                continue;
+            }
+
+            if (marker.SequenceEqual(EventsMarkerASCII))
+                return TryReadReplayEventsBody(reader, out timelineEvents, store: true);
+
+            stream.Seek(markerOffset, SeekOrigin.Begin);
+            return true;
+        }
+
+        return true;
+    }
+
+    private static bool TrySkipMetadataBody(BinaryReader reader)
+    {
+        Stream stream = reader.BaseStream;
+
+        if (!TryReadBoundedString(reader, out _))
+            return false;
+
+        if (stream.Position + sizeof(int) > stream.Length)
+            return false;
+
+        int modCount = reader.ReadInt32();
+        if (modCount < 0 || modCount > 4096)
+            return false;
+
+        for (int i = 0; i < modCount; i++)
+        {
+            if (!TryReadBoundedString(reader, out _))
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool TryReadReplayEventsBody(BinaryReader reader, out ReplayTimelineEvent[] timelineEvents, bool store)
+    {
+        timelineEvents = [];
+
+        Stream stream = reader.BaseStream;
+        if (stream.Position + sizeof(ushort) + sizeof(int) > stream.Length)
+            return false;
+
+        ushort version = reader.ReadUInt16();
+        if (version != ReplayEventsVersion)
+            return false;
+
+        int count = reader.ReadInt32();
+        if (count < 0 || count > MaxReplayEventCount)
+            return false;
+
+        List<ReplayTimelineEvent> events = store ? new List<ReplayTimelineEvent>(count) : null;
+
+        for (int i = 0; i < count; i++)
+        {
+            if (stream.Position + sizeof(uint) + sizeof(byte) * 2 + sizeof(int) > stream.Length)
+                return false;
+
+            uint tick = reader.ReadUInt32();
+            ReplayEventCategory category = (ReplayEventCategory)reader.ReadByte();
+            ReplayEventIconKind iconKind = (ReplayEventIconKind)reader.ReadByte();
+            int iconId = reader.ReadInt32();
+
+            if (!TryReadBoundedString(reader, out string key, MaxReplayEventStringByteLength) ||
+                !TryReadBoundedString(reader, out string text, MaxReplayEventStringByteLength))
+                return false;
+
+            if (store)
+            {
+                key = string.IsNullOrWhiteSpace(key) ? $"{category}:{tick}:{i}" : key.Trim();
+                text = string.IsNullOrWhiteSpace(text) ? category.ToString() : text.Trim();
+                events.Add(new ReplayTimelineEvent(tick, category, key, text, iconKind, iconId));
+            }
+        }
+
+        if (store)
+        {
+            timelineEvents =
+            [
+                .. events
+                    .OrderBy(e => e.Tick)
+                    .ThenBy(e => e.Category)
+                    .ThenBy(e => e.Key)
+            ];
+        }
+
+        return true;
+    }
+
     private static bool TryReadBoundedString(BinaryReader reader, out string value)
+    {
+        return TryReadBoundedString(reader, out value, MaxMetadataStringByteLength);
+    }
+
+    private static bool TryReadBoundedString(BinaryReader reader, out string value, int maxByteLength)
     {
         value = null;
 
@@ -1068,7 +1301,7 @@ public class ReplayFile : IDisposable
 
         Stream stream = reader.BaseStream;
         if (byteLength < 0 ||
-            byteLength > MaxMetadataStringByteLength ||
+            byteLength > maxByteLength ||
             byteLength > stream.Length - stream.Position)
             return false;
 

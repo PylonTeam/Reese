@@ -13,6 +13,7 @@ public sealed class PlaybackHud : DraggablePanel
     private static readonly float[] SpeedPresets = [0.25f, 0.5f, 1f, 2f, 4f, 8f, 16f, 32f];
 
     private readonly Slider positionSlider;
+    private readonly ReplayEventMarkerLayer eventMarkerLayer;
 
     private readonly CenteredHudText positionLabel;
     private readonly CenteredHudText speedLabel;
@@ -43,6 +44,7 @@ public sealed class PlaybackHud : DraggablePanel
 
         positionLabel = new CenteredHudText(0.86f);
         positionSlider = new Slider();
+        eventMarkerLayer = new ReplayEventMarkerLayer();
         positionSlider.OnDrag += ratio =>
         {
             uint targetTick = RatioToTick(ratio);
@@ -151,6 +153,9 @@ public sealed class PlaybackHud : DraggablePanel
         {
             ContentPanel.Append(positionLabel);
             ContentPanel.Append(positionSlider);
+
+            if (ReplayClientSettings.ShowEvents)
+                ContentPanel.Append(eventMarkerLayer);
         }
 
         if (showSeekbar && showControls)
@@ -175,6 +180,7 @@ public sealed class PlaybackHud : DraggablePanel
             verticalRule,
             positionLabel,
             positionSlider,
+            eventMarkerLayer,
             horizontalRule,
             transportStatusLabel,
             transportTickLabel,
