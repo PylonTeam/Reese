@@ -298,15 +298,20 @@ public class Recorder : ModSystem, ITicker
         if (initial)
             NetMessage.SendData(MessageID.FinishedConnectingToServer, recordClient.Id);
     }
+    public string StopRecordingAndGetFilePath(string reason = "")
+    {
+        return StopRecordingInner(reason);
+    }
 
     public void StopRecording(string reason = "")
     {
         StopRecordingInner(reason);
     }
-    private void StopRecordingInner(string reason="")
+
+    private string StopRecordingInner(string reason = "")
     {
         if (!isRecording)
-            return;
+            return "";
 
         isRecording = false;
         ReplayTimelineEvent[] timelineEvents = ReplayTimelineRecorder.Finish();
@@ -319,15 +324,13 @@ public class Recorder : ModSystem, ITicker
         string savedReplayPath = currentReplayPath;
         string worldName = ReplayStats.GetCurrentWorldName();
         string[] modNames = ReplayStats.GetCurrentModNames();
-        bool savedReplayFinished = false;
 
         var recordClient = Netplay.Clients[RecordClientIndex];
 
         if (recordClient?.Socket is RecordSocket recordSocket)
         {
-            recordSocket.Finish(Ticks, ReplayStats.GetCurrentWorldName(), ReplayStats.GetCurrentModNames(), ReplayFileFlags.New, timelineEvents);
+            recordSocket.Finish(Ticks, worldName, modNames, ReplayFileFlags.New, timelineEvents);
             recordSocket.Close();
-            savedReplayFinished = !string.IsNullOrWhiteSpace(savedReplayPath) && File.Exists(savedReplayPath);
         }
 
         if (recordClient != null)
@@ -337,8 +340,9 @@ public class Recorder : ModSystem, ITicker
         }
 
         ReplayPlayback.NotifyFolderChanged();
-
         currentReplayPath = null;
+
+        bool savedReplayFinished = !string.IsNullOrWhiteSpace(savedReplayPath) && File.Exists(savedReplayPath);
 
         if (!string.IsNullOrWhiteSpace(savedReplayPath))
         {
@@ -349,6 +353,8 @@ public class Recorder : ModSystem, ITicker
             if (savedReplayFinished)
                 RecorderEvents.RaiseRecordingFinished(savedReplayPath, worldName, modNames, Ticks, reason);
         }
+
+        return savedReplayFinished ? savedReplayPath : "";
     }
 
     //private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)

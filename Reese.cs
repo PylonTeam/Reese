@@ -29,6 +29,8 @@ public class Reese : Mod
         if (args is null || args.Length == 0 || args[0] is not string command)
             return null;
 
+        string reason = "";
+
         switch (command)
         {
             case "StartRecording":
@@ -36,8 +38,7 @@ public class Reese : Mod
                 return true;
 
             case "StopRecording":
-                // allow them to pass a reason, default to "Cross-mod call"
-                string reason = args.Length > 1 && args[1] is string r ? r : "Cross-mod call";
+                reason = args.Length > 1 && args[1] is string customReason ? customReason : "Cross-mod call";
                 ModContent.GetInstance<Recorder>().StopRecording(reason);
                 return true;
 
@@ -100,11 +101,16 @@ public class Reese : Mod
 
                 Log.Warn("UnregisterReplayStateResetCallback expected Action<uint, string>");
                 return false;
+
+            case "StopRecordingAndGetFilePath":
+                {
+                    reason = args.Length > 1 && args[1] is string customReason2 ? customReason2 : "Cross-mod call";
+                    return ModContent.GetInstance<Recorder>().StopRecordingAndGetFilePath(reason);
+                }
         }
 
         return null;
     }
-
     public override void Unload()
     {
         RecorderEvents.ClearSubscribers();
