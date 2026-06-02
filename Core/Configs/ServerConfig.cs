@@ -43,7 +43,7 @@ public class ServerConfig : ModConfig
         public int MaxRecordingLengthMinutes = 60;
 
         [BackgroundColor(250, 60, 60, 150)]
-        [DefaultValue(false)]
+        [DefaultValue(true)]
         public bool AutoStartRecordingAfterMaxLength;
     }
 

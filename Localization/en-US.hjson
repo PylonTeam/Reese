@@ -34,7 +34,7 @@ Mods: {
 
 				ShowDebugMessages: {
 					Label: Show Debug Messages
-					Tooltip: Enables extra chat and log messages for debugging Reese.
+					Tooltip: Shows extra chat messages for developers and testers.
 				}
 			}
 
@@ -89,7 +89,7 @@ Mods: {
 			GhostSpectatingConfig: {
 				IsGhostSpectatingEnabled: {
 					Label: Enable Ghost Spectating
-					Tooltip: Whether ghosts have extra spectating features
+					Tooltip: Whether ghosts have the same spectating features as a replay
 				}
 
 				ForceSpectateWhenJoining: {
