@@ -27,6 +27,7 @@ internal sealed class SettingsTab : TabPage
     protected override void Populate(UIList list)
     {
         list.Add(new ZoomSettingsSection());
+        list.Add(new PlaybackHudWidthSettingsSection());
         AddSection(list, new GhostSettings());
         AddSection(list, new DrawSettings());
         AddSection(list, new SpectateHudSettingsSection());
@@ -123,6 +124,65 @@ internal sealed class SettingsTab : TabPage
         }
     }
 
+    private sealed class PlaybackHudWidthSettingsSection : UIPanel
+    {
+        private readonly UIText widthLabel;
+        private readonly Slider widthSlider;
+
+        private string currentText = "";
+
+        public PlaybackHudWidthSettingsSection()
+        {
+            Width.Set(0f, 1f);
+            Height.Set(62f, 0f);
+            SetPadding(0f);
+
+            BackgroundColor = new Color(33, 43, 79) * 0.7f;
+            BorderColor = new Color(89, 116, 213) * 0.7f;
+
+            widthLabel = new UIText("", 0.86f)
+            {
+                Left = new StyleDimension(12f, 0f),
+                Top = new StyleDimension(8f, 0f),
+                TextColor = Color.White
+            };
+
+            widthSlider = new Slider
+            {
+                Left = new StyleDimension(12f, 0f),
+                Top = new StyleDimension(34f, 0f),
+                Height = new StyleDimension(18f, 0f),
+                HighlightColor = Main.OurFavoriteColor
+            };
+
+            widthSlider.Width.Set(-24f, 1f);
+            widthSlider.SetRatio(ReplayClientSettings.PlaybackHudWidthRatio);
+            widthSlider.OnDrag += ReplayClientSettings.SetPlaybackHudWidthRatio;
+            widthSlider.OnRelease += ReplayClientSettings.SetPlaybackHudWidthRatio;
+
+            Append(widthLabel);
+            Append(widthSlider);
+        }
+
+        public override void Update(GameTime gameTime)
+        {
+            base.Update(gameTime);
+
+            if (!widthSlider.IsHeld)
+                widthSlider.SetRatio(ReplayClientSettings.PlaybackHudWidthRatio);
+
+            widthSlider.HighlightColor = Main.OurFavoriteColor;
+
+            string text = $"Playback HUD Width: {ReplayClientSettings.PlaybackHudWidthPercent}%";
+
+            if (currentText == text)
+                return;
+
+            currentText = text;
+            widthLabel.SetText(text);
+        }
+    }
+
     //private sealed class DisplaySettings : SettingsSection
     //{
     //    public override string HeaderText => "Display Settings";
@@ -214,7 +274,7 @@ internal sealed class SettingsTab : TabPage
     private sealed class ReplayHudSettingsSection : SettingsSection
     {
         public override string HeaderText => "Replay HUD Settings";
-        public override float Height => 316f;
+        public override float Height => 282f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
@@ -224,7 +284,6 @@ internal sealed class SettingsTab : TabPage
                 new("Show Speed:", () => $"Show Speed: {OnOff(ReplayClientSettings.ShowReplayHudSpeed)}", () => Ass.IconSpeedUp.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSpeed),
                 new("Show Playback Controls:", () => $"Show Playback Controls: {OnOff(ReplayClientSettings.ShowReplayHudPlaybackControls)}", () => Ass.IconPlay.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudPlaybackControls),
                 new("Show Seekbar:", () => $"Show Seekbar: {OnOff(ReplayClientSettings.ShowReplayHudSeekbar)}", () => Ass.SliderHighlight.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSeekbar),
-                new("Show Events:", () => $"Show Events: {OnOff(ReplayClientSettings.ShowEvents)}", () => Ass.Stopwatch.Value, onLeftClick: ReplayClientSettings.ToggleShowEvents),
                 new("Show Bosses Defeated:", () => $"Show Bosses Defeated: {OnOff(ReplayClientSettings.ShowBossesDefeated)}", () => Ass.IconCheckmarkGreen.Value, onLeftClick: ReplayClientSettings.ToggleShowBossesDefeated),
                 new("Show Player Deaths:", () => $"Show Player Deaths: {OnOff(ReplayClientSettings.ShowPlayerDeaths)}", () => TextureAssets.MapDeath.Value, onLeftClick: ReplayClientSettings.ToggleShowPlayerDeaths),
                 new("Show Invasions:", () => $"Show Invasions: {OnOff(ReplayClientSettings.ShowInvasions)}", () => Ass.IconSword.Value, onLeftClick: ReplayClientSettings.ToggleShowInvasions)

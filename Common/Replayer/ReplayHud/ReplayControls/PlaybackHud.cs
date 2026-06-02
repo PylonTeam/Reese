@@ -51,7 +51,7 @@ public sealed class PlaybackHud : DraggablePanel
             if (targetTick < ReplayPlayback.CurrentTick)
                 RefreshPositionSlider();
             else
-                positionLabel.SetTextIfChanged($"Time: {FormatTime(targetTick)} / {FormatTime(GetDurationTicks())}");
+                RefreshTimeLabel(targetTick, GetDurationTicks());
         };
         positionSlider.OnRelease += ratio =>
         {
@@ -151,11 +151,8 @@ public sealed class PlaybackHud : DraggablePanel
 
         if (showSeekbar)
         {
-            ContentPanel.Append(positionLabel);
             ContentPanel.Append(positionSlider);
-
-            if (ReplayClientSettings.ShowEvents)
-                ContentPanel.Append(eventMarkerLayer);
+            ContentPanel.Append(eventMarkerLayer);
         }
 
         if (showSeekbar && showControls)
@@ -164,6 +161,7 @@ public sealed class PlaybackHud : DraggablePanel
         if (showControls)
         {
             ContentPanel.Append(transportStatusLabel);
+            ContentPanel.Append(positionLabel);
             ContentPanel.Append(transportTickLabel);
 
             for (int i = 0; i < transportButtons.Length; i++)
@@ -287,7 +285,6 @@ public sealed class PlaybackHud : DraggablePanel
                 RefreshPositionSlider(currentTick, durationTicks);
 
             positionSlider.HighlightColor = Main.OurFavoriteColor;
-            positionLabel.SetTextIfChanged($"Time: {FormatTime(displayTick)} / {FormatTime(durationTicks)}");
         }
 
         if (ReplayClientSettings.ShowReplayHudSpeed)
@@ -312,6 +309,7 @@ public sealed class PlaybackHud : DraggablePanel
             return;
 
         transportStatusLabel.SetTextIfChanged($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}");
+        RefreshTimeLabel(displayTick, durationTicks);
         transportTickLabel.SetTextIfChanged($"Tick: {currentTick}");
 
         for (int i = 0; i < transportButtons.Length; i++)
@@ -331,6 +329,11 @@ public sealed class PlaybackHud : DraggablePanel
     private void RefreshPositionSlider(uint currentTick, uint durationTicks)
     {
         positionSlider.SetRatio(currentTick / (float)durationTicks);
+    }
+
+    private void RefreshTimeLabel(uint displayTick, uint durationTicks)
+    {
+        positionLabel.SetTextIfChanged($"Time: {FormatTime(displayTick)} / {FormatTime(durationTicks)}");
     }
 
     private static uint GetDurationTicks()

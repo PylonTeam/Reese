@@ -19,7 +19,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
 
     protected override void DrawSelf(SpriteBatch spriteBatch)
     {
-        if (!ReplayClientSettings.ShowEvents || ReplayPlayback.TimelineEvents.Count == 0)
+        if (ReplayPlayback.TimelineEvents.Count == 0)
             return;
 
         uint durationTicks = Math.Max(1u, ReplayPlayback.DurationTicks);
@@ -31,7 +31,6 @@ internal sealed class ReplayEventMarkerLayer : UIElement
 
         Point mouse = Main.MouseScreen.ToPoint();
         ReplayTimelineEvent hoveredEvent = default;
-        Rectangle hoveredArea = default;
         bool hasHover = false;
 
         foreach (ReplayTimelineEvent timelineEvent in ReplayPlayback.TimelineEvents)
@@ -55,7 +54,6 @@ internal sealed class ReplayEventMarkerLayer : UIElement
             if (hoverArea.Contains(mouse))
             {
                 hoveredEvent = timelineEvent;
-                hoveredArea = hoverArea;
                 hasHover = true;
             }
         }
@@ -64,7 +62,6 @@ internal sealed class ReplayEventMarkerLayer : UIElement
             return;
 
         Main.LocalPlayer.mouseInterface = true;
-        spriteBatch.Draw(TextureAssets.MagicPixel.Value, hoveredArea, Color.White * 0.08f);
         Main.instance.MouseText(hoveredEvent.Text);
     }
 

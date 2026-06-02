@@ -47,6 +47,30 @@ internal static class ReplayClientSettings
         HudRevision++;
     }
 
+    // Playback HUD sizing
+    public const float PlaybackHudWidthMin = 640f;
+    public const float PlaybackHudWidthMax = 1600f;
+
+    public static float PlaybackHudWidthRatio { get; private set; } = 0.75f;
+    public static int PlaybackHudWidthPercent => (int)Math.Round(PlaybackHudWidthRatio * 100f);
+
+    public static float GetPlaybackHudWidth()
+    {
+        float maxWidth = Math.Max(PlaybackHudWidthMin, Math.Min(PlaybackHudWidthMax, Main.screenWidth - 72f));
+        return PlaybackHudWidthMin + (maxWidth - PlaybackHudWidthMin) * PlaybackHudWidthRatio;
+    }
+
+    public static void SetPlaybackHudWidthRatio(float ratio)
+    {
+        ratio = Math.Clamp(ratio, 0f, 1f);
+
+        if (Math.Abs(PlaybackHudWidthRatio - ratio) <= 0.001f)
+            return;
+
+        PlaybackHudWidthRatio = ratio;
+        TouchHud();
+    }
+
     // Ghost settings
     public static bool RightClickTeleport { get; set; } = true;
     public static void ToggleRightClickTeleport() => RightClickTeleport = !RightClickTeleport;
@@ -75,7 +99,6 @@ internal static class ReplayClientSettings
     public static bool ShowReplayHudSpeed { get; private set; } = true;
     public static bool ShowReplayHudPlaybackControls { get; private set; } = true;
     public static bool ShowReplayHudSeekbar { get; private set; } = true;
-    public static bool ShowEvents { get; private set; } = true;
     public static bool ShowBossesDefeated { get; private set; } = true;
     public static bool ShowPlayerDeaths { get; private set; } = true;
     public static bool ShowInvasions { get; private set; } = true;
@@ -85,7 +108,6 @@ internal static class ReplayClientSettings
     public static void ToggleShowReplayHudSpeed() { ShowReplayHudSpeed = !ShowReplayHudSpeed; TouchHud(); }
     public static void ToggleShowReplayHudPlaybackControls() { ShowReplayHudPlaybackControls = !ShowReplayHudPlaybackControls; TouchHud(); }
     public static void ToggleShowReplayHudSeekbar() { ShowReplayHudSeekbar = !ShowReplayHudSeekbar; TouchHud(); }
-    public static void ToggleShowEvents() { ShowEvents = !ShowEvents; TouchHud(); }
     public static void ToggleShowBossesDefeated() { ShowBossesDefeated = !ShowBossesDefeated; TouchHud(); }
     public static void ToggleShowPlayerDeaths() { ShowPlayerDeaths = !ShowPlayerDeaths; TouchHud(); }
     public static void ToggleShowInvasions() { ShowInvasions = !ShowInvasions; TouchHud(); }
