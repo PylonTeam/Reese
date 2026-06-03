@@ -1,5 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Terraria.DataStructures;
+using Terraria.ID;
 
 namespace Reese.Common.Replayer.ReplayEvents;
 
@@ -43,13 +46,45 @@ internal static class ReplayTimelineRecorder
         events.Add(timelineEvent);
     }
 
-    public static void RecordPlayerDeath(Player player, uint tick)
+    public static void RecordPlayerDeath(Player player, PlayerDeathReason damageSource, uint tick)
     {
         if (player == null || player.whoAmI == ReplayPlayback.RecordClientIndex)
             return;
 
+        if (TryRecordPlayerKill(player, damageSource, tick))
+            return;
+
         string playerName = GetPlayerName(player);
         Add(new ReplayTimelineEvent(tick, ReplayEventCategory.PlayerDeath, $"player-death:{player.whoAmI}:{tick}", $"{playerName} died", ReplayEventIconKind.MapDeath));
+    }
+
+    private static bool TryRecordPlayerKill(Player killedPlayer, PlayerDeathReason damageSource, uint tick)
+    {
+        int killerIndex = damageSource.SourcePlayerIndex;
+        if (killerIndex < 0 ||
+            killerIndex >= Main.maxPlayers ||
+            killerIndex == killedPlayer.whoAmI ||
+            killerIndex == ReplayPlayback.RecordClientIndex)
+            return false;
+
+        Player killerPlayer = Main.player[killerIndex];
+        if (killerPlayer == null || !killerPlayer.active)
+            return false;
+
+        string killerName = GetPlayerName(killerPlayer);
+        string killedName = GetPlayerName(killedPlayer);
+        int weaponItemId = GetKillWeaponItemId(damageSource);
+
+        Add(new ReplayTimelineEvent(
+            tick,
+            ReplayEventCategory.PlayerKill,
+            $"player-kill:{killerIndex}:{killedPlayer.whoAmI}:{tick}",
+            $"{killerName} killed {killedName}",
+            ReplayEventIconKind.PlayerHead,
+            weaponItemId,
+            ReplayPlayerHeadSnapshot.FromPlayer(killerPlayer)));
+
+        return true;
     }
 
     public static void RecordActivePlayersJoined(uint tick)
@@ -109,5 +144,20 @@ internal static class ReplayTimelineRecorder
     private static string GetPlayerName(Player player)
     {
         return string.IsNullOrWhiteSpace(player?.name) ? $"Player {(player?.whoAmI ?? 0) + 1}" : player.name.Trim();
+    }
+
+    private static int GetKillWeaponItemId(PlayerDeathReason damageSource)
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic;
+        object sourceItem = typeof(PlayerDeathReason).GetField("SourceItem", flags)?.GetValue(damageSource)
+                            ?? typeof(PlayerDeathReason).GetProperty("SourceItem", flags)?.GetValue(damageSource);
+
+        return sourceItem switch
+        {
+            Item item when item.type > ItemID.None => item.type,
+            int itemId when itemId > ItemID.None => itemId,
+            short itemId when itemId > ItemID.None => itemId,
+            _ => ItemID.Skull
+        };
     }
 }

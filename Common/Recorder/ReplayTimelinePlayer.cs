@@ -40,6 +40,6 @@ internal sealed class ReplayTimelinePlayer : ModPlayer
         if (!recorder.IsRecording || Player.whoAmI == ReplayPlayback.RecordClientIndex)
             return;
 
-        ReplayTimelineRecorder.RecordPlayerDeath(Player, recorder.Ticks);
+        ReplayTimelineRecorder.RecordPlayerDeath(Player, damageSource, recorder.Ticks);
     }
 }

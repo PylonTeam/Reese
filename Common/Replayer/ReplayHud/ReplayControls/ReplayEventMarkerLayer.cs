@@ -73,6 +73,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         {
             ReplayEventCategory.BossDefeated => ReplayClientSettings.ShowBossesDefeated,
             ReplayEventCategory.PlayerDeath => ReplayClientSettings.ShowPlayerDeaths,
+            ReplayEventCategory.PlayerKill => ReplayClientSettings.ShowPlayerDeaths,
             ReplayEventCategory.InvasionStarted => ReplayClientSettings.ShowInvasions,
             _ => true
         };
@@ -106,6 +107,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
             ReplayEventCategory.InvasionStarted => new Color(120, 220, 255),
             ReplayEventCategory.PlayerJoined => new Color(88, 220, 126),
             ReplayEventCategory.PlayerLeft => new Color(155, 155, 165),
+            ReplayEventCategory.PlayerKill => new Color(255, 132, 72),
             _ => Main.OurFavoriteColor
         };
     }
@@ -176,6 +178,9 @@ internal sealed class ReplayEventMarkerLayer : UIElement
             DrawPlayerHeadGrayscale(spriteBatch, player, position, scale);
         else
             DrawPlayerHeadDirect(player, position, scale);
+
+        if (timelineEvent.Category == ReplayEventCategory.PlayerKill)
+            DrawKillWeaponOverlay(spriteBatch, timelineEvent.IconId, area);
     }
 
     private static Player GetPlayerHeadDrawPlayer(ReplayTimelineEvent timelineEvent)
@@ -232,6 +237,18 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         {
             FullBrightPlayerDrawer.ForceFullBrightOnce = false;
         }
+    }
+
+    private static void DrawKillWeaponOverlay(SpriteBatch spriteBatch, int itemId, Rectangle headArea)
+    {
+        int overlaySize = Math.Max(12, (int)Math.Round(Math.Min(headArea.Width, headArea.Height) * 0.62f));
+        Rectangle overlayArea = new(
+            headArea.Right - overlaySize + 3,
+            headArea.Y - 3,
+            overlaySize,
+            overlaySize);
+
+        DrawItem(spriteBatch, itemId, overlayArea);
     }
 
     private static void DrawTexture(SpriteBatch spriteBatch, Texture2D texture, Rectangle area, Color color)

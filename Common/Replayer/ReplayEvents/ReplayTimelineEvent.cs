@@ -9,6 +9,7 @@ public enum ReplayEventCategory : byte
     InvasionStarted = 3,
     PlayerJoined = 4,
     PlayerLeft = 5,
+    PlayerKill = 6,
     Custom = 255
 }
 
