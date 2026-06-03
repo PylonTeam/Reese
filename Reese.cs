@@ -107,6 +107,9 @@ public class Reese : Mod
                     reason = args.Length > 1 && args[1] is string customReason2 ? customReason2 : "Cross-mod call";
                     return ModContent.GetInstance<Recorder>().StopRecordingAndGetFilePath(reason);
                 }
+
+            case "AddReplayTimelineEvent":
+                return ReplayTimelineModCalls.AddReplayTimelineEvent(args);
         }
 
         return null;
