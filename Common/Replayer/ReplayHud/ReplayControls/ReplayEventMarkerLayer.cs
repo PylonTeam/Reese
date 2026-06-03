@@ -72,6 +72,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         return timelineEvent.Category switch
         {
             ReplayEventCategory.BossDefeated => ReplayClientSettings.ShowBossesDefeated,
+            ReplayEventCategory.BossSummoned => ReplayClientSettings.ShowBossesDefeated,
             ReplayEventCategory.PlayerDeath => ReplayClientSettings.ShowPlayerDeaths,
             ReplayEventCategory.PlayerKill => ReplayClientSettings.ShowPlayerDeaths,
             ReplayEventCategory.InvasionStarted => ReplayClientSettings.ShowInvasions,
@@ -92,7 +93,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
 
     private static Rectangle GetIconArea(ReplayTimelineEvent timelineEvent, int x, int trackTop)
     {
-        int size = timelineEvent.Category == ReplayEventCategory.BossDefeated ? BossIconSize : EventIconSize;
+        int size = timelineEvent.Category is ReplayEventCategory.BossDefeated or ReplayEventCategory.BossSummoned ? BossIconSize : EventIconSize;
         int top = trackTop - size - 4;
 
         return new Rectangle(x - size / 2, top, size, size);
@@ -103,6 +104,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         return category switch
         {
             ReplayEventCategory.BossDefeated => new Color(255, 215, 84),
+            ReplayEventCategory.BossSummoned => new Color(180, 120, 255),
             ReplayEventCategory.PlayerDeath => new Color(255, 88, 88),
             ReplayEventCategory.InvasionStarted => new Color(120, 220, 255),
             ReplayEventCategory.PlayerJoined => new Color(88, 220, 126),

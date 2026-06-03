@@ -7,21 +7,21 @@ namespace Reese.Common.Recorder;
 [Autoload(Side = ModSide.Server)]
 internal sealed class ReplayTimelineTrackerSystem : ModSystem
 {
-    private readonly Dictionary<string, bool> bossStates = [];
+    private readonly HashSet<string> activeBosses = [];
     private bool hasRecordingSnapshot;
     private int previousInvasionType = InvasionID.None;
 
     public void ResetForRecordingStart()
     {
         hasRecordingSnapshot = true;
-        SnapshotBosses();
+        SnapshotActiveBosses();
         previousInvasionType = Main.invasionType;
     }
 
     public void EndRecording()
     {
         hasRecordingSnapshot = false;
-        bossStates.Clear();
+        activeBosses.Clear();
         previousInvasionType = InvasionID.None;
     }
 
@@ -42,35 +42,68 @@ internal sealed class ReplayTimelineTrackerSystem : ModSystem
         if (!hasRecordingSnapshot)
             ResetForRecordingStart();
 
-        TrackBosses(recorder.Ticks);
+        RefreshActiveBosses();
         TrackInvasions(recorder.Ticks);
     }
 
-    private void SnapshotBosses()
+    public void RecordBossSummoned(NPC npc)
     {
-        bossStates.Clear();
+        if (!CanRecordBossEvent(npc, out Recorder recorder, out ReplayBossDefinition boss))
+            return;
 
-        foreach (ReplayBossDefinition boss in ReplayBossDefinitions.GetDefinitions())
-            bossStates[boss.Key] = boss.IsDefeated();
+        if (activeBosses.Add(boss.Key))
+            ReplayTimelineRecorder.Add(boss.CreateSummonedEvent(recorder.Ticks));
     }
 
-    private void TrackBosses(uint tick)
+    public void RecordBossDefeated(NPC npc)
+    {
+        if (!CanRecordBossEvent(npc, out Recorder recorder, out ReplayBossDefinition boss))
+            return;
+
+        if (ReplayBossDefinitions.HasActiveInstance(boss, npc.whoAmI))
+            return;
+
+        activeBosses.Remove(boss.Key);
+        ReplayTimelineRecorder.Add(boss.CreateDefeatedEvent(recorder.Ticks));
+    }
+
+    private void SnapshotActiveBosses()
+    {
+        activeBosses.Clear();
+
+        foreach (ReplayBossDefinition boss in ReplayBossDefinitions.GetDefinitions())
+        {
+            if (ReplayBossDefinitions.HasActiveInstance(boss))
+                activeBosses.Add(boss.Key);
+        }
+    }
+
+    private void RefreshActiveBosses()
+    {
+        activeBosses.RemoveWhere(key => !HasActiveBossWithKey(key));
+    }
+
+    private static bool HasActiveBossWithKey(string key)
     {
         foreach (ReplayBossDefinition boss in ReplayBossDefinitions.GetDefinitions())
         {
-            bool defeated = boss.IsDefeated();
-
-            if (!bossStates.TryGetValue(boss.Key, out bool previousDefeated))
-            {
-                bossStates[boss.Key] = defeated;
-                continue;
-            }
-
-            if (!previousDefeated && defeated)
-                ReplayTimelineRecorder.Add(boss.CreateEvent(tick));
-
-            bossStates[boss.Key] = defeated;
+            if (boss.Key == key)
+                return ReplayBossDefinitions.HasActiveInstance(boss);
         }
+
+        return false;
+    }
+
+    private static bool CanRecordBossEvent(NPC npc, out Recorder recorder, out ReplayBossDefinition boss)
+    {
+        recorder = null;
+        boss = default;
+
+        if (Main.netMode == NetmodeID.MultiplayerClient || npc == null)
+            return false;
+
+        recorder = ModContent.GetInstance<Recorder>();
+        return recorder?.IsRecording == true && ReplayBossDefinitions.TryGetDefinition(npc.type, out boss);
     }
 
     private void TrackInvasions(uint tick)

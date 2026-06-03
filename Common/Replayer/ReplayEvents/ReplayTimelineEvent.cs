@@ -10,6 +10,7 @@ public enum ReplayEventCategory : byte
     PlayerJoined = 4,
     PlayerLeft = 5,
     PlayerKill = 6,
+    BossSummoned = 7,
     Custom = 255
 }
 
