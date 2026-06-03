@@ -1,4 +1,5 @@
 using Reese.Common.Replayer.ReplayEvents;
+using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 using System;
 using Terraria.GameContent;
 using Terraria.ID;
@@ -11,6 +12,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
     private const int BossIconSize = 30;
     private const int EventIconSize = 22;
     private const int MarkerWidth = 5;
+    private static Player snapshotHeadPlayer;
 
     public ReplayEventMarkerLayer()
     {
@@ -102,6 +104,8 @@ internal sealed class ReplayEventMarkerLayer : UIElement
             ReplayEventCategory.BossDefeated => new Color(255, 215, 84),
             ReplayEventCategory.PlayerDeath => new Color(255, 88, 88),
             ReplayEventCategory.InvasionStarted => new Color(120, 220, 255),
+            ReplayEventCategory.PlayerJoined => new Color(88, 220, 126),
+            ReplayEventCategory.PlayerLeft => new Color(155, 155, 165),
             _ => Main.OurFavoriteColor
         };
     }
@@ -120,6 +124,10 @@ internal sealed class ReplayEventMarkerLayer : UIElement
 
             case ReplayEventIconKind.Item:
                 DrawItem(spriteBatch, timelineEvent.IconId, area);
+                return;
+
+            case ReplayEventIconKind.PlayerHead:
+                DrawPlayerHead(spriteBatch, timelineEvent, area);
                 return;
         }
 
@@ -149,6 +157,81 @@ internal sealed class ReplayEventMarkerLayer : UIElement
 
         Main.instance.LoadItem(itemId);
         DrawTexture(spriteBatch, TextureAssets.Item[itemId].Value, area, Color.White);
+    }
+
+    private static void DrawPlayerHead(SpriteBatch spriteBatch, ReplayTimelineEvent timelineEvent, Rectangle area)
+    {
+        Player player = GetPlayerHeadDrawPlayer(timelineEvent);
+        if (player == null)
+        {
+            DrawTexture(spriteBatch, Ass.IconPlayerHead.Value, area, timelineEvent.Category == ReplayEventCategory.PlayerLeft ? Color.Gray : Color.White);
+            return;
+        }
+
+        float scale = Math.Min(area.Width, area.Height) / 42f;
+        Vector2 position = area.Center.ToVector2();
+        bool grayscale = timelineEvent.Category == ReplayEventCategory.PlayerLeft;
+
+        if (grayscale)
+            DrawPlayerHeadGrayscale(spriteBatch, player, position, scale);
+        else
+            DrawPlayerHeadDirect(player, position, scale);
+    }
+
+    private static Player GetPlayerHeadDrawPlayer(ReplayTimelineEvent timelineEvent)
+    {
+        if (timelineEvent.PlayerHead.HasValue)
+        {
+            snapshotHeadPlayer ??= new Player();
+            timelineEvent.PlayerHead.Value.ApplyTo(snapshotHeadPlayer);
+            return snapshotHeadPlayer;
+        }
+
+        int playerIndex = timelineEvent.IconId;
+        if (playerIndex < 0 || playerIndex >= Main.maxPlayers)
+            return null;
+
+        Player player = Main.player[playerIndex];
+        return player != null && !string.IsNullOrWhiteSpace(player.name) ? player : null;
+    }
+
+    private static void DrawPlayerHeadGrayscale(SpriteBatch spriteBatch, Player player, Vector2 position, float scale)
+    {
+        if (!EffectLoader.TryGetGrayscaleEffect(out Effect effect))
+        {
+            DrawPlayerHeadDirect(player, position, scale);
+            return;
+        }
+
+        GraphicsDevice device = spriteBatch.GraphicsDevice;
+        Rectangle scissor = device.ScissorRectangle;
+        RasterizerState oldRasterizer = device.RasterizerState;
+
+        effect.Parameters["Intensity"]?.SetValue(1f);
+
+        spriteBatch.End();
+        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, oldRasterizer, effect, Main.UIScaleMatrix);
+        device.ScissorRectangle = scissor;
+        DrawPlayerHeadDirect(player, position, scale);
+
+        spriteBatch.End();
+        spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.AnisotropicClamp, DepthStencilState.None, oldRasterizer, null, Main.UIScaleMatrix);
+        device.ScissorRectangle = scissor;
+    }
+
+    private static void DrawPlayerHeadDirect(Player player, Vector2 position, float scale)
+    {
+        Color borderColor = player.team > 0 && player.team < Main.teamColor.Length ? Main.teamColor[player.team] : Color.Black;
+        FullBrightPlayerDrawer.ForceFullBrightOnce = true;
+
+        try
+        {
+            Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, position, scale: scale, borderColor: borderColor);
+        }
+        finally
+        {
+            FullBrightPlayerDrawer.ForceFullBrightOnce = false;
+        }
     }
 
     private static void DrawTexture(SpriteBatch spriteBatch, Texture2D texture, Rectangle area, Color color)

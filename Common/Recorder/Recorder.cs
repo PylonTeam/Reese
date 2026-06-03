@@ -102,6 +102,7 @@ public class Recorder : ModSystem, ITicker
         nextBaselineTick = baselineIntervalTicks;
         suppressAutoStartAfterMaxLength = false;
         ReplayTimelineRecorder.Begin();
+        ReplayTimelineRecorder.RecordActivePlayersJoined(Ticks);
         ModContent.GetInstance<ReplayTimelineTrackerSystem>().ResetForRecordingStart();
         const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
         const string RecordClientName = "Recording";

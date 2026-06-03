@@ -48,8 +48,50 @@ internal static class ReplayTimelineRecorder
         if (player == null || player.whoAmI == ReplayPlayback.RecordClientIndex)
             return;
 
-        string playerName = string.IsNullOrWhiteSpace(player.name) ? $"Player {player.whoAmI + 1}" : player.name.Trim();
+        string playerName = GetPlayerName(player);
         Add(new ReplayTimelineEvent(tick, ReplayEventCategory.PlayerDeath, $"player-death:{player.whoAmI}:{tick}", $"{playerName} died", ReplayEventIconKind.MapDeath));
+    }
+
+    public static void RecordActivePlayersJoined(uint tick)
+    {
+        for (int i = 0; i < Main.maxPlayers; i++)
+        {
+            Player player = Main.player[i];
+            if (player?.active == true)
+                RecordPlayerJoined(player, tick);
+        }
+    }
+
+    public static void RecordPlayerJoined(Player player, uint tick)
+    {
+        if (player == null || player.whoAmI == ReplayPlayback.RecordClientIndex)
+            return;
+
+        string playerName = GetPlayerName(player);
+        Add(new ReplayTimelineEvent(
+            tick,
+            ReplayEventCategory.PlayerJoined,
+            $"player-join:{player.whoAmI}:{tick}",
+            $"{playerName} joined",
+            ReplayEventIconKind.PlayerHead,
+            player.whoAmI,
+            ReplayPlayerHeadSnapshot.FromPlayer(player)));
+    }
+
+    public static void RecordPlayerLeft(Player player, uint tick)
+    {
+        if (player == null || player.whoAmI == ReplayPlayback.RecordClientIndex)
+            return;
+
+        string playerName = GetPlayerName(player);
+        Add(new ReplayTimelineEvent(
+            tick,
+            ReplayEventCategory.PlayerLeft,
+            $"player-left:{player.whoAmI}:{tick}",
+            $"{playerName} left",
+            ReplayEventIconKind.PlayerHead,
+            player.whoAmI,
+            ReplayPlayerHeadSnapshot.FromPlayer(player)));
     }
 
     private static ReplayTimelineEvent Normalize(ReplayTimelineEvent timelineEvent)
@@ -62,5 +104,10 @@ internal static class ReplayTimelineRecorder
             Key = key,
             Text = text
         };
+    }
+
+    private static string GetPlayerName(Player player)
+    {
+        return string.IsNullOrWhiteSpace(player?.name) ? $"Player {(player?.whoAmI ?? 0) + 1}" : player.name.Trim();
     }
 }

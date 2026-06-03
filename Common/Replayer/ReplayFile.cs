@@ -46,7 +46,9 @@ public class ReplayFile : IDisposable
     private const int MaxMetadataStringByteLength = 16 * 1024;
     private const int MaxReplayEventStringByteLength = 4 * 1024;
     private const int MaxReplayEventCount = 65536;
-    private const ushort ReplayEventsVersion = 1;
+    private const ushort MinimumReplayEventsVersion = 1;
+    private const ushort ReplayEventsVersion = 2;
+    private const int PlayerHeadSnapshotByteLength = (22 + 7) * sizeof(int);
 
     private BinaryWriter _binaryWriter;
     private BinaryReader _binaryReader;
@@ -324,7 +326,47 @@ public class ReplayFile : IDisposable
             _binaryWriter.Write(timelineEvent.IconId);
             _binaryWriter.Write(timelineEvent.Key ?? string.Empty);
             _binaryWriter.Write(timelineEvent.Text ?? string.Empty);
+            WritePlayerHeadSnapshot(_binaryWriter, timelineEvent.PlayerHead);
         }
+    }
+
+    private static void WritePlayerHeadSnapshot(BinaryWriter writer, ReplayPlayerHeadSnapshot? snapshot)
+    {
+        writer.Write(snapshot.HasValue);
+
+        if (!snapshot.HasValue)
+            return;
+
+        ReplayPlayerHeadSnapshot value = snapshot.Value;
+        writer.Write(value.PlayerIndex);
+        writer.Write(value.Team);
+        writer.Write(value.Hair);
+        writer.Write(value.HairDye);
+        writer.Write(value.SkinVariant);
+        writer.Write(value.Head);
+        writer.Write(value.Body);
+        writer.Write(value.Legs);
+        writer.Write(value.CHead);
+        writer.Write(value.CBody);
+        writer.Write(value.CLegs);
+        writer.Write(value.Face);
+        writer.Write(value.Neck);
+        writer.Write(value.Front);
+        writer.Write(value.Back);
+        writer.Write(value.Waist);
+        writer.Write(value.Shield);
+        writer.Write(value.Shoe);
+        writer.Write(value.Balloon);
+        writer.Write(value.Beard);
+        writer.Write(value.HandOn);
+        writer.Write(value.HandOff);
+        writer.Write(value.HairColor);
+        writer.Write(value.SkinColor);
+        writer.Write(value.EyeColor);
+        writer.Write(value.ShirtColor);
+        writer.Write(value.UnderShirtColor);
+        writer.Write(value.PantsColor);
+        writer.Write(value.ShoeColor);
     }
 
     public static ReplayFile Write(Stream stream)
@@ -1242,7 +1284,7 @@ public class ReplayFile : IDisposable
             return false;
 
         ushort version = reader.ReadUInt16();
-        if (version != ReplayEventsVersion)
+        if (version < MinimumReplayEventsVersion || version > ReplayEventsVersion)
             return false;
 
         int count = reader.ReadInt32();
@@ -1265,11 +1307,27 @@ public class ReplayFile : IDisposable
                 !TryReadBoundedString(reader, out string text, MaxReplayEventStringByteLength))
                 return false;
 
+            ReplayPlayerHeadSnapshot? playerHead = null;
+            if (version >= 2)
+            {
+                if (stream.Position + 1 > stream.Length)
+                    return false;
+
+                bool hasPlayerHead = reader.ReadBoolean();
+                if (hasPlayerHead)
+                {
+                    if (!TryReadPlayerHeadSnapshot(reader, out ReplayPlayerHeadSnapshot snapshot))
+                        return false;
+
+                    playerHead = snapshot;
+                }
+            }
+
             if (store)
             {
                 key = string.IsNullOrWhiteSpace(key) ? $"{category}:{tick}:{i}" : key.Trim();
                 text = string.IsNullOrWhiteSpace(text) ? category.ToString() : text.Trim();
-                events.Add(new ReplayTimelineEvent(tick, category, key, text, iconKind, iconId));
+                events.Add(new ReplayTimelineEvent(tick, category, key, text, iconKind, iconId, playerHead));
             }
         }
 
@@ -1283,6 +1341,47 @@ public class ReplayFile : IDisposable
                     .ThenBy(e => e.Key)
             ];
         }
+
+        return true;
+    }
+
+    private static bool TryReadPlayerHeadSnapshot(BinaryReader reader, out ReplayPlayerHeadSnapshot snapshot)
+    {
+        snapshot = default;
+
+        if (reader.BaseStream.Position + PlayerHeadSnapshotByteLength > reader.BaseStream.Length)
+            return false;
+
+        snapshot = new ReplayPlayerHeadSnapshot(
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadUInt32(),
+            reader.ReadUInt32(),
+            reader.ReadUInt32(),
+            reader.ReadUInt32(),
+            reader.ReadUInt32(),
+            reader.ReadUInt32(),
+            reader.ReadUInt32());
 
         return true;
     }
