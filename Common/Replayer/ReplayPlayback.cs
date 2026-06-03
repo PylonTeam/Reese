@@ -93,6 +93,8 @@ public static class ReplayPlayback
 
 	public static void End(string reason = null, bool quitPlayer=false)
 	{
+        bool wasReplayPlayback = IsReplayPlayback;
+
 		if (IsReplayPlayback)
 			Log.Info($"Replay playback ended: {reason ?? "no reason supplied"}");
 
@@ -105,11 +107,14 @@ public static class ReplayPlayback
         TimelineEvents = Array.Empty<ReplayTimelineEvent>();
         CancelSeek();
 
-        if (quitPlayer)
+		if (quitPlayer)
         {
             Log.Info("Leaving replay world because replay has ended.");
             WorldGen.JustQuit();
         }
+
+        if (wasReplayPlayback)
+            ReplayModSetManager.RequestRestoreAfterReplay(reason);
     }
 
     // Helper for checking for active players, used for deciding when to start and stop recording

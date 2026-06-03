@@ -15,6 +15,20 @@ internal static class ReplayActions
 {
     public static void EnterReplay(string replayPath)
     {
+        Log.Info($"EnterReplay requested for {Path.GetFileName(replayPath)}.");
+
+        if (!ReplayModSetManager.PrepareReplayModsOrContinue(replayPath))
+        {
+            Log.Info("Replay playback is waiting for bundled mod preparation/reload.");
+            return;
+        }
+
+        EnterReplayPrepared(replayPath);
+    }
+
+    internal static void EnterReplayPrepared(string replayPath)
+    {
+        Log.Info($"Starting replay playback with prepared mods: {Path.GetFileName(replayPath)}.");
         SoundEngine.PlaySound(SoundID.MenuOpen);
         Main.QueueMainThreadAction(() =>
         {

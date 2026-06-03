@@ -325,12 +325,14 @@ public class Recorder : ModSystem, ITicker
         string savedReplayPath = currentReplayPath;
         string worldName = ReplayStats.GetCurrentWorldName();
         string[] modNames = ReplayStats.GetCurrentModNames();
+        ReplayModBundle modBundle = ReplayModBundle.CaptureLoadedMods();
+        Log.Info($"Stopping recording with embedded replay mod bundle: {modBundle.Mods.Length} mods, {ReplayModFile.FormatBytes(modBundle.Mods.Sum(x => x.PayloadLength))}.");
 
         var recordClient = Netplay.Clients[RecordClientIndex];
 
         if (recordClient?.Socket is RecordSocket recordSocket)
         {
-            recordSocket.Finish(Ticks, worldName, modNames, ReplayFileFlags.New, timelineEvents);
+            recordSocket.Finish(Ticks, worldName, modNames, ReplayFileFlags.New, timelineEvents, modBundle);
             recordSocket.Close();
         }
 
@@ -623,7 +625,7 @@ public class Recorder : ModSystem, ITicker
                 return baselinePacketDiagnostics?.GetCount(messageId) ?? 0;
         }
 
-        public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None, IReadOnlyList<ReplayTimelineEvent> timelineEvents = null)
+        public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None, IReadOnlyList<ReplayTimelineEvent> timelineEvents = null, ReplayModBundle modBundle = null)
         {
             lock (writeLock)
             {
@@ -638,7 +640,7 @@ public class Recorder : ModSystem, ITicker
                 remoteClient.State = 0;
                 ClearBaselineCapture();
 
-                replayFile.Finish(finalTick, worldName, modNames, flags, timelineEvents);
+                replayFile.Finish(finalTick, worldName, modNames, flags, timelineEvents, modBundle);
             }
         }
 

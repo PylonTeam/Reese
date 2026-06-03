@@ -30,6 +30,7 @@ public class ReplayFile : IDisposable
     private static readonly byte[] SummaryMarkerASCII = Encoding.ASCII.GetBytes("RSM1");
     private static readonly byte[] FlagsMarkerASCII = Encoding.ASCII.GetBytes("RFL1");
     private static readonly byte[] EventsMarkerASCII = Encoding.ASCII.GetBytes("REV1");
+    private static readonly byte[] ModBundleMarkerASCII = Encoding.ASCII.GetBytes("RMB1");
 
     // Baseline blocks are embedded alongside packet blocks as:
     // [uint deltaTick][int -1][int baselineByteLength][baseline bytes].
@@ -46,6 +47,7 @@ public class ReplayFile : IDisposable
     private const int MaxMetadataStringByteLength = 16 * 1024;
     private const int MaxReplayEventStringByteLength = 4 * 1024;
     private const int MaxReplayEventCount = 65536;
+    private const int MaxModBundleHashByteLength = 1024;
     private const ushort MinimumReplayEventsVersion = 1;
     private const ushort ReplayEventsVersion = 2;
     private const int PlayerHeadSnapshotByteLength = (22 + 7) * sizeof(int);
@@ -241,7 +243,7 @@ public class ReplayFile : IDisposable
         NumberOfPacketDataBytesRemaining = 0;
     }
 
-    public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None, IReadOnlyList<ReplayTimelineEvent> timelineEvents = null)
+    public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None, IReadOnlyList<ReplayTimelineEvent> timelineEvents = null, ReplayModBundle modBundle = null)
     {
         if (_binaryWriter == null)
             return;
@@ -258,6 +260,13 @@ public class ReplayFile : IDisposable
         WriteMetadata(finalTick, worldName, modNames);
         WriteFlags(flags);
         WriteEvents(timelineEvents);
+
+        if (modBundle != null)
+        {
+            WriteModBundle(modBundle);
+            WriteCatalogMirror(finalTick, worldName, modNames, flags, timelineEvents);
+        }
+
         _binaryWriter.Flush();
 
         Tick = finalTick;
@@ -269,7 +278,7 @@ public class ReplayFile : IDisposable
         _binaryWriter.Write(string.IsNullOrWhiteSpace(worldName) ? "Unknown" : worldName.Trim());
 
         string[] names = (modNames ?? [])
-                     .Where(name => name != "ModLoader") // don't count modloader itself as a mod
+                     .Where(name => !ReplayModBundle.ShouldIgnoreMod(name))
                      .ToArray();
 
         _binaryWriter.Write(names.Length);
@@ -328,6 +337,52 @@ public class ReplayFile : IDisposable
             _binaryWriter.Write(timelineEvent.Text ?? string.Empty);
             WritePlayerHeadSnapshot(_binaryWriter, timelineEvent.PlayerHead);
         }
+    }
+
+    private void WriteModBundle(ReplayModBundle modBundle)
+    {
+        ReplayModFile[] mods = modBundle?.Mods?
+            .Where(x => x != null && !ReplayModBundle.ShouldIgnoreMod(x.Name) && x.HasPayload)
+            .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            .ToArray() ?? [];
+
+        Log.Info($"Writing replay mod bundle: {mods.Length} .tmod files, {ReplayModFile.FormatBytes(mods.Sum(x => x.PayloadLength))}.");
+
+        _binaryWriter.Write(ModBundleMarkerASCII);
+        _binaryWriter.Write(ReplayModBundle.Version);
+        _binaryWriter.Write(mods.Length);
+
+        foreach (ReplayModFile mod in mods)
+        {
+            _binaryWriter.Write(mod.Name ?? string.Empty);
+            _binaryWriter.Write(mod.DisplayName ?? mod.Name ?? string.Empty);
+            _binaryWriter.Write(mod.Version ?? string.Empty);
+            _binaryWriter.Write(mod.TModLoaderVersion ?? string.Empty);
+            WriteByteArray(_binaryWriter, mod.Hash);
+
+            byte[] payload = mod.Payload;
+            _binaryWriter.Write((long)payload.LongLength);
+            _binaryWriter.Write(payload);
+
+            Log.Info($"Wrote replay bundled mod {mod.Name} v{mod.Version} ({ReplayModFile.FormatBytes(payload.LongLength)}, hash {mod.ShortHashText}).");
+        }
+    }
+
+    private void WriteCatalogMirror(uint durationTicks, string worldName, string[] modNames, ReplayFileFlags flags, IReadOnlyList<ReplayTimelineEvent> timelineEvents)
+    {
+        // Tail catalog readers look for an RMD1 marker immediately after a 0 length terminator.
+        // The original terminator remains earlier in the file; this sentinel keeps large bundles from hiding metadata.
+        _binaryWriter.Write(0);
+        WriteMetadata(durationTicks, worldName, modNames);
+        WriteFlags(flags);
+        WriteEvents(timelineEvents);
+    }
+
+    private static void WriteByteArray(BinaryWriter writer, byte[] bytes)
+    {
+        bytes ??= [];
+        writer.Write(bytes.Length);
+        writer.Write(bytes);
     }
 
     private static void WritePlayerHeadSnapshot(BinaryWriter writer, ReplayPlayerHeadSnapshot? snapshot)
@@ -929,6 +984,153 @@ public class ReplayFile : IDisposable
         return TryReadEventsFromTail(path, out timelineEvents);
     }
 
+    public static bool TryReadModBundle(string path, out ReplayModBundle modBundle)
+    {
+        modBundle = new ReplayModBundle();
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            return false;
+
+        try
+        {
+            using var stream = File.Open(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            using var reader = new BinaryReader(stream, Encoding.UTF8, true);
+
+            byte[] identifier = reader.ReadBytes(Identifier.Length);
+            if (!identifier.SequenceEqual(IdentifierASCII))
+                return false;
+
+            TryReadHeaderDuration(reader, out _, out long dataStartOffset);
+            stream.Seek(dataStartOffset, SeekOrigin.Begin);
+
+            uint absoluteTick = 0;
+
+            while (stream.Position + BlockHeaderByteLength <= stream.Length)
+            {
+                long headerOffset = stream.Position;
+                if (!TryReadBlockHeader(reader, headerOffset, out ReplayBlockHeader header))
+                    return false;
+
+                if (!IsReplayBlockHeaderValid(reader, header, absoluteTick, validatePacketFrames: false) &&
+                    !TryRecoverFromInvalidHeader(reader, headerOffset, absoluteTick, out header))
+                    return false;
+
+                absoluteTick += header.DeltaTick;
+
+                if (header.IsTerminator)
+                {
+                    stream.Seek(header.DataOffset, SeekOrigin.Begin);
+
+                    // New replay bundles are written after the first catalog trailer.
+                    if (!TryReadMetadataAndFlags(reader, out _, out _, out _))
+                        return false;
+
+                    bool read = TryReadModBundleAtCurrentPosition(reader, out modBundle);
+                    if (read)
+                        Log.Info($"Read replay mod bundle from {Path.GetFileName(path)}: {modBundle.Mods.Length} .tmod files, {ReplayModFile.FormatBytes(modBundle.Mods.Sum(x => x.PayloadLength))}.");
+
+                    return read;
+                }
+
+                stream.Seek(header.ResumeOffset, SeekOrigin.Begin);
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Warn($"Failed to read replay mod bundle from {Path.GetFileName(path)}: {e}");
+        }
+
+        modBundle = new ReplayModBundle();
+        return false;
+    }
+
+    private static bool TryReadModBundleAtCurrentPosition(BinaryReader reader, out ReplayModBundle modBundle)
+    {
+        modBundle = new ReplayModBundle();
+
+        Stream stream = reader.BaseStream;
+        if (stream.Position + ModBundleMarkerASCII.Length + sizeof(ushort) + sizeof(int) > stream.Length)
+            return false;
+
+        long markerOffset = stream.Position;
+        byte[] marker = reader.ReadBytes(ModBundleMarkerASCII.Length);
+        if (!marker.SequenceEqual(ModBundleMarkerASCII))
+        {
+            stream.Seek(markerOffset, SeekOrigin.Begin);
+            return false;
+        }
+
+        ushort version = reader.ReadUInt16();
+        if (version != ReplayModBundle.Version)
+            return false;
+
+        int count = reader.ReadInt32();
+        if (count < 0 || count > 4096)
+            return false;
+
+        ReplayModFile[] mods = new ReplayModFile[count];
+        for (int i = 0; i < count; i++)
+        {
+            if (!TryReadReplayModFile(reader, out ReplayModFile mod))
+                return false;
+
+            mods[i] = mod;
+        }
+
+        modBundle = new ReplayModBundle
+        {
+            Mods =
+            [
+                .. mods
+                    .Where(x => x != null)
+                    .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+            ]
+        };
+
+        return true;
+    }
+
+    private static bool TryReadReplayModFile(BinaryReader reader, out ReplayModFile mod)
+    {
+        mod = null;
+
+        if (!TryReadBoundedString(reader, out string name) ||
+            !TryReadBoundedString(reader, out string displayName) ||
+            !TryReadBoundedString(reader, out string version) ||
+            !TryReadBoundedString(reader, out string tModLoaderVersion) ||
+            !TryReadByteArray(reader, out byte[] hash, MaxModBundleHashByteLength))
+            return false;
+
+        Stream stream = reader.BaseStream;
+        if (stream.Position + sizeof(long) > stream.Length)
+            return false;
+
+        long payloadLength = reader.ReadInt64();
+        if (payloadLength < 0 ||
+            payloadLength > int.MaxValue ||
+            payloadLength > stream.Length - stream.Position)
+            return false;
+
+        long payloadOffset = stream.Position;
+        byte[] payload = reader.ReadBytes((int)payloadLength);
+        if (payload.LongLength != payloadLength)
+            return false;
+
+        mod = new ReplayModFile
+        {
+            Name = name,
+            DisplayName = displayName,
+            Version = version,
+            TModLoaderVersion = tModLoaderVersion,
+            Hash = hash,
+            PayloadOffset = payloadOffset,
+            PayloadLength = payloadLength,
+            Payload = payload
+        };
+
+        return true;
+    }
+
     private static bool TryReadDurationTicksFromHeader(string path, out uint durationTicks)
     {
         durationTicks = 0;
@@ -1410,6 +1612,24 @@ public class ReplayFile : IDisposable
 
         value = Encoding.UTF8.GetString(bytes);
         return true;
+    }
+
+    private static bool TryReadByteArray(BinaryReader reader, out byte[] bytes, int maxLength)
+    {
+        bytes = [];
+
+        Stream stream = reader.BaseStream;
+        if (stream.Position + sizeof(int) > stream.Length)
+            return false;
+
+        int length = reader.ReadInt32();
+        if (length < 0 ||
+            length > maxLength ||
+            length > stream.Length - stream.Position)
+            return false;
+
+        bytes = reader.ReadBytes(length);
+        return bytes.Length == length;
     }
 
     private static bool TryRead7BitEncodedInt(BinaryReader reader, out int value)
