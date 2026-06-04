@@ -95,7 +95,7 @@ internal static class PlaybackLayout
         Set(ref SpeedButtonGapX, 6f, ref changed);
         Set(ref SpeedButtonGapY, 4f, ref changed);
 
-        Set(ref RightColumnWidth, 500f, ref changed);
+        Set(ref RightColumnWidth, 386f, ref changed);
         Set(ref RightColumnAutoFitControls, true, ref changed);
 
         Set(ref EventIconLaneHeight, 36f, ref changed);

@@ -34,6 +34,7 @@ public class ServerConfig : ModConfig
 
     public class AutoRecordingConfig
     {
+        [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), grayWhenOff: true)]
         [BackgroundColor(250, 60, 60, 150)]
         [DefaultValue(true)]
         public bool AutoStartRecordingOnEnterWorld = true;

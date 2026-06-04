@@ -32,6 +32,7 @@ internal sealed class SettingsTab : TabPage
         AddSection(list, new DrawSettings());
         AddSection(list, new SpectateHudSettingsSection());
         AddSection(list, new ReplayHudSettingsSection());
+        AddSection(list, new EventsSettingsSection());
         //AddSection(list, new DisplaySettings());
     }
     private sealed class GhostSettings : SettingsSection
@@ -274,7 +275,7 @@ internal sealed class SettingsTab : TabPage
     private sealed class ReplayHudSettingsSection : SettingsSection
     {
         public override string HeaderText => "Replay HUD Settings";
-        public override float Height => 282f;
+        public override float Height => 180f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
@@ -283,7 +284,20 @@ internal sealed class SettingsTab : TabPage
                 new("Show Replay HUD:", () => $"Show Replay HUD: {OnOff(ReplayClientSettings.ShowPlaybackHud)}", () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowPlaybackHud),
                 new("Show Speed:", () => $"Show Speed: {OnOff(ReplayClientSettings.ShowReplayHudSpeed)}", () => Ass.IconSpeedUp.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSpeed),
                 new("Show Playback Controls:", () => $"Show Playback Controls: {OnOff(ReplayClientSettings.ShowReplayHudPlaybackControls)}", () => Ass.IconPlay.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudPlaybackControls),
-                new("Show Seekbar:", () => $"Show Seekbar: {OnOff(ReplayClientSettings.ShowReplayHudSeekbar)}", () => Ass.SliderHighlight.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSeekbar),
+                new("Show Seekbar:", () => $"Show Seekbar: {OnOff(ReplayClientSettings.ShowReplayHudSeekbar)}", () => Ass.SliderHighlight.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSeekbar)
+            ];
+        }
+    }
+
+    private sealed class EventsSettingsSection : SettingsSection
+    {
+        public override string HeaderText => "Events";
+        public override float Height => 146f;
+
+        public override IReadOnlyList<SpectatorSectionRow> GetRows()
+        {
+            return
+            [
                 new("Show Bosses Defeated:", () => $"Show Bosses Defeated: {OnOff(ReplayClientSettings.ShowBossesDefeated)}", () => Ass.IconCheckmarkGreen.Value, onLeftClick: ReplayClientSettings.ToggleShowBossesDefeated),
                 new("Show Player Deaths:", () => $"Show Player Deaths: {OnOff(ReplayClientSettings.ShowPlayerDeaths)}", () => TextureAssets.MapDeath.Value, onLeftClick: ReplayClientSettings.ToggleShowPlayerDeaths),
                 new("Show Invasions:", () => $"Show Invasions: {OnOff(ReplayClientSettings.ShowInvasions)}", () => Ass.IconSword.Value, onLeftClick: ReplayClientSettings.ToggleShowInvasions)

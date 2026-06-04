@@ -48,10 +48,10 @@ internal static class ReplayClientSettings
     }
 
     // Playback HUD sizing
-    public const float PlaybackHudWidthMin = 640f;
+    public const float PlaybackHudWidthMin = 526f;
     public const float PlaybackHudWidthMax = 1600f;
 
-    public static float PlaybackHudWidthRatio { get; private set; } = 0.75f;
+    public static float PlaybackHudWidthRatio { get; private set; } = 0f;
     public static int PlaybackHudWidthPercent => (int)Math.Round(PlaybackHudWidthRatio * 100f);
 
     public static float GetPlaybackHudWidth()
