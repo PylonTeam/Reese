@@ -160,14 +160,22 @@ public class MainMenuSystem : ModSystem
         if (reeseButtonIndex < 0 || selectedMenu != reeseButtonIndex)
             return selectedMenu;
 
+        OpenReplayBrowserFromExternal();
+        return -1;
+    }
+
+    public bool OpenReplayBrowserFromExternal()
+    {
+        if (!IsEnabled || Main.dedServ || !Main.gameMenu || ui == null || reeseMainMenuUI == null)
+            return false;
+
         Main.mouseLeftRelease = false;
         Main.blockMouse = true;
         Main.menuMode = SharedMenuMode;
 
         SoundEngine.PlaySound(SoundID.MenuOpen);
         MainMenuActions.OpenReplayBrowser(ui, reeseMainMenuUI);
-
-        return -1;
+        return true;
     }
 
     private static void PatchButtonColor(ILCursor c, int buttonNamesIndex)

@@ -1,3 +1,4 @@
+using Reese.Common.MainMenu;
 using Reese.Common.Recorder;
 using Reese.Common.Replayer;
 using Reese.Common.Spectator;
@@ -41,6 +42,9 @@ public class Reese : Mod
                 reason = args.Length > 1 && args[1] is string customReason ? customReason : "Cross-mod call";
                 ModContent.GetInstance<Recorder>().StopRecording(reason);
                 return true;
+
+            case "OpenReplayBrowser":
+                return ModContent.GetInstance<MainMenuSystem>().OpenReplayBrowserFromExternal();
 
             case "RegisterRecordingFinishedCallback":
                 if (args.Length > 1 && args[1] is Action<string, string, string[], uint, string> registerCallback)
