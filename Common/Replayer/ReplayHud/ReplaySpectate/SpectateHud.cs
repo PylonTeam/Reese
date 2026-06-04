@@ -790,18 +790,12 @@ internal sealed class SpectateHud : UIElement
     private static int GetActivePlayerListHash()
     {
         HashCode hash = new();
+        List<int> targets = GetPlayerTargets();
 
-        for (int i = 0; i < Main.maxPlayers; i++)
-        {
-            Player player = Main.player[i];
+        hash.Add(SpectateHudClientSettings.SortMode);
 
-            if (player is null || !player.active)
-                continue;
-
-            hash.Add(i);
-            //hash.Add(player.whoAmI);
-            //hash.Add(player.name);
-        }
+        for (int i = 0; i < targets.Count; i++)
+            hash.Add(targets[i]);
 
         return hash.ToHashCode();
     }
@@ -825,7 +819,67 @@ internal sealed class SpectateHud : UIElement
 
     private static List<int> GetPlayerTargets()
     {
-        return SpectatorTargetSystem.GetTargets(Main.myPlayer);
+        List<int> targets = SpectatorTargetSystem.GetTargets(Main.myPlayer);
+        SortPlayerTargets(targets);
+        return targets;
+    }
+
+    private static void SortPlayerTargets(List<int> targets)
+    {
+        if (targets.Count <= 1)
+            return;
+
+        targets.Sort(SpectateHudClientSettings.SortMode switch
+        {
+            SpectateHudSortMode.Teams => ComparePlayerTargetsByTeam,
+            SpectateHudSortMode.Id => ComparePlayerTargetsById,
+            SpectateHudSortMode.Alphabetical => ComparePlayerTargetsByName,
+            SpectateHudSortMode.Distance => ComparePlayerTargetsByDistance,
+            _ => ComparePlayerTargetsByTeam
+        });
+    }
+
+    private static int ComparePlayerTargetsByTeam(int left, int right)
+    {
+        int result = GetTeamSortKey(left).CompareTo(GetTeamSortKey(right));
+        return result != 0 ? result : ComparePlayerTargetsById(left, right);
+    }
+
+    private static int ComparePlayerTargetsById(int left, int right)
+    {
+        return left.CompareTo(right);
+    }
+
+    private static int ComparePlayerTargetsByName(int left, int right)
+    {
+        string leftName = Main.player[left]?.name ?? string.Empty;
+        string rightName = Main.player[right]?.name ?? string.Empty;
+        int result = string.Compare(leftName, rightName, StringComparison.OrdinalIgnoreCase);
+        return result != 0 ? result : ComparePlayerTargetsById(left, right);
+    }
+
+    private static int ComparePlayerTargetsByDistance(int left, int right)
+    {
+        int result = GetDistanceSortKey(left).CompareTo(GetDistanceSortKey(right));
+        return result != 0 ? result : ComparePlayerTargetsById(left, right);
+    }
+
+    private static int GetTeamSortKey(int playerIndex)
+    {
+        Player player = Main.player[playerIndex];
+        int lastTeamIndex = Math.Max(0, Main.teamColor.Length - 1);
+        return player?.active == true ? Math.Clamp(player.team, 0, lastTeamIndex) : 0;
+    }
+
+    private static float GetDistanceSortKey(int playerIndex)
+    {
+        Player local = Main.LocalPlayer;
+        Player player = Main.player[playerIndex];
+
+        if (local?.active != true || player?.active != true)
+            return float.MaxValue;
+
+        return Vector2.DistanceSquared(local.Center, player.Center);
     }
 
     private static List<int> GetNpcTargets()
