@@ -9,7 +9,7 @@ internal sealed class ReplayTimelinePlayer : ModPlayer
 {
     public override void OnEnterWorld()
     {
-        if (Main.netMode == NetmodeID.MultiplayerClient)
+        if (Main.netMode != NetmodeID.Server)
             return;
 
         Recorder recorder = ModContent.GetInstance<Recorder>();
@@ -21,7 +21,7 @@ internal sealed class ReplayTimelinePlayer : ModPlayer
 
     public override void PlayerDisconnect()
     {
-        if (Main.netMode == NetmodeID.MultiplayerClient)
+        if (Main.netMode != NetmodeID.Server)
             return;
 
         Recorder recorder = ModContent.GetInstance<Recorder>();
@@ -33,7 +33,7 @@ internal sealed class ReplayTimelinePlayer : ModPlayer
 
     public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
     {
-        if (Main.netMode == NetmodeID.MultiplayerClient)
+        if (Main.netMode != NetmodeID.Server)
             return;
 
         Recorder recorder = ModContent.GetInstance<Recorder>();
