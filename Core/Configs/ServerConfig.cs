@@ -12,10 +12,6 @@ public class ServerConfig : ModConfig
     public override ConfigScope Mode => ConfigScope.ServerSide;
 
     [Header("Recording")]
-    [BackgroundColor(250, 60, 60, 150)]
-    [ConfigIcon(nameof(Ass.IconCameraSmall), ConfigIconPlacement.Cut)]
-    [Expand(false, false)]
-    public AutoRecordingConfig autoRecordingConfig = new();
 
     [BackgroundColor(250, 60, 60, 150)]
     [Range(0, MaxBaselineIntervalSeconds)]
@@ -24,12 +20,27 @@ public class ServerConfig : ModConfig
     [DrawTicks]
     [Increment(30)]
     [ConfigIcon(nameof(Ass.Stopwatch), ConfigIconPlacement.Cut)]
-    public int BaselineIntervalSeconds = DefaultBaselineIntervalSeconds;
+    public int BaselineIntervalSeconds;
+
+    [BackgroundColor(250, 60, 60, 150)]
+    [ConfigIcon(nameof(Ass.IconPlayer), nameof(Ass.IconXGray), grayWhenOff: true, placement: ConfigIconPlacement.Cut)]
+    [DefaultValue(true)]
+    public bool AutoStartRecordingOnEnterWorld;
+
+    [BackgroundColor(250, 60, 60, 150)]
+    [ConfigIcon(nameof(Ass.IconPlayerHead), nameof(Ass.IconXGray), grayWhenOff: true, placement: ConfigIconPlacement.Cut)]
+    [DefaultValue(true)]
+    public bool AutoStartRecordingWhenPlayersAreInWorld;
 
     [BackgroundColor(250, 60, 60, 150)]
     [DefaultValue(true)]
-    [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), grayWhenOff: true, placement: ConfigIconPlacement.Cut)]
-    public bool CaptureModsUsedInReplay = true;
+    [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), placement: ConfigIconPlacement.Cut)]
+    public bool CaptureModsUsedInReplay;
+
+    [BackgroundColor(250, 60, 60, 150)]
+    [ConfigIcon(nameof(Ass.IconCamera), ConfigIconPlacement.Cut)]
+    [Expand(false, false)]
+    public MaxLengthRecordingConfig maxLengthRecordingConfig = new();
 
     [Header("Spectating")]
     [ConfigIcon(nameof(Ass.Ghost), ConfigIconPlacement.Cut)]
@@ -37,29 +48,20 @@ public class ServerConfig : ModConfig
     [Expand(false, false)]
     public GhostSpectatingConfig ghostSpectatingConfig = new();
 
-    public class AutoRecordingConfig
-    {
-        [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), grayWhenOff: true)]
-        [BackgroundColor(250, 60, 60, 150)]
-        [DefaultValue(true)]
-        public bool AutoStartRecordingOnEnterWorld = true;
-
-        
-    }
-
     public class MaxLengthRecordingConfig
     {
         [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), grayWhenOff: true)]
         [BackgroundColor(250, 60, 60, 150)]
-        [DefaultValue(true)]
-        public bool EnableMaxLengthRecording = true;
+        [DefaultValue(false)]
+        public bool EnableMaxLengthRecording;
 
-        [RequiresField]
+        [RequiresField(nameof(EnableMaxLengthRecording))]
         [BackgroundColor(250, 60, 60, 150)]
         [DefaultValue(60)]
+        [Range(min: 10, max: 60*10)]
         public int MaxRecordingLengthMinutes = 60;
 
-        [RequiresField]
+        [RequiresField(nameof(EnableMaxLengthRecording))]
         [BackgroundColor(250, 60, 60, 150)]
         [DefaultValue(true)]
         public bool AutoStartRecordingAfterMaxLength;

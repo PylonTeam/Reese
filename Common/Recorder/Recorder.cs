@@ -393,7 +393,7 @@ public class Recorder : ModSystem, ITicker
         if (Main.netMode == NetmodeID.Server)
         {
             bool hasPlayers = ReplayPlayback.HasActivePlayers();
-            bool autoStartRecording = GetAutoRecordingConfig()?.AutoStartRecordingOnEnterWorld ?? false;
+            bool autoStartRecording = ModContent.GetInstance<ServerConfig>()?.AutoStartRecordingWhenPlayersAreInWorld ?? false;
 
             if (!hasPlayers)
             {
@@ -517,7 +517,7 @@ public class Recorder : ModSystem, ITicker
 
     private static int GetMaxRecordingLengthMinutes()
     {
-        int configuredMinutes = GetAutoRecordingConfig()?.MaxRecordingLengthMinutes ?? 0;
+        int configuredMinutes = GetMaxLengthRecordingConfig()?.MaxRecordingLengthMinutes ?? 0;
 
         return Math.Max(0, configuredMinutes);
     }
@@ -529,12 +529,12 @@ public class Recorder : ModSystem, ITicker
 
     private static bool ShouldAutoStartRecordingAfterMaxLength()
     {
-        return GetAutoRecordingConfig()?.AutoStartRecordingAfterMaxLength ?? false;
+        return GetMaxLengthRecordingConfig()?.AutoStartRecordingAfterMaxLength ?? false;
     }
 
-    private static ServerConfig.AutoRecordingConfig GetAutoRecordingConfig()
+    private static ServerConfig.MaxLengthRecordingConfig GetMaxLengthRecordingConfig()
     {
-        return ModContent.GetInstance<ServerConfig>()?.autoRecordingConfig;
+        return ModContent.GetInstance<ServerConfig>()?.maxLengthRecordingConfig;
     }
 
     private static bool ShouldCaptureModsUsedInReplay()

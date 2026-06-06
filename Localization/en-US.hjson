@@ -55,11 +55,6 @@ Mods: {
 					Spectating: Spectating
 				}
 
-				autoRecordingConfig: {
-					Label: Auto Record
-					Tooltip: ""
-				}
-
 				BaselineIntervalSeconds: {
 					Label: Baseline Interval Seconds
 					Tooltip:
@@ -83,25 +78,21 @@ Mods: {
 					Label: Ghost Spectating
 					Tooltip: ""
 				}
-			}
 
-			AutoRecordingConfig: {
 				AutoStartRecordingOnEnterWorld: {
-					Label: Auto Start Recording
-					Tooltip: Starts recording automatically when players are active in the world.
+					Label: Auto Start Recording On Enter World
+					Tooltip: ""
 				}
 
-				MaxRecordingLengthMinutes: {
-					Label: Max Recording Length Minutes
-					Tooltip: Maximum replay recording length in minutes. Set to 0 to allow recordings to continue without stopping.
+				AutoStartRecordingWhenPlayersAreInWorld: {
+					Label: Auto Start Recording When Players Are In World
+					Tooltip: ""
 				}
 
-				AutoStartRecordingAfterMaxLength: {
-					Label: Auto Start After Max Length
-					Tooltip: Starts a new recording part after a recording reaches the configured maximum length.
+				maxLengthRecordingConfig: {
+					Label: Max Length
+					Tooltip: ""
 				}
-
-				Tooltip: ""
 			}
 
 			GhostSpectatingConfig: {
@@ -131,6 +122,25 @@ Mods: {
 				}
 
 				Tooltip: ""
+			}
+
+			MaxLengthRecordingConfig: {
+				Tooltip: ""
+
+				EnableMaxLengthRecording: {
+					Label: Enable Max Length Recording
+					Tooltip: Whether to limit recordings to a configured max length.
+				}
+
+				MaxRecordingLengthMinutes: {
+					Label: Max Recording Length Minutes
+					Tooltip: The configured max length.
+				}
+
+				AutoStartRecordingAfterMaxLength: {
+					Label: Auto Start Recording After Max Length
+					Tooltip: Starts a new recording after it reaches the configured max length.
+				}
 			}
 		}
 
