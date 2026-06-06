@@ -9,19 +9,13 @@ using Terraria.ID;
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
 /// <summary>
-/// Compact card (half the height of UIPlayerCard) used by PlayerHudMode.Head.
-//// Layout: player head on the left, name + distance stacked to its right.
-////
-////  +------------------------------+
-////  ¦  +--+  PlayerName            ¦  ? 65 px total
-////  ¦  +--+    (123 ft)            ¦ <- LMAO this is kinda sick
-////  +------------------------------+
+/// Compact card used by EntityHudMode.Head.
+/// Layout: name on top, then head and distance below.
 /// </summary>
 internal abstract class UIEntityCard<T> : UIPanel where T : Entity
 {
     internal static int CardWidth => 150;
     internal static int DetailHeight => 65 * 2;
-    internal static int CompactCardHeight => DetailHeight / 2;
 
     public int EntityIndex { get; }
     public int ListIndex { get; }
@@ -94,28 +88,31 @@ internal abstract class UIEntityCard<T> : UIPanel where T : Entity
 
     private void DrawHead(SpriteBatch sb, T entity, Rectangle rect)
     {
-        int shrink = (int)MathF.Round(6f * scale);
+        int shrink = (int)MathF.Round(3f * scale);
         Rectangle content = new(rect.X + shrink, rect.Y + shrink, rect.Width - shrink * 2, rect.Height - shrink * 2);
 
-        int iconSize = (int)MathF.Round(Math.Min(content.Height, 42f * scale));
-        Rectangle icon = new(content.X, content.Y + (content.Height - iconSize) / 2, iconSize, iconSize);
+        int nameHeight = (int)MathF.Round(18f * scale);
+        int rowGap = Math.Max(1, (int)MathF.Round(2f * scale));
+        Rectangle nameArea = new(content.X, content.Y, content.Width, nameHeight);
+        nameArea.Y += 4; // custom offset
+        Rectangle rowArea = new(content.X, nameArea.Bottom + rowGap, content.Width, Math.Max(0, content.Bottom - nameArea.Bottom - rowGap));
+        int iconSize = Math.Max(0, Math.Min(rowArea.Height, (int)MathF.Round(34f * scale)));
+        int iconTop = rowArea.Y + Math.Max(0, (rowArea.Height - iconSize) / 2);
+        iconTop -= 2; // custom offset
+        Rectangle icon = new(rowArea.X, iconTop, iconSize, iconSize);
+        Rectangle distanceArea = new(icon.Right + rowGap, rowArea.Y, Math.Max(0, rowArea.Right - icon.Right - rowGap), rowArea.Height);
+
+        string displayName = GetDisplayName(entity);
+        float nameScale = 1.1f * scale;
+
+        if (displayName.Length <= 14)
+            nameScale = FitTextScale(displayName, content.Width, nameScale);
+        else
+            displayName = Truncate(displayName, content.Width, nameScale);
+
+        DrawCenteredText(sb, displayName, nameArea, nameScale, GetTextColor(entity));
         DrawHeadIcon(sb, entity, icon);
-
-        int gap = (int)MathF.Round(6f * scale);
-        int indent = (int)MathF.Round(4f * scale);
-        int textLeft = icon.Right + gap;
-        int textWidth = Math.Max(0, content.Right - textLeft);
-
-        int nameHeight = (int)MathF.Round(24f * scale);
-        int distanceHeight = (int)MathF.Round(20f * scale);
-        int lineGap = (int)MathF.Round(2f * scale);
-        int blockTop = content.Y + (content.Height - nameHeight - lineGap - distanceHeight) / 2;
-
-        Color textColor = GetTextColor(entity);
-        string name = Truncate(GetDisplayName(entity), textWidth, 0.95f * scale);
-
-        Utils.DrawBorderString(sb, name, new Vector2(textLeft, blockTop), textColor, 0.95f * scale);
-        Utils.DrawBorderString(sb, GetDistanceText(entity), new Vector2(textLeft + indent, blockTop + nameHeight + lineGap), GetDistanceColor(entity) * 0.75f, 0.82f * scale);
+        DrawCenteredText(sb, GetDistanceText(entity), distanceArea, 0.9f * scale, GetDistanceColor(entity) * 0.8f);
     }
 
     private void DrawDetail(SpriteBatch sb, T entity, Rectangle rect)
@@ -126,8 +123,12 @@ internal abstract class UIEntityCard<T> : UIPanel where T : Entity
         int previewWidth = buttonSize * 2 + buttonGap;
         Rectangle content = new(rect.X + shrink, rect.Y + shrink, rect.Width - shrink * 2, rect.Height - shrink * 2);
         Rectangle preview = new(content.X, content.Y, previewWidth, content.Height - buttonSize - (int)MathF.Round(3f * scale));
-        Rectangle info = new(preview.Right + (int)MathF.Round(6f * scale), content.Y + (int)MathF.Round(6f * scale), content.Right - preview.Right - (int)MathF.Round(14f * scale), content.Height);
-        Rectangle name = new(info.X, info.Y - 2, info.Width, (int)MathF.Round(24f * scale));
+        Rectangle info = new(
+            x: preview.Right + (int)MathF.Round(6f * scale), 
+            y: content.Y + (int)MathF.Round(6f * scale), 
+            width: content.Right - preview.Right - (int)MathF.Round(10f * scale), 
+            height: content.Height);
+        Rectangle name = new(info.X-2, info.Y - 2, info.Width, (int)MathF.Round(24f * scale));
 
         EntityDrawer.DrawEntityBackground(sb, preview);
         DrawPreview(sb, entity, preview);
@@ -142,10 +143,11 @@ internal abstract class UIEntityCard<T> : UIPanel where T : Entity
 
     private void DrawDetailName(SpriteBatch sb, T entity, Rectangle area)
     {
-        string text = Truncate(GetDisplayName(entity), area.Width, scale);
-        Vector2 size = FontAssets.MouseText.Value.MeasureString(text) * scale;
+        float nameScale = 1.15f * scale;
+        string text = Truncate(GetDisplayName(entity), area.Width, nameScale);
+        Vector2 size = FontAssets.MouseText.Value.MeasureString(text) * nameScale;
         Vector2 position = new(area.X, area.Y + (area.Height - size.Y) * 0.5f + 4f);
-        Utils.DrawBorderString(sb, text, position, GetTextColor(entity), scale);
+        Utils.DrawBorderString(sb, text, position, GetTextColor(entity), nameScale);
     }
 
     protected static Rectangle NextStat(Rectangle rect, int gap)
@@ -170,6 +172,19 @@ internal abstract class UIEntityCard<T> : UIPanel where T : Entity
     private static string Truncate(string text, int width, float scale)
     {
         return StatDrawer.Truncate(FontAssets.MouseText.Value, text, width, scale);
+    }
+
+    private static float FitTextScale(string text, int width, float preferredScale)
+    {
+        if (string.IsNullOrEmpty(text))
+            return preferredScale;
+
+        float measuredWidth = FontAssets.MouseText.Value.MeasureString(text).X;
+
+        if (measuredWidth <= 0f)
+            return preferredScale;
+
+        return Math.Min(preferredScale, width / measuredWidth);
     }
 
     protected virtual float GetFullNameScale()

@@ -1,4 +1,5 @@
 ﻿using Reese.Common.Replayer.ReplayHud;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Common.Spectator;
 using Terraria.GameContent;
 
@@ -53,6 +54,8 @@ public class GhostMapTeleport : ModSystem
 
             if (WorldGen.InWorld((int)target.X / 16, (int)target.Y / 16))
             {
+                SpectatorTargetSystem.ClearPreviewTarget();
+                SpectatorTargetSystem.ClearTarget(moveCameraToLocal: false);
                 Main.LocalPlayer.Center = target;
                 Main.LocalPlayer.fallStart = (int)Main.LocalPlayer.position.Y;
             }

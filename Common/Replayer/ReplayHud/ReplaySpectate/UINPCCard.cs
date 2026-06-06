@@ -42,7 +42,10 @@ internal sealed class UINPCCard : UIEntityCard<NPC>
 
     protected override void DrawHeadIcon(SpriteBatch sb, NPC npc, Rectangle area)
     {
-        EntityDrawer.DrawEntityBackground(sb, area);
+        // Custom artificially increase area for NPCs
+        area.Inflate(6, 6);
+        area.X += 6;
+
         EntityDrawer.DrawNPCPreview(sb, npc, area);
     }
 

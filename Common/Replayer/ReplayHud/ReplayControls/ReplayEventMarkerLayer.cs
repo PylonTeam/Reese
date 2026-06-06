@@ -251,17 +251,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
 
     private static void DrawPlayerHeadDirect(Player player, Vector2 position, float scale)
     {
-        Color borderColor = player.team > 0 && player.team < Main.teamColor.Length ? Main.teamColor[player.team] : Color.Black;
-        FullBrightPlayerDrawer.ForceFullBrightOnce = true;
-
-        try
-        {
-            Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, position, scale: scale, borderColor: borderColor);
-        }
-        finally
-        {
-            FullBrightPlayerDrawer.ForceFullBrightOnce = false;
-        }
+        EntityDrawer.DrawPlayerHead(Main.spriteBatch, player, position, scale);
     }
 
     private static void DrawKillWeaponOverlay(SpriteBatch spriteBatch, int itemId, Rectangle headArea)

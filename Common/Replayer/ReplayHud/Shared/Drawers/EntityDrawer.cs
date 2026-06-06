@@ -239,14 +239,16 @@ public static class EntityDrawer
 
     public static void DrawPlayerHead(SpriteBatch sb, Player player, Vector2 position, float scale = 1f)
     {
+        if (player?.active != true)
+            return;
+
         Player drawPlayer = CreateHeadDrawPlayer(player);
-        Color borderColor = player.team > 0 ? Main.teamColor[player.team] : Color.Black;
 
         FullBrightPlayerDrawer.ForceFullBrightOnce = true;
 
         try
         {
-            Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, drawPlayer, position, scale: scale, borderColor: borderColor);
+            Main.PlayerRenderer.DrawPlayerHead(Main.Camera, drawPlayer, position, scale: scale);
         }
         finally
         {
@@ -290,6 +292,35 @@ public static class EntityDrawer
         return drawPlayer;
     }
 
+    private static Player CreateHeadDrawPlayer(Player player)
+    {
+        Player drawPlayer = player.SerializedClone();
+        CopyPlayerDrawAppearance(player, drawPlayer);
+        drawPlayer.active = true;
+        drawPlayer.whoAmI = player.whoAmI is >= 0 and < Main.maxPlayers ? player.whoAmI : 0;
+        drawPlayer.position = player.position;
+        drawPlayer.direction = player.direction == 0 ? 1 : player.direction;
+        drawPlayer.gravDir = player.gravDir == 0f ? 1f : player.gravDir;
+        drawPlayer.headRotation = 0f;
+        drawPlayer.dead = false;
+        drawPlayer.ghost = false;
+        drawPlayer.statLife = Math.Max(1, drawPlayer.statLife);
+        drawPlayer.statLifeMax = Math.Max(1, drawPlayer.statLifeMax);
+        drawPlayer.socialIgnoreLight = true;
+        drawPlayer.isDisplayDollOrInanimate = false;
+
+        if (drawPlayer.bodyFrame.Width <= 0 || drawPlayer.bodyFrame.Height <= 0)
+            drawPlayer.bodyFrame = new Rectangle(0, 0, 40, 56);
+
+        if (drawPlayer.legFrame.Width <= 0 || drawPlayer.legFrame.Height <= 0)
+            drawPlayer.legFrame = new Rectangle(0, 0, 40, 56);
+
+        if (drawPlayer.headFrame.Width <= 0 || drawPlayer.headFrame.Height <= 0)
+            drawPlayer.headFrame = new Rectangle(0, 0, 40, 56);
+
+        return drawPlayer;
+    }
+
     private static void CopyPlayerDrawAppearance(Player from, Player to)
     {
         to.head = from.head;
@@ -299,8 +330,35 @@ public static class EntityDrawer
         to.cHead = from.cHead;
         to.cBody = from.cBody;
         to.cLegs = from.cLegs;
+        to.cHandOn = from.cHandOn;
+        to.cHandOff = from.cHandOff;
+        to.cBack = from.cBack;
+        to.cFront = from.cFront;
+        to.cShoe = from.cShoe;
+        to.cWaist = from.cWaist;
+        to.cShield = from.cShield;
+        to.cNeck = from.cNeck;
+        to.cFace = from.cFace;
+        to.cFaceHead = from.cFaceHead;
+        to.cFaceFlower = from.cFaceFlower;
+        to.cBalloon = from.cBalloon;
+        to.cBalloonFront = from.cBalloonFront;
+        to.cWings = from.cWings;
+        to.cCarpet = from.cCarpet;
+        to.cFloatingTube = from.cFloatingTube;
+        to.cBackpack = from.cBackpack;
+        to.cTail = from.cTail;
+        to.cShieldFallback = from.cShieldFallback;
+        to.cPortableStool = from.cPortableStool;
+        to.cUnicornHorn = from.cUnicornHorn;
+        to.cAngelHalo = from.cAngelHalo;
+        to.cBeard = from.cBeard;
+        to.cFlameWaker = from.cFlameWaker;
+        to.skinDyePacked = from.skinDyePacked;
 
         to.face = from.face;
+        to.faceHead = from.faceHead;
+        to.faceFlower = from.faceFlower;
         to.neck = from.neck;
         to.front = from.front;
         to.back = from.back;
@@ -323,28 +381,10 @@ public static class EntityDrawer
 
         to.shieldRaised = from.shieldRaised;
         to.shieldParryTimeLeft = from.shieldParryTimeLeft;
-
+        to.hasUnicornHorn = from.hasUnicornHorn;
+        to.hasAngelHalo = from.hasAngelHalo;
         to.invis = from.invis;
         to.headcovered = from.headcovered;
-        to.head = from.head;
-    }
-
-    private static Player CreateHeadDrawPlayer(Player player)
-    {
-        Player headPlayer = player.SerializedClone();
-        headPlayer.dead = false;
-        headPlayer.ghost = (player.ghost || player.dead) && GhostDrawSystem.ShouldDrawGhost(player);
-
-        if (headPlayer.ghost)
-        {
-            headPlayer.ghostFade = 1f;
-            headPlayer.ghostDir = 1;
-        }
-
-        headPlayer.socialIgnoreLight = true;
-        headPlayer.isDisplayDollOrInanimate = true;
-
-        return headPlayer;
     }
 
     private static void DrawGhost(Camera camera, Player drawPlayer, Vector2 position, float scale)

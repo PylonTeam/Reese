@@ -10,10 +10,6 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
 internal sealed class UIPlayerCard : UIEntityCard<Player>
 {
-    internal static int CardWidth => UIEntityCard<Player>.CardWidth;
-    internal static int DetailHeight => UIEntityCard<Player>.DetailHeight;
-    internal static int CompactCardHeight => UIEntityCard<Player>.CompactCardHeight;
-
     public int PlayerIndex => EntityIndex;
 
     public UIPlayerCard(int playerIndex, int listIndex, float scale = 1f) : base(playerIndex, listIndex, scale)
@@ -22,7 +18,7 @@ internal sealed class UIPlayerCard : UIEntityCard<Player>
             return;
 
         float buttonSize = 32f * scale;
-        AddActionButtons(this, playerIndex, scale, 5f * scale, DetailHeight * scale - 5f * scale - buttonSize);
+        AddActionButtons(this, playerIndex, scale, 5f * scale, UIEntityCard<Player>.DetailHeight * scale - 5f * scale - buttonSize);
     }
 
     protected override bool TryGetEntity(int index, out Player player)
@@ -58,7 +54,7 @@ internal sealed class UIPlayerCard : UIEntityCard<Player>
 
     protected override void DrawHeadIcon(SpriteBatch sb, Player player, Rectangle area)
     {
-        EntityDrawer.DrawPlayerHead(sb, player, area.Center.ToVector2(), Math.Min(area.Width, area.Height) / 42f);
+        EntityDrawer.DrawPlayerHead(sb, player, area.Center.ToVector2(), Math.Min(area.Width, area.Height) / 32f);
     }
 
     protected override void DrawStats(SpriteBatch sb, Player player, Rectangle stat, int statGap, float scale)
@@ -72,19 +68,9 @@ internal sealed class UIPlayerCard : UIEntityCard<Player>
         StatDrawer.DrawPlayerStat(sb, stat, PlayerStats.Biome(player), scale);
     }
 
-    internal static string GetDistanceText(Player player)
-    {
-        return UIEntityCard<Player>.GetDistanceText(player);
-    }
-
     internal static Color GetPlayerTextColor(Player player)
     {
         return player.team > 0 ? Main.teamColor[player.team] : Color.White;
-    }
-
-    internal static void DrawCenteredText(SpriteBatch sb, string text, Rectangle area, float scale, Color color)
-    {
-        UIEntityCard<Player>.DrawCenteredText(sb, text, area, scale, color);
     }
 
     internal static bool IsValidPlayer(int playerIndex)

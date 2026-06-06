@@ -27,7 +27,6 @@ internal static class MapRevealHelper
             }
         }
 
-        Main.refreshMap = true;
         Revealed = true;
     }
 
@@ -37,7 +36,6 @@ internal static class MapRevealHelper
             return;
 
         Main.Map.Clear();
-        Main.refreshMap = true;
         Revealed = false;
         //Main.mapFullscreen = false;
         //Main.mapStyle = 0;

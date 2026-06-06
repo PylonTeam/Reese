@@ -28,17 +28,13 @@ internal sealed class SettingsTab : TabPage
 
     protected override void Populate(UIList list)
     {
-        //list.Add(new ZoomSettingsSection());
-        //list.Add(new PlaybackHudWidthSettingsSection());
-        AddSection(list, new GhostSettings());
-        AddSection(list, new DrawSettings());
+        AddSection(list, new VisualizationSettings());
         AddSection(list, new SpectateHudSettingsSection());
         AddSection(list, new ReplayHudSettingsSection());
-        AddSection(list, new EventsSettingsSection());
-        //AddSection(list, new DisplaySettings());
+        AddSection(list, new DrawSettings());
     }
 
-    private sealed class GhostSettings : SettingsSection
+    private sealed class VisualizationSettings : SettingsSection
     {
         public override string HeaderText => Loc.Get("ReplayHud.Settings.VisualizationHeader");
         public override float Height => 80+26*4;
@@ -73,142 +69,77 @@ internal sealed class SettingsTab : TabPage
         }
     }
 
-    private sealed class ZoomSettingsSection : UIPanel
+    private sealed class SpectateHudSettingsSection : SettingsSection
     {
-        private readonly UIText zoomLabel;
-        private readonly Slider zoomSlider;
+        public override string HeaderText => Loc.Get("ReplayHud.Settings.SpectateHudHeader");
+        public override float Height => 80+26*4f;
 
-        private string currentText = "";
-
-        public ZoomSettingsSection()
+        public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
-            Width.Set(0f, 1f);
-            Height.Set(62f, 0f);
-            SetPadding(0f);
-
-            BackgroundColor = new Color(33, 43, 79) * 0.7f;
-            BorderColor = new Color(89, 116, 213) * 0.7f;
-
-            zoomLabel = new UIText("", 0.86f)
-            {
-                Left = new StyleDimension(12f, 0f),
-                Top = new StyleDimension(8f, 0f),
-                TextColor = Color.White
-            };
-
-            zoomSlider = new Slider
-            {
-                Left = new StyleDimension(12f, 0f),
-                Top = new StyleDimension(34f, 0f),
-                Height = new StyleDimension(18f, 0f),
-                HighlightColor = Main.OurFavoriteColor
-            };
-
-            zoomSlider.Width.Set(-24f, 1f);
-            zoomSlider.SetRatio(ReplayClientSettings.ReplayZoomRatio);
-            zoomSlider.OnDrag += ReplayClientSettings.SetReplayZoomRatio;
-            zoomSlider.OnRelease += ReplayClientSettings.SetReplayZoomRatio;
-
-            Append(zoomLabel);
-            Append(zoomSlider);
-        }
-
-        public override void Update(GameTime gameTime)
-        {
-            base.Update(gameTime);
-
-            if (!zoomSlider.IsHeld)
-                zoomSlider.SetRatio(ReplayClientSettings.ReplayZoomRatio);
-
-            zoomSlider.HighlightColor = Main.OurFavoriteColor;
-
-            string text = Loc.Get("ReplayHud.Settings.Rows.Zoom", ReplayClientSettings.ReplayZoomPercent);
-
-            if (currentText == text)
-                return;
-
-            currentText = text;
-            zoomLabel.SetText(text);
+            return
+            [
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowSpectateHud"), () => Loc.Get("ReplayHud.Settings.Rows.ShowSpectateHud", OnOff(ReplayClientSettings.ShowSpectateHud)), () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowSpectateHud),
+                new(Loc.Get("ReplayHud.Settings.Labels.RowsVisible"), () => Loc.Get("ReplayHud.Settings.Rows.RowsVisible", SpectateHudClientSettings.EffectiveRowsVisible), () => Ass.IconResize.Value, onLeftClick: SpectateHudClientSettings.CycleRowsVisible),
+                new(Loc.Get("ReplayHud.Settings.Labels.SortBy"), () => Loc.Get("ReplayHud.Settings.Rows.SortBy", SpectateHudClientSettings.SortModeDisplayName), () => Ass.IconRefresh.Value, onLeftClick: SpectateHudClientSettings.CycleSortMode),
+                new(Loc.Get("ReplayHud.Settings.Labels.PlayerHudMode"), () => Loc.Get("ReplayHud.Settings.Rows.PlayerHudMode", SpectateHudClientSettings.EntityHudModeDisplayName), () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.CycleEntityHudMode, iconScale: 0.8f),
+            ];
         }
     }
 
-    private sealed class PlaybackHudWidthSettingsSection : UIPanel
+    private sealed class ReplayHudSettingsSection : SettingsSection
     {
-        private readonly UIText widthLabel;
-        private readonly Slider widthSlider;
+        public override string HeaderText => Loc.Get("ReplayHud.Settings.ReplayHudHeader");
+        public override float Height => 252f;
 
-        private string currentText = "";
-
-        public PlaybackHudWidthSettingsSection()
+        public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
-            Width.Set(0f, 1f);
-            Height.Set(62f, 0f);
-            SetPadding(0f);
+            return
+            [
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowReplayHud"), () => Loc.Get("ReplayHud.Settings.Rows.ShowReplayHud", OnOff(ReplayClientSettings.ShowPlaybackHud)), () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowPlaybackHud),
+                
 
-            BackgroundColor = new Color(33, 43, 79) * 0.7f;
-            BorderColor = new Color(89, 116, 213) * 0.7f;
+                // --- Events on the timeline ---
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowBossesSummoned"), () => Loc.Get("ReplayHud.Settings.Rows.ShowBossesSummoned", OnOff(ReplayClientSettings.ShowBossesSummoned)), GetBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesSummoned),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowBossesDefeated"), () => Loc.Get("ReplayHud.Settings.Rows.ShowBossesDefeated", OnOff(ReplayClientSettings.ShowBossesDefeated)), GetDefeatedBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesDefeated),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowPlayerDeaths"), () => Loc.Get("ReplayHud.Settings.Rows.ShowPlayerDeaths", OnOff(ReplayClientSettings.ShowPlayerDeaths)), () => TextureAssets.MapDeath.Value, onLeftClick: ReplayClientSettings.ToggleShowPlayerDeaths),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowInvasions"), () => Loc.Get("ReplayHud.Settings.Rows.ShowInvasions", OnOff(ReplayClientSettings.ShowInvasions)), () => Ass.Party_Center.Value, onLeftClick: ReplayClientSettings.ToggleShowInvasions),
 
-            widthLabel = new UIText("", 0.86f)
-            {
-                Left = new StyleDimension(12f, 0f),
-                Top = new StyleDimension(8f, 0f),
-                TextColor = Color.White
-            };
-
-            widthSlider = new Slider
-            {
-                Left = new StyleDimension(12f, 0f),
-                Top = new StyleDimension(34f, 0f),
-                Height = new StyleDimension(18f, 0f),
-                HighlightColor = Main.OurFavoriteColor
-            };
-
-            widthSlider.Width.Set(-24f, 1f);
-            widthSlider.SetRatio(ReplayClientSettings.PlaybackHudWidthRatio);
-            widthSlider.OnDrag += ReplayClientSettings.SetPlaybackHudWidthRatio;
-            widthSlider.OnRelease += ReplayClientSettings.SetPlaybackHudWidthRatio;
-
-            Append(widthLabel);
-            Append(widthSlider);
+                // --- Hud width (keep this as last row!!) ---
+                new(Loc.Get("ReplayHud.Settings.Labels.HudWidth"), () => Loc.Get("ReplayHud.Settings.Rows.HudWidth", ReplayClientSettings.PlaybackHudWidthPercent), () => Ass.IconResize.Value,
+                    slider: new SliderRowConfig(
+                        () => ReplayClientSettings.PlaybackHudWidthRatio,
+                        ReplayClientSettings.SetPlaybackHudWidthRatio)),
+            ];
         }
 
-        public override void Update(GameTime gameTime)
+        private static Texture2D defeatedBossHeadIcon;
+
+        private static Texture2D GetBossHeadIcon()
         {
-            base.Update(gameTime);
+            int head = NPCID.Sets.BossHeadTextures[NPCID.KingSlime];
+            return head >= 0 && head < TextureAssets.NpcHeadBoss.Length ? TextureAssets.NpcHeadBoss[head].Value : Ass.IconNPC.Value;
+        }
 
-            if (!widthSlider.IsHeld)
-                widthSlider.SetRatio(ReplayClientSettings.PlaybackHudWidthRatio);
+        private static Texture2D GetDefeatedBossHeadIcon()
+        {
+            if (defeatedBossHeadIcon != null)
+                return defeatedBossHeadIcon;
 
-            widthSlider.HighlightColor = Main.OurFavoriteColor;
+            Texture2D source = GetBossHeadIcon();
+            Color[] data = new Color[source.Width * source.Height];
 
-            string text = Loc.Get("ReplayHud.Settings.Rows.PlaybackHudWidth", ReplayClientSettings.PlaybackHudWidthPercent);
+            source.GetData(data);
+            for (int i = 0; i < data.Length; i++)
+            {
+                byte gray = (byte)((data[i].R * 30 + data[i].G * 59 + data[i].B * 11) / 100);
+                data[i] = new Color(gray, gray, gray, data[i].A);
+            }
 
-            if (currentText == text)
-                return;
-
-            currentText = text;
-            widthLabel.SetText(text);
+            defeatedBossHeadIcon = new Texture2D(Main.graphics.GraphicsDevice, source.Width, source.Height);
+            defeatedBossHeadIcon.SetData(data);
+            return defeatedBossHeadIcon;
         }
     }
-
-    //private sealed class DisplaySettings : SettingsSection
-    //{
-    //    public override string HeaderText => "Display Settings";
-    //    public override float Height => 86f;
-
-    //    public override IReadOnlyList<SpectatorSectionRow> GetRows()
-    //    {
-    //        return
-    //        [
-    //            new("Compact HUD:", () => $"Compact HUD: {OnOff(ReplayClientSettings.IsCompactModeOn)}", GetRightClickTeleportIcon, onLeftClick: ReplayClientSettings.ToggleCompactMode)
-    //        ];
-    //    }
-
-    //    private static Texture2D GetRightClickTeleportIcon()
-    //    {
-    //        return ReplayClientSettings.IsCompactModeOn ? Ass.IconCard1.Value : Ass.IconCard3.Value;
-    //    }
-    //}
 
     private sealed class DrawSettings : SettingsSection
     {
@@ -258,92 +189,6 @@ internal sealed class SettingsTab : TabPage
         private static Texture2D GetNameplateIcon()
         {
             return Ass.IconPlayerHead.Value;
-        }
-    }
-
-    private sealed class SpectateHudSettingsSection : SettingsSection
-    {
-        public override string HeaderText => Loc.Get("ReplayHud.Settings.SpectateHudHeader");
-        public override float Height => 80+26*4f;
-
-        public override IReadOnlyList<SpectatorSectionRow> GetRows()
-        {
-            return
-            [
-                new(Loc.Get("ReplayHud.Settings.Labels.ShowSpectateHud"), () => Loc.Get("ReplayHud.Settings.Rows.ShowSpectateHud", OnOff(ReplayClientSettings.ShowSpectateHud)), () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowSpectateHud),
-                new(Loc.Get("ReplayHud.Settings.Labels.RowsVisible"), () => Loc.Get("ReplayHud.Settings.Rows.RowsVisible", SpectateHudClientSettings.RowsVisible), () => Ass.IconResize.Value, onLeftClick: SpectateHudClientSettings.CycleRowsVisible),
-                new(Loc.Get("ReplayHud.Settings.Labels.SortBy"), () => Loc.Get("ReplayHud.Settings.Rows.SortBy", SpectateHudClientSettings.SortModeDisplayName), () => Ass.IconRefresh.Value, onLeftClick: SpectateHudClientSettings.CycleSortMode),
-                new(Loc.Get("ReplayHud.Settings.Labels.PlayerHudMode"), () => Loc.Get("ReplayHud.Settings.Rows.PlayerHudMode", SpectateHudClientSettings.EntityHudModeDisplayName), () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.CycleEntityHudMode, iconScale: 0.8f),
-                //new("Show Player:", () => $"Show Player: {OnOff(SpectateHudClientSettings.ShowPlayer)}", () => Ass.IconPlayer.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayer, iconScale: 1.5f),
-                //new("Show Name/Distance:", () => $"Show Name/Distance: {OnOff(SpectateHudClientSettings.ShowPlayerNameAndDistance)}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerNameAndDistance, iconScale: 0.8f),
-                //new("Show Description:", () => $"Show Description: {OnOff(SpectateHudClientSettings.ShowDescription)}", () => Ass.IconEye.Value, onLeftClick: SpectateHudClientSettings.ToggleShowDescription)
-            ];
-        }
-    }
-
-    private sealed class ReplayHudSettingsSection : SettingsSection
-    {
-        public override string HeaderText => Loc.Get("ReplayHud.Settings.ReplayHudHeader");
-        public override float Height => 112f;
-
-        public override IReadOnlyList<SpectatorSectionRow> GetRows()
-        {
-            return
-            [
-                new(Loc.Get("ReplayHud.Settings.Labels.ShowReplayHud"), () => Loc.Get("ReplayHud.Settings.Rows.ShowReplayHud", OnOff(ReplayClientSettings.ShowPlaybackHud)), () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowPlaybackHud),
-                new(Loc.Get("ReplayHud.Settings.Labels.HudWidth"), () => Loc.Get("ReplayHud.Settings.Rows.HudWidth", ReplayClientSettings.PlaybackHudWidthPercent), () => Ass.IconResize.Value,
-                    slider: new SliderRowConfig(
-                        () => ReplayClientSettings.PlaybackHudWidthRatio,
-                        ReplayClientSettings.SetPlaybackHudWidthRatio))
-                //new("Show Speed:", () => $"Show Speed: {OnOff(ReplayClientSettings.ShowReplayHudSpeed)}", () => Ass.IconSpeedUp.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSpeed),
-                //new("Show Playback Controls:", () => $"Show Playback Controls: {OnOff(ReplayClientSettings.ShowReplayHudPlaybackControls)}", () => Ass.IconPlay.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudPlaybackControls),
-                //new("Show Seekbar:", () => $"Show Seekbar: {OnOff(ReplayClientSettings.ShowReplayHudSeekbar)}", () => Ass.SliderHighlight.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSeekbar)
-            ];
-        }
-    }
-
-    private sealed class EventsSettingsSection : SettingsSection
-    {
-        public override string HeaderText => Loc.Get("ReplayHud.Settings.EventsHeader");
-        public override float Height => 180f;
-
-        public override IReadOnlyList<SpectatorSectionRow> GetRows()
-        {
-            return
-            [
-                new(Loc.Get("ReplayHud.Settings.Labels.ShowBossesSummoned"), () => Loc.Get("ReplayHud.Settings.Rows.ShowBossesSummoned", OnOff(ReplayClientSettings.ShowBossesSummoned)), GetBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesSummoned),
-                new(Loc.Get("ReplayHud.Settings.Labels.ShowBossesDefeated"), () => Loc.Get("ReplayHud.Settings.Rows.ShowBossesDefeated", OnOff(ReplayClientSettings.ShowBossesDefeated)), GetDefeatedBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesDefeated),
-                new(Loc.Get("ReplayHud.Settings.Labels.ShowPlayerDeaths"), () => Loc.Get("ReplayHud.Settings.Rows.ShowPlayerDeaths", OnOff(ReplayClientSettings.ShowPlayerDeaths)), () => TextureAssets.MapDeath.Value, onLeftClick: ReplayClientSettings.ToggleShowPlayerDeaths),
-                new(Loc.Get("ReplayHud.Settings.Labels.ShowInvasions"), () => Loc.Get("ReplayHud.Settings.Rows.ShowInvasions", OnOff(ReplayClientSettings.ShowInvasions)), () => Ass.Party_Center.Value, onLeftClick: ReplayClientSettings.ToggleShowInvasions)
-            ];
-        }
-
-        private static Texture2D defeatedBossHeadIcon;
-
-        private static Texture2D GetBossHeadIcon()
-        {
-            int head = NPCID.Sets.BossHeadTextures[NPCID.KingSlime];
-            return head >= 0 && head < TextureAssets.NpcHeadBoss.Length ? TextureAssets.NpcHeadBoss[head].Value : Ass.IconNPC.Value;
-        }
-
-        private static Texture2D GetDefeatedBossHeadIcon()
-        {
-            if (defeatedBossHeadIcon != null)
-                return defeatedBossHeadIcon;
-
-            Texture2D source = GetBossHeadIcon();
-            Color[] data = new Color[source.Width * source.Height];
-
-            source.GetData(data);
-            for (int i = 0; i < data.Length; i++)
-            {
-                byte gray = (byte)((data[i].R * 30 + data[i].G * 59 + data[i].B * 11) / 100);
-                data[i] = new Color(gray, gray, gray, data[i].A);
-            }
-
-            defeatedBossHeadIcon = new Texture2D(Main.graphics.GraphicsDevice, source.Width, source.Height);
-            defeatedBossHeadIcon.SetData(data);
-            return defeatedBossHeadIcon;
         }
     }
 }

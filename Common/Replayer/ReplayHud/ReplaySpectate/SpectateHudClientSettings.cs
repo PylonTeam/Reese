@@ -21,6 +21,7 @@ internal enum EntityHudMode
 internal static class SpectateHudClientSettings
 {
     public static int RowsVisible { get; private set; } = 2;
+    public static int EffectiveRowsVisible => EntityHudMode == EntityHudMode.Head ? RowsVisible * 2 : RowsVisible;
     public static SpectateHudSortMode SortMode { get; private set; } = SpectateHudSortMode.Teams;
     public static string SortModeDisplayName => GetSortModeDisplayName(SortMode);
     public static EntityHudMode EntityHudMode { get; private set; } = EntityHudMode.Full;

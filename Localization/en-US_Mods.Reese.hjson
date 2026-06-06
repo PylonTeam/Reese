@@ -124,7 +124,7 @@ ReplayHud: {
 
 	Settings: {
 		TabTooltip: Fine-tune your experience
-		VisualizationHeader: Visualization
+		VisualizationHeader: Settings
 		DrawHeader: Draw Settings
 		SpectateHudHeader: Spectate HUD
 		ReplayHudHeader: Replay HUD
@@ -142,7 +142,7 @@ ReplayHud: {
 			DrawItems: Draw Items:
 			DrawNameplates: Draw Nameplates:
 			ShowSpectateHud: Show Spectate HUD:
-			RowsVisible: Rows Visible:
+			RowsVisible: Rows:
 			SortBy: Sort By:
 			PlayerHudMode: Player HUD:
 			ShowReplayHud: Show Replay HUD:

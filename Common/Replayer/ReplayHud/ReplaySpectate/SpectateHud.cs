@@ -27,6 +27,9 @@ internal sealed class SpectateHud : UIElement
     // Card display logic
     private const int MinCardsPerRow = 3;
     private const int MaxCardsPerRow = 5;
+    private const int MaxDetailedCardsPerRow = 4;
+    private const int MaxHeadCardsPerRow = 6;
+    private const uint TargetListRefreshIntervalTicks = 60 * 15;
 
     // Targeting
     private int locked = -1; // currently locked spectated player index, -1 means no locked target
@@ -35,6 +38,7 @@ internal sealed class SpectateHud : UIElement
     private float currentContentHeight;
     private float playerCardScale = GetPlayerCardScale();
     private int settingsRevision = SpectateHudClientSettings.Revision;
+    private uint lastTargetListRefreshUpdate;
     
     // Content
     private readonly List<ITab> tabs = [];
@@ -132,6 +136,8 @@ internal sealed class SpectateHud : UIElement
         if (contentPanel == null)
             return;
 
+        lastTargetListRefreshUpdate = Main.GameUpdateCount;
+
         if (targetScrollbar != null)
         {
             if (currentTab?.Tab == SpectatorTab.NPCs)
@@ -173,8 +179,14 @@ internal sealed class SpectateHud : UIElement
     {
         ITab nextTab = GetTab(tab);
 
-        if (nextTab == null || currentTab == nextTab)
+        if (nextTab == null)
             return;
+
+        if (currentTab == nextTab)
+        {
+            RefreshTargets();
+            return;
+        }
 
         currentTab = nextTab;
         RefreshTargets();
@@ -277,12 +289,12 @@ internal sealed class SpectateHud : UIElement
 
     private static int GetEntityItemSpan(int _)
     {
-        return SpectateHudClientSettings.EntityHudMode == EntityHudMode.Detailed ? 2 : 1;
+        return 1;
     }
 
     private static float GetEntityItemWidth(int _)
     {
-        return SpectateHudClientSettings.EntityHudMode == EntityHudMode.Detailed ? GetInlineDetailWidth() : GetCardWidth();
+        return GetCardWidth();
     }
 
     private void BuildEntityGrid(int targetCount, Func<int, UIElement> buildItem, Func<int, int> getSpan = null, Func<int, float> getWidth = null)
@@ -295,7 +307,7 @@ internal sealed class SpectateHud : UIElement
         int columns = GetVisibleColumns(slotCount);
         bool showScrollbar = slotCount > GetMaxVisibleCards(columns);
         int visibleRows = GetVisibleRows(slotCount, columns);
-        float gridWidth = GetGridWidth(columns);
+        float gridWidth = GetGridWidth();
         float gridHeight = GetGridHeight(visibleRows);
         float scrollbarLeft = gridWidth + cardGap + 2f;
 
@@ -311,7 +323,7 @@ internal sealed class SpectateHud : UIElement
         targetGrid.Height.Set(gridHeight, 0f);
 
         UIElement gridHost = new() { HAlign = 0.5f };
-        gridHost.Width.Set(showScrollbar ? scrollbarLeft + GetScrollbarWidth() : gridWidth, 0f);
+        gridHost.Width.Set(GetGridHostWidth(), 0f);
         gridHost.Height.Set(gridHeight, 0f);
         gridHost.Append(targetGrid);
         contentPanel.Append(gridHost);
@@ -445,17 +457,11 @@ internal sealed class SpectateHud : UIElement
 
     public void UpdateTarget()
     {
-        int oldLocked = locked;
-        int oldLockedNpc = lockedNpc;
-
         Player target = SpectatorTargetSystem.GetLockedPlayerTarget();
         locked = target?.active == true ? target.whoAmI : -1;
 
         NPC npcTarget = SpectatorTargetSystem.GetLockedNPCTarget();
         lockedNpc = npcTarget?.active == true ? npcTarget.whoAmI : -1;
-
-        if (locked != oldLocked || lockedNpc != oldLockedNpc)
-            RefreshTargets();
     }
 
     private int GetHoveredSlot()
@@ -645,7 +651,6 @@ internal sealed class SpectateHud : UIElement
         SpectatorTargetSystem.SetPlayerTarget(playerIndex);
         locked = playerIndex;
         lockedNpc = -1;
-        RefreshTargets();
         ScrollToPlayer(playerIndex);
     }
 
@@ -682,7 +687,6 @@ internal sealed class SpectateHud : UIElement
         SpectatorTargetSystem.SetNPCTarget(npcIndex);
         lockedNpc = npcIndex;
         locked = -1;
-        RefreshTargets();
         ScrollToNpc(npcIndex);
     }
 
@@ -729,62 +733,15 @@ internal sealed class SpectateHud : UIElement
 
     #endregion
 
-    #region Rebuild if player list changes
-    private int shownPlayerListHash; // cached active Main.player list hash to detect joins/leaves
-    private int shownNpcListHash; // cached active Main.npc list hash to detect joins/leaves
-
+    #region Timed target list refresh
     private void RefreshTargetsIfNeeded()
     {
-            bool showingNpcs = currentTab?.Tab == SpectatorTab.NPCs;
+        uint elapsed = Main.GameUpdateCount - lastTargetListRefreshUpdate;
 
-            if (showingNpcs)
-            {
-                int npcListHash = GetActiveNpcListHash();
+        if (elapsed < TargetListRefreshIntervalTicks)
+            return;
 
-                if (npcListHash == shownNpcListHash)
-                    return;
-
-                shownNpcListHash = npcListHash;
-                RefreshTargets();
-                return;
-            }
-
-            int playerListHash = GetActivePlayerListHash();
-
-            if (playerListHash == shownPlayerListHash)
-                return;
-
-            shownPlayerListHash = playerListHash;
-            RefreshTargets();
-    }
-    private static int GetActivePlayerListHash()
-    {
-        HashCode hash = new();
-        List<int> targets = GetPlayerTargets();
-
-        hash.Add(SpectateHudClientSettings.SortMode);
-
-        for (int i = 0; i < targets.Count; i++)
-            hash.Add(targets[i]);
-
-        return hash.ToHashCode();
-    }
-
-    private static int GetActiveNpcListHash()
-    {
-        HashCode hash = new();
-
-        for (int i = 0; i < Main.maxNPCs; i++)
-        {
-            NPC npc = Main.npc[i];
-
-            if (npc is null || !npc.active)
-                continue;
-
-            hash.Add(i);
-        }
-
-        return hash.ToHashCode();
+        RefreshTargets();
     }
 
     private static List<int> GetPlayerTargets()
@@ -906,29 +863,17 @@ internal sealed class SpectateHud : UIElement
 
     private static float GetCardWidth()
     {
-        return UIPlayerCard.CardWidth * GetCardScale();
+        return SpectateHudClientSettings.EntityHudMode switch
+        {
+            EntityHudMode.Detailed => GetDetailedCardWidth(),
+            EntityHudMode.Head => GetHeadCardWidth(),
+            _ => GetRegularCardWidth()
+        };
     }
 
     private static float GetCardHeight()
     {
-        return GetEntityModeBaseHeight() * GetCardScale();
-    }
-
-    private static float GetInlineDetailWidth()
-    {
-        return GetCardWidth() * 2f + GetCardGap();
-    }
-
-    private static float GetInlineDetailScale()
-    {
-        return GetCardScale();
-    }
-
-    private static float GetEntityModeBaseHeight()
-    {
-        return SpectateHudClientSettings.EntityHudMode == EntityHudMode.Head
-            ? UIPlayerCard.CompactCardHeight
-            : UIPlayerCard.DetailHeight;
+        return SpectateHudClientSettings.EntityHudMode == EntityHudMode.Head ? GetRegularCardHeight() / 2f : GetRegularCardHeight();
     }
 
     private static int GetSlotCount(int count, Func<int, int> getSpan)
@@ -941,11 +886,33 @@ internal sealed class SpectateHud : UIElement
         return slots;
     }
 
-    private static int GetVisibleColumns(int count) => Math.Clamp(count, MinCardsPerRow, MaxCardsPerRow);
-    private static int GetMaxVisibleCards(int columns) => columns * SpectateHudClientSettings.RowsVisible;
+    private static int GetVisibleColumns(int count)
+    {
+        if (count <= 0)
+            return MinCardsPerRow;
+
+        int max = SpectateHudClientSettings.EntityHudMode switch
+        {
+            EntityHudMode.Detailed => MaxDetailedCardsPerRow,
+            EntityHudMode.Head => MaxHeadCardsPerRow,
+            _ => MaxCardsPerRow
+        };
+
+        int min = Math.Min(count, MinCardsPerRow);
+        return Math.Clamp(count, min, max);
+    }
+    private static int GetMaxVisibleCards(int columns) => columns * GetMaxVisibleRows();
     private static int GetVisibleRows(int count) => GetVisibleRows(count, GetVisibleColumns(count));
-    private static int GetVisibleRows(int count, int columns) => Math.Max(1, Math.Min(SpectateHudClientSettings.RowsVisible, (count + columns - 1) / columns));
-    private static float GetGridWidth(int columns) => GetGridWidth(columns, GetCardWidth(), GetCardGap());
+    private static int GetVisibleRows(int count, int columns) => Math.Max(1, Math.Min(GetMaxVisibleRows(), (count + columns - 1) / columns));
+    private static float GetGridWidth() => GetRegularGridWidth();
+    private static float GetGridHostWidth() => GetRegularGridWidth() + GetCardGap() + 2f + GetScrollbarWidth();
+    private static float GetRegularGridWidth() => GetGridWidth(MaxCardsPerRow, GetRegularCardWidth(), GetCardGap());
+    private static float GetRegularCardWidth() => UIEntityCard<Player>.CardWidth * GetCardScale();
+    private static float GetRegularCardHeight() => UIEntityCard<Player>.DetailHeight * GetCardScale();
+    private static float GetDetailedCardWidth() => (GetRegularGridWidth() - (MaxDetailedCardsPerRow - 1) * GetCardGap()) / MaxDetailedCardsPerRow;
+    private static float GetHeadCardWidth() => (GetRegularGridWidth() - (MaxHeadCardsPerRow - 1) * GetCardGap()) / MaxHeadCardsPerRow;
+    private static float GetInlineDetailScale() => GetCardScale();
+    private static int GetMaxVisibleRows() => SpectateHudClientSettings.EffectiveRowsVisible;
     private static float GetGridWidth(int columns, float cardWidth, float cardGap) => columns * cardWidth + Math.Max(0, columns - 1) * cardGap;
     private static float GetGridHeight(int rows) => rows * GetCardHeight() + Math.Max(0, rows - 1) * GetCardGap();
     private static float GetGridContentHeight(int count) => GetGridHeight(GetVisibleRows(count)) + GetPlayerPanelPadding() * 2f;
@@ -960,15 +927,9 @@ internal sealed class SpectateHud : UIElement
         return GetTabHeight() + contentHeight;
     }
 
-    private static float GetGridPanelWidth(int count)
+    private static float GetGridPanelWidth(int _)
     {
-        int columns = GetVisibleColumns(count);
-        float contentWidth = GetGridWidth(columns);
-
-        if (count > GetMaxVisibleCards(columns))
-            contentWidth += GetCardGap() + GetScrollbarWidth();
-
-        return contentWidth + GetPlayerPanelPadding() * 2f;
+        return GetGridHostWidth() + GetPlayerPanelPadding() * 2f;
     }
     #endregion
 
