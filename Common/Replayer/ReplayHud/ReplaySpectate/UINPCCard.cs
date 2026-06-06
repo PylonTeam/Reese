@@ -1,92 +1,64 @@
-using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 using Reese.Core.Stats;
-using System;
-using System.Globalization;
-using Terraria.GameContent;
-using Terraria.GameContent.UI.Elements;
-using Terraria.ID;
-using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
-internal sealed class UINPCCard : UIPanel
+internal sealed class UINPCCard : UIEntityCard<NPC>
 {
-    public int NPCIndex { get; }
-    public int ListIndex { get; }
+    public int NPCIndex => EntityIndex;
 
-    private readonly float scale;
+    public UINPCCard(int npcIndex, int listIndex, float scale = 1f) : base(npcIndex, listIndex, scale) { }
 
-    public UINPCCard(int npcIndex, int listIndex, float scale = 1f)
+    protected override bool TryGetEntity(int index, out NPC npc)
     {
-        NPCIndex = npcIndex;
-        ListIndex = listIndex;
-        this.scale = scale;
-
-        SetPadding(0f);
+        npc = index >= 0 && index < Main.maxNPCs ? Main.npc[index] : null;
+        return npc?.active == true;
     }
 
-    protected override void DrawSelf(SpriteBatch sb)
+    protected override bool IsSelected(NPC npc)
     {
-        bool selected = IsValidNPC(NPCIndex) && SpectatorTargetSystem.IsLockedTargeting(Main.npc[NPCIndex]);
-        BackgroundColor = selected || !IsMouseHovering ? new Color(20, 27, 62) * 0.95f : new Color(47, 61, 125) * 0.55f;
-        BorderColor = selected ? Color.Yellow : IsMouseHovering ? Colors.FancyUIFatButtonMouseOver : Color.Black;
-        base.DrawSelf(sb);
-
-        if (!IsValidNPC(NPCIndex))
-            return;
-
-        NPC npc = Main.npc[NPCIndex];
-        Rectangle rect = GetDimensions().ToRectangle();
-        int shrink = (int)MathF.Round(6f * scale);
-        int textGap = (int)MathF.Round(1f * scale);
-        Rectangle content = new(rect.X + shrink, rect.Y + shrink, rect.Width - shrink * 2, rect.Height - shrink * 2);
-        bool showNPC = SpectateHudClientSettings.ShowPlayer;
-        bool showName = SpectateHudClientSettings.ShowPlayerName;
-        bool showDistance = SpectateHudClientSettings.ShowPlayerDistance;
-        int nameHeight = showName ? (int)MathF.Round(24f * scale) : 0;
-        int distanceHeight = showDistance ? (int)MathF.Round(22f * scale) : 0;
-        int y = content.Y;
-
-        if (showNPC)
-        {
-            int previewHeight = Math.Max(0, content.Height - nameHeight - distanceHeight - (showName || showDistance ? textGap : 0));
-            Rectangle preview = new(content.X, y, content.Width, previewHeight);
-            EntityDrawer.DrawEntityBackground(sb, preview);
-            EntityDrawer.DrawNPCPreview(sb, npc, preview);
-            y = preview.Bottom + (showName || showDistance ? textGap : 0);
-        }
-
-        if (showName)
-        {
-            Rectangle name = new(content.X, y, content.Width, nameHeight);
-            DrawCenteredText(sb, StatDrawer.Truncate(FontAssets.MouseText.Value, npc.FullName, name.Width, 0.95f * scale), name, 1.1f * scale, Color.White);
-            y = name.Bottom;
-        }
-
-        if (showDistance)
-        {
-            Rectangle distance = new(content.X, y, content.Width, distanceHeight);
-            DrawCenteredText(sb, GetDistanceText(npc), distance, 0.9f * scale, Color.LightGray);
-        }
+        return SpectatorTargetSystem.IsLockedTargeting(npc);
     }
 
-    internal static string GetDistanceText(NPC npc)
+    protected override string GetDisplayName(NPC npc)
     {
-        Player local = Main.LocalPlayer;
-        float feet = local?.active == true ? Vector2.Distance(local.Center, npc.Center) / 8f : 0f;
-        return $"({feet.ToString("F0", CultureInfo.InvariantCulture)} ft)";
+        return npc.FullName;
+    }
+
+    protected override Color GetTextColor(NPC npc)
+    {
+        return Color.White;
+    }
+
+    protected override Color GetDistanceColor(NPC npc)
+    {
+        return Color.LightGray;
+    }
+
+    protected override void DrawPreview(SpriteBatch sb, NPC npc, Rectangle area)
+    {
+        EntityDrawer.DrawNPCPreview(sb, npc, area);
+    }
+
+    protected override void DrawHeadIcon(SpriteBatch sb, NPC npc, Rectangle area)
+    {
+        EntityDrawer.DrawEntityBackground(sb, area);
+        EntityDrawer.DrawNPCPreview(sb, npc, area);
+    }
+
+    protected override void DrawStats(SpriteBatch sb, NPC npc, Rectangle stat, int statGap, float scale)
+    {
+        StatDrawer.DrawNPCStat(sb, stat, NPCStats.Life(npc), scale);
+        stat = NextStat(stat, statGap);
+
+        StatDrawer.DrawNPCStat(sb, stat, NPCStats.Damage(npc), scale);
+        stat = NextStat(stat, statGap);
+
+        StatDrawer.DrawNPCStat(sb, stat, NPCStats.Defense(npc), scale);
     }
 
     internal static bool IsValidNPC(int npcIndex)
     {
         return npcIndex >= 0 && npcIndex < Main.maxNPCs && Main.npc[npcIndex]?.active == true;
-    }
-
-    private static void DrawCenteredText(SpriteBatch sb, string text, Rectangle area, float scale, Color color)
-    {
-        Vector2 size = FontAssets.MouseText.Value.MeasureString(text) * scale;
-        Vector2 position = new(area.X + (area.Width - size.X) * 0.5f, area.Y + (area.Height - size.Y) * 0.5f + 3f * scale);
-        Utils.DrawBorderString(sb, text, position, color, scale);
     }
 }

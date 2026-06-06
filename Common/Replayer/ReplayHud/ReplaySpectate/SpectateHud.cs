@@ -199,88 +199,24 @@ internal sealed class SpectateHud : UIElement
         contentPanel.RemoveAllChildren();
         targetGrid = null;
 
-        float scale = GetScale();
-        float cardScale = scale * playerCardScale;
+        float cardScale = GetScale() * playerCardScale;
 
         switch (currentTab?.Tab)
         {
             case SpectatorTab.Players:
-                if (playerTargets.Count == 0)
-                {
-                    contentPanel.Append(new UIText("No players are available\n to spectate.", 0.9f)
-                    {
-                        HAlign = 0.5f,
-                        VAlign = 0.5f,
-                        TextColor = Color.LightGray
-                    });
-
-                    return;
-                }
-
-                BuildEntityGrid(playerTargets.Count, i =>
-                {
-                    int playerIndex = playerTargets[i];
-                    UIElement item = BuildPlayerItem(playerIndex, i, cardScale);
-                    item.OnLeftClick += (evt, _) =>
-                    {
-                        if (evt.Target != item || !IsMouseInTargetGridViewport())
-                            return;
-
-                        SpectatorTargetSystem.TogglePlayerTarget(playerIndex);
-                        if (TeammateHudOverlay.IsAnyOpen)
-                            TeammateHudOverlay.Open(playerIndex);
-                        UpdateTarget();
-                    };
-
-                    return item;
-                }, GetPlayerItemSpan, GetPlayerItemWidth);
+                BuildTargetContent(
+                    playerTargets,
+                    "No players are available\n to spectate.",
+                    (playerIndex, listIndex) => new UIPlayerCard(playerIndex, listIndex, GetEntityCardScale(cardScale)),
+                    TogglePlayerTarget);
                 return;
 
             case SpectatorTab.NPCs:
-                if (npcTargets.Count == 0)
-                {
-                    contentPanel.Append(new UIText("No NPCs are available\n to spectate.", 0.9f)
-                    {
-                        HAlign = 0.5f,
-                        VAlign = 0.5f,
-                        TextColor = Color.LightGray
-                    });
-
-                    return;
-                }
-
-                int npcDetailIndex = npcTargets.IndexOf(lockedNpc);
-                BuildEntityGrid(npcTargets.Count, i =>
-                {
-                    int npcIndex = npcTargets[i];
-
-                    if (npcIndex == lockedNpc)
-                    {
-                        UINPCDetailPanel detail = new(npcIndex, GetInlineDetailScale());
-                        detail.OnLeftClick += (evt, _) =>
-                        {
-                            if (evt.Target != detail || !IsMouseInTargetGridViewport())
-                                return;
-
-                            SpectatorTargetSystem.ToggleNPCTarget(npcIndex);
-                            UpdateTarget();
-                        };
-
-                        return detail;
-                    }
-
-                    UINPCCard card = new(npcIndex, i, cardScale);
-                    card.OnLeftClick += (evt, _) =>
-                    {
-                        if (evt.Target != card || !IsMouseInTargetGridViewport())
-                            return;
-
-                        SpectatorTargetSystem.ToggleNPCTarget(npcIndex);
-                        UpdateTarget();
-                    };
-
-                    return card;
-                }, i => i == npcDetailIndex ? 2 : 1, i => i == npcDetailIndex ? GetInlineDetailWidth() : GetCardWidth());
+                BuildTargetContent(
+                    npcTargets,
+                    "No NPCs are available\n to spectate.",
+                    (npcIndex, listIndex) => new UINPCCard(npcIndex, listIndex, GetEntityCardScale(cardScale)),
+                    ToggleNpcTarget);
                 return;
 
             default:
@@ -289,24 +225,64 @@ internal sealed class SpectateHud : UIElement
         }
     }
 
-    private static UIElement BuildPlayerItem(int playerIndex, int listIndex, float cardScale)
+    private void BuildTargetContent(List<int> targets, string emptyText, Func<int, int, UIElement> buildItem, Action<int> toggleTarget)
     {
-        return SpectateHudClientSettings.PlayerHudMode switch
+        if (targets.Count == 0)
         {
-            PlayerHudMode.Head => new UIPlayerHeadCard(playerIndex, listIndex, cardScale),
-            PlayerHudMode.Detailed => new UIPlayerDetailPanel(playerIndex, GetInlineDetailScale()),
-            _ => new UIPlayerCard(playerIndex, listIndex, cardScale)
-        };
+            contentPanel.Append(new UIText(emptyText, 0.9f)
+            {
+                HAlign = 0.5f,
+                VAlign = 0.5f,
+                TextColor = Color.LightGray
+            });
+
+            return;
+        }
+
+        BuildEntityGrid(targets.Count, i =>
+        {
+            int target = targets[i];
+            UIElement item = buildItem(target, i);
+
+            item.OnLeftClick += (evt, _) =>
+            {
+                if (evt.Target != item || !IsMouseInTargetGridViewport())
+                    return;
+
+                toggleTarget(target);
+                UpdateTarget();
+            };
+
+            return item;
+        }, GetEntityItemSpan, GetEntityItemWidth);
     }
 
-    private static int GetPlayerItemSpan(int _)
+    private void TogglePlayerTarget(int playerIndex)
     {
-        return SpectateHudClientSettings.PlayerHudMode == PlayerHudMode.Detailed ? 2 : 1;
+        SpectatorTargetSystem.TogglePlayerTarget(playerIndex);
+
+        if (TeammateHudOverlay.IsAnyOpen)
+            TeammateHudOverlay.Open(playerIndex);
     }
 
-    private static float GetPlayerItemWidth(int _)
+    private static void ToggleNpcTarget(int npcIndex)
     {
-        return SpectateHudClientSettings.PlayerHudMode == PlayerHudMode.Detailed ? GetInlineDetailWidth() : GetCardWidth();
+        SpectatorTargetSystem.ToggleNPCTarget(npcIndex);
+    }
+
+    private static float GetEntityCardScale(float cardScale)
+    {
+        return SpectateHudClientSettings.EntityHudMode == EntityHudMode.Detailed ? GetInlineDetailScale() : cardScale;
+    }
+
+    private static int GetEntityItemSpan(int _)
+    {
+        return SpectateHudClientSettings.EntityHudMode == EntityHudMode.Detailed ? 2 : 1;
+    }
+
+    private static float GetEntityItemWidth(int _)
+    {
+        return SpectateHudClientSettings.EntityHudMode == EntityHudMode.Detailed ? GetInlineDetailWidth() : GetCardWidth();
     }
 
     private void BuildEntityGrid(int targetCount, Func<int, UIElement> buildItem, Func<int, int> getSpan = null, Func<int, float> getWidth = null)
@@ -497,14 +473,8 @@ internal sealed class SpectateHud : UIElement
 
     private static int GetHoveredSlot(UIElement element)
     {
-        if (element is UIPlayerCard slot && slot.ContainsPoint(Main.MouseScreen))
-            return slot.PlayerIndex;
-
-        if (element is UIPlayerHeadCard head && head.ContainsPoint(Main.MouseScreen))
-            return head.PlayerIndex;
-
-        if (element is UIPlayerDetailPanel detail && detail.ContainsPoint(Main.MouseScreen))
-            return detail.PlayerIndex;
+        if (element is UIPlayerCard card && card.ContainsPoint(Main.MouseScreen))
+            return card.PlayerIndex;
 
         if (elementsField?.GetValue(element) is not List<UIElement> children)
             return -1;
@@ -728,12 +698,6 @@ internal sealed class SpectateHud : UIElement
         if (element is UIPlayerCard card && card.PlayerIndex == playerIndex)
             return true;
 
-        if (element is UIPlayerHeadCard head && head.PlayerIndex == playerIndex)
-            return true;
-
-        if (element is UIPlayerDetailPanel detail && detail.PlayerIndex == playerIndex)
-            return true;
-
         if (elementsField?.GetValue(element) is not List<UIElement> children)
             return false;
 
@@ -749,9 +713,6 @@ internal sealed class SpectateHud : UIElement
     private static bool ContainsNpcCard(UIElement element, int npcIndex)
     {
         if (element is UINPCCard card && card.NPCIndex == npcIndex)
-            return true;
-
-        if (element is UINPCDetailPanel detail && detail.NPCIndex == npcIndex)
             return true;
 
         if (elementsField?.GetValue(element) is not List<UIElement> children)
@@ -929,9 +890,8 @@ internal sealed class SpectateHud : UIElement
 
     private int GetActiveSlotCount(List<int> playerTargets, List<int> npcTargets)
     {
-        return currentTab?.Tab == SpectatorTab.NPCs
-            ? GetSlotCount(npcTargets.Count, i => i == npcTargets.IndexOf(lockedNpc) ? 2 : 1)
-            : GetSlotCount(playerTargets.Count, GetPlayerItemSpan);
+        int count = currentTab?.Tab == SpectatorTab.NPCs ? npcTargets.Count : playerTargets.Count;
+        return GetSlotCount(count, GetEntityItemSpan);
     }
     #endregion
 
@@ -941,16 +901,36 @@ internal sealed class SpectateHud : UIElement
     private static float GetTabHeight() => TabHeight;
     private static float GetPlayerPanelPadding() => 10f * GetScale();
     private static float GetCardGap() => 6f * GetScale();
-    private static float GetScrollbarWidth() => 20;
+    private static float GetScrollbarWidth() => 20f;
     private static float GetCardScale() => GetScale() * GetPlayerCardScale();
-    private static float GetCardWidth() => UIPlayerCard.CardWidth * GetCardScale();
-    private static float GetInlineDetailWidth() => GetCardWidth() * 2f;
-    private static float GetInlineDetailScale() => GetCardHeight() / UIPlayerCard.DetailHeight;
+
+    private static float GetCardWidth()
+    {
+        return UIPlayerCard.CardWidth * GetCardScale();
+    }
+
     private static float GetCardHeight()
     {
-        float scale = GetCardScale();
-        return Math.Max(34f * scale, (12f + 90f + 24f + 22f + 1f) * scale);
+        return GetEntityModeBaseHeight() * GetCardScale();
     }
+
+    private static float GetInlineDetailWidth()
+    {
+        return GetCardWidth() * 2f + GetCardGap();
+    }
+
+    private static float GetInlineDetailScale()
+    {
+        return GetCardScale();
+    }
+
+    private static float GetEntityModeBaseHeight()
+    {
+        return SpectateHudClientSettings.EntityHudMode == EntityHudMode.Head
+            ? UIPlayerCard.CompactCardHeight
+            : UIPlayerCard.DetailHeight;
+    }
+
     private static int GetSlotCount(int count, Func<int, int> getSpan)
     {
         int slots = 0;
@@ -960,6 +940,7 @@ internal sealed class SpectateHud : UIElement
 
         return slots;
     }
+
     private static int GetVisibleColumns(int count) => Math.Clamp(count, MinCardsPerRow, MaxCardsPerRow);
     private static int GetMaxVisibleCards(int columns) => columns * SpectateHudClientSettings.RowsVisible;
     private static int GetVisibleRows(int count) => GetVisibleRows(count, GetVisibleColumns(count));
@@ -970,10 +951,14 @@ internal sealed class SpectateHud : UIElement
     private static float GetGridContentHeight(int count) => GetGridHeight(GetVisibleRows(count)) + GetPlayerPanelPadding() * 2f;
 
     private float GetActiveContentHeight()
-        => GetGridContentHeight(GetActiveSlotCount(GetPlayerTargets(), GetNpcTargets()));
+    {
+        return GetGridContentHeight(GetActiveSlotCount(GetPlayerTargets(), GetNpcTargets()));
+    }
 
     private static float GetPanelHeight(float contentHeight)
-        => GetTabHeight() + contentHeight;
+    {
+        return GetTabHeight() + contentHeight;
+    }
 
     private static float GetGridPanelWidth(int count)
     {

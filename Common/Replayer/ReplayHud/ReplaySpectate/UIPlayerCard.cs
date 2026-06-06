@@ -1,108 +1,80 @@
-﻿using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
+﻿using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 using Reese.Core.Stats;
 using ReLogic.Content;
 using System;
-using System.Globalization;
 using Terraria.GameContent;
-using Terraria.GameContent.UI.Elements;
-using Terraria.ID;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
-internal sealed class UIPlayerCard : UIPanel
+internal sealed class UIPlayerCard : UIEntityCard<Player>
 {
-    internal static int CardWidth => 150;
-    internal static int DetailHeight => 65 * 2; // biome BG is 65 height default
+    internal static int CardWidth => UIEntityCard<Player>.CardWidth;
+    internal static int DetailHeight => UIEntityCard<Player>.DetailHeight;
+    internal static int CompactCardHeight => UIEntityCard<Player>.CompactCardHeight;
 
-    public int PlayerIndex { get; }
-    public int ListIndex { get; }
+    public int PlayerIndex => EntityIndex;
 
-    private readonly float scale;
-
-    public UIPlayerCard(int playerIndex, int listIndex, float scale = 1f)
+    public UIPlayerCard(int playerIndex, int listIndex, float scale = 1f) : base(playerIndex, listIndex, scale)
     {
-        PlayerIndex = playerIndex;
-        ListIndex = listIndex;
-        this.scale = scale;
+        if (SpectateHudClientSettings.EntityHudMode != EntityHudMode.Detailed)
+            return;
 
-        SetPadding(0f);
+        float buttonSize = 32f * scale;
+        AddActionButtons(this, playerIndex, scale, 5f * scale, DetailHeight * scale - 5f * scale - buttonSize);
     }
 
-    protected override void DrawSelf(SpriteBatch sb)
+    protected override bool TryGetEntity(int index, out Player player)
     {
-        // Update border and background color if this player card is selected
-        bool isSelected = PlayerIndex >= 0 &&
-            PlayerIndex < Main.maxPlayers &&
-            Main.player[PlayerIndex]?.active == true &&
-            SpectatorTargetSystem.IsLockedTargeting(Main.player[PlayerIndex]);
+        player = index >= 0 && index < Main.maxPlayers ? Main.player[index] : null;
+        return player?.active == true;
+    }
 
-        if (isSelected)
-        {
-            BackgroundColor = new Color(20, 27, 62) * 0.95f;
-            BorderColor = Color.Yellow;
-        }
-        else if (IsMouseHovering)
-        {
-            BackgroundColor = new Color(47, 61, 125) * 0.55f;
-            BorderColor = Colors.FancyUIFatButtonMouseOver;
-        }
-        else
-        {
-            //BackgroundColor = new Color(63, 82, 151) * 0.45f;
-            BackgroundColor = new Color(20, 27, 62) * 0.95f;
-            //BorderColor = new Color(116, 154, 255) * 0.75f;
-            BorderColor = Color.Black;
-        }
+    protected override bool IsSelected(Player player)
+    {
+        return SpectatorTargetSystem.IsLockedTargeting(player);
+    }
 
-        base.DrawSelf(sb);
+    protected override string GetDisplayName(Player player)
+    {
+        return PlayerIndex == Main.myPlayer ? "You" : player.name;
+    }
 
-        // Null checks
-        if (PlayerIndex is < 0 or >= Main.maxPlayers)
-            return;
+    protected override Color GetTextColor(Player player)
+    {
+        return GetPlayerTextColor(player);
+    }
 
-        Player player = Main.player[PlayerIndex];
+    protected override float GetFullNameScale()
+    {
+        return 1.2f;
+    }
 
-        if (player is null || !player.active)
-            return;
+    protected override void DrawPreview(SpriteBatch sb, Player player, Rectangle area)
+    {
+        EntityDrawer.DrawPlayerCardPreview(sb, player, area);
+    }
 
-        Rectangle rect = GetDimensions().ToRectangle();
+    protected override void DrawHeadIcon(SpriteBatch sb, Player player, Rectangle area)
+    {
+        EntityDrawer.DrawPlayerHead(sb, player, area.Center.ToVector2(), Math.Min(area.Width, area.Height) / 42f);
+    }
 
-        if (rect.Width <= 0 || rect.Height <= 0)
-            return;
+    protected override void DrawStats(SpriteBatch sb, Player player, Rectangle stat, int statGap, float scale)
+    {
+        StatDrawer.DrawPlayerStat(sb, stat, PlayerStats.Life(player), scale);
+        stat = NextStat(stat, statGap);
 
-        // Layout
-        int shrink = (int)MathF.Round(6f * scale);
-        int textGap = (int)MathF.Round(1f * scale);
-        Rectangle contentRect = new(rect.X + shrink, rect.Y + shrink, rect.Width - shrink * 2, rect.Height - shrink * 2);
-        int nameHeight = (int)MathF.Round(24f * scale);
-        int distanceHeight = (int)MathF.Round(22f * scale);
-        int y = contentRect.Y;
+        StatDrawer.DrawPlayerStat(sb, stat, PlayerStats.Mana(player), scale);
+        stat = NextStat(stat, statGap);
 
-        int previewHeight = Math.Max(0, contentRect.Height - nameHeight - distanceHeight - textGap);
-        Rectangle playerPreviewRect = new(contentRect.X, y, contentRect.Width, previewHeight);
-        EntityDrawer.DrawEntityBackground(sb, playerPreviewRect);
-        EntityDrawer.DrawPlayerCardPreview(sb, player, playerPreviewRect);
-        y = playerPreviewRect.Bottom + textGap;
-
-        Color textColor = GetPlayerTextColor(player);
-
-        Rectangle nameRect = new(contentRect.X, y, contentRect.Width, nameHeight);
-        string name = PlayerIndex == Main.myPlayer ? "You" : player.name;
-        DrawCenteredText(sb, StatDrawer.Truncate(FontAssets.MouseText.Value, name, nameRect.Width, 0.95f * scale), nameRect, 1.2f * scale, textColor);
-        y = nameRect.Bottom;
-
-        Rectangle distanceRect = new(contentRect.X, y, contentRect.Width, distanceHeight);
-        DrawCenteredText(sb, GetDistanceText(player), distanceRect, 0.9f * scale, textColor);
+        StatDrawer.DrawPlayerStat(sb, stat, PlayerStats.Biome(player), scale);
     }
 
     internal static string GetDistanceText(Player player)
     {
-        Player local = Main.LocalPlayer;
-        float feet = local?.active == true ? Vector2.Distance(local.Center, player.Center) / 8f : 0f;
-        return $"({feet.ToString("F0", CultureInfo.InvariantCulture)} ft)";
+        return UIEntityCard<Player>.GetDistanceText(player);
     }
 
     internal static Color GetPlayerTextColor(Player player)
@@ -112,9 +84,12 @@ internal sealed class UIPlayerCard : UIPanel
 
     internal static void DrawCenteredText(SpriteBatch sb, string text, Rectangle area, float scale, Color color)
     {
-        Vector2 size = FontAssets.MouseText.Value.MeasureString(text) * scale;
-        Vector2 position = new(area.X + (area.Width - size.X) * 0.5f, area.Y + (area.Height - size.Y) * 0.5f + 3f * scale);
-        Utils.DrawBorderString(sb, text, position, color, scale);
+        UIEntityCard<Player>.DrawCenteredText(sb, text, area, scale, color);
+    }
+
+    internal static bool IsValidPlayer(int playerIndex)
+    {
+        return playerIndex >= 0 && playerIndex < Main.maxPlayers && Main.player[playerIndex]?.active == true;
     }
 
     #region Action buttons
@@ -126,6 +101,7 @@ internal sealed class UIPlayerCard : UIPanel
         Action<int> Click,
         Func<int, bool> Selected
     );
+
     private static PlayerCardAction[] GetPlayerCardActions()
     {
         return
@@ -137,7 +113,7 @@ internal sealed class UIPlayerCard : UIPanel
                 "Close inventory",
                 TeammateHudOverlay.Toggle,
                 TeammateHudOverlay.IsOpen)
-            ];
+        ];
     }
 
     internal static void AddActionButtons(UIElement parent, int playerIndex, float scale, float left, float top)
@@ -188,32 +164,32 @@ internal sealed class UIPlayerCard : UIPanel
         {
             base.Update(gameTime);
 
-            if (IsMouseHovering)
-            {
-                Main.LocalPlayer.mouseInterface = true;
-                Main.instance.MouseText(IsSelected() ? action.SelectedHoverText : action.HoverText);
-            }
+            if (!IsMouseHovering)
+                return;
+
+            Main.LocalPlayer.mouseInterface = true;
+            Main.instance.MouseText(IsSelected() ? action.SelectedHoverText : action.HoverText);
         }
 
         protected override void DrawSelf(SpriteBatch sb)
         {
             Rectangle box = GetDimensions().ToRectangle();
-            bool isSelected = IsSelected();
+            bool selected = IsSelected();
 
-            Texture2D background = isSelected
+            Texture2D background = selected
                 ? TextureAssets.InventoryBack14.Value
                 : IsMouseHovering
                     ? TextureAssets.InventoryBack7.Value
                     : TextureAssets.InventoryBack.Value;
 
-            Asset<Texture2D> iconAsset = isSelected && action.SelectedIcon is not null ? action.SelectedIcon : action.Icon;
+            Asset<Texture2D> iconAsset = selected && action.SelectedIcon is not null ? action.SelectedIcon : action.Icon;
 
             if (iconAsset is null)
                 return;
 
             Texture2D icon = iconAsset.Value;
             float scale = Math.Min((box.Width - 8f) / icon.Width, (box.Height - 8f) / icon.Height);
-            Color color = isSelected || IsMouseHovering ? Color.White : Color.White * 0.8f;
+            Color color = selected || IsMouseHovering ? Color.White : Color.White * 0.8f;
 
             sb.Draw(background, box, Color.White * 0.85f);
             sb.Draw(icon, box.Center.ToVector2(), null, color, 0f, icon.Size() * 0.5f, Math.Min(1f, scale), SpriteEffects.None, 0f);
@@ -229,6 +205,5 @@ internal sealed class UIPlayerCard : UIPanel
             return playerIndex >= 0 && playerIndex < Main.maxPlayers && Main.player[playerIndex]?.active == true;
         }
     }
-
     #endregion
 }

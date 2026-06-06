@@ -1,4 +1,3 @@
-using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.Replayer.GhostHooks;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Common.Replayer.ReplayHud.Shared.Sections;
@@ -15,6 +14,7 @@ namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
 
 internal sealed class SettingsTab : TabPage
 {
+    protected override float ScrollbarHeight => -36f;
     public override SpectatorTab Tab => SpectatorTab.Settings;
     public override string HeaderText => "Settings";
     public override string TooltipText => "Fine-tune your experience";
@@ -39,7 +39,7 @@ internal sealed class SettingsTab : TabPage
     private sealed class GhostSettings : SettingsSection
     {
         public override string HeaderText => "Visualization";
-        public override float Height => 196f;
+        public override float Height => 80+26*4;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
@@ -271,7 +271,7 @@ internal sealed class SettingsTab : TabPage
                 new("Show Spectate HUD:", () => $"Show Spectate HUD: {OnOff(ReplayClientSettings.ShowSpectateHud)}", () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowSpectateHud),
                 new("Rows Visible:", () => $"Rows Visible: {SpectateHudClientSettings.RowsVisible}", () => Ass.IconResize.Value, onLeftClick: SpectateHudClientSettings.CycleRowsVisible),
                 new("Sort By:", () => $"Sort By: {SpectateHudClientSettings.SortModeDisplayName}", () => Ass.IconRefresh.Value, onLeftClick: SpectateHudClientSettings.CycleSortMode),
-                new("Show Player:", () => $"Show Player: {SpectateHudClientSettings.PlayerHudModeDisplayName}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.CyclePlayerHudMode, iconScale: 0.8f),
+                new("Show Player:", () => $"Show Player: {SpectateHudClientSettings.EntityHudModeDisplayName}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.CycleEntityHudMode, iconScale: 0.8f),
                 //new("Show Player:", () => $"Show Player: {OnOff(SpectateHudClientSettings.ShowPlayer)}", () => Ass.IconPlayer.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayer, iconScale: 1.5f),
                 //new("Show Name/Distance:", () => $"Show Name/Distance: {OnOff(SpectateHudClientSettings.ShowPlayerNameAndDistance)}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerNameAndDistance, iconScale: 0.8f),
                 //new("Show Description:", () => $"Show Description: {OnOff(SpectateHudClientSettings.ShowDescription)}", () => Ass.IconEye.Value, onLeftClick: SpectateHudClientSettings.ToggleShowDescription)
@@ -282,7 +282,7 @@ internal sealed class SettingsTab : TabPage
     private sealed class ReplayHudSettingsSection : SettingsSection
     {
         public override string HeaderText => "Replay HUD";
-        public override float Height => 80+26*2f;
+        public override float Height => 112f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {

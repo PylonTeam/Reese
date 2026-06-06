@@ -9,7 +9,7 @@ internal enum SpectateHudSortMode
     Teams,
 }
 
-internal enum PlayerHudMode
+internal enum EntityHudMode
 {
     Full,
     Head,
@@ -21,8 +21,8 @@ internal static class SpectateHudClientSettings
     public static int RowsVisible { get; private set; } = 2;
     public static SpectateHudSortMode SortMode { get; private set; } = SpectateHudSortMode.Teams;
     public static string SortModeDisplayName => GetSortModeDisplayName(SortMode);
-    public static PlayerHudMode PlayerHudMode { get; private set; } = PlayerHudMode.Full;
-    public static string PlayerHudModeDisplayName => GetPlayerHudModeDisplayName(PlayerHudMode);
+    public static EntityHudMode EntityHudMode { get; private set; } = EntityHudMode.Full;
+    public static string EntityHudModeDisplayName => EntityHudMode.ToString();
     public static bool ShowPlayer { get; private set; } = true;
     public static bool ShowPlayerNameAndDistance { get; private set; } = true;
     public static bool ShowPlayerName => ShowPlayerNameAndDistance;
@@ -50,16 +50,16 @@ internal static class SpectateHudClientSettings
         Touch();
     }
 
-    public static void CyclePlayerHudMode()
+    public static void CycleEntityHudMode()
     {
-        PlayerHudMode = PlayerHudMode switch
+        EntityHudMode = EntityHudMode switch
         {
-            PlayerHudMode.Full => PlayerHudMode.Head,
-            PlayerHudMode.Head => PlayerHudMode.Detailed,
-            _ => PlayerHudMode.Full
+            EntityHudMode.Full => EntityHudMode.Head,
+            EntityHudMode.Head => EntityHudMode.Detailed,
+            _ => EntityHudMode.Full
         };
 
-        Touch();
+        Revision++;
     }
 
     public static void ToggleShowPlayer() { ShowPlayer = !ShowPlayer; Touch(); }
@@ -79,16 +79,16 @@ internal static class SpectateHudClientSettings
         };
     }
 
-    private static string GetPlayerHudModeDisplayName(PlayerHudMode mode)
-    {
-        return mode switch
-        {
-            PlayerHudMode.Full => "Full",
-            PlayerHudMode.Head => "Head",
-            PlayerHudMode.Detailed => "Detailed",
-            _ => "Full"
-        };
-    }
+    //private static string GetEntityHudModeDisplayName(EntityHudMode mode)
+    //{
+    //    return mode switch
+    //    {
+    //        EntityHudMode.Full => "Full",
+    //        EntityHudMode.Head => "Head",
+    //        EntityHudMode.Detailed => "Detailed",
+    //        _ => "Full"
+    //    };
+    //}
 
     private static void Touch()
     {

@@ -99,7 +99,7 @@ internal sealed class UISpectatorSectionElement : UIPanel
 
             if (row.Slider.HasValue)
             {
-                SliderRowConfig config = row.Slider.Value;
+                SliderRowConfig sliderRowConfig = row.Slider.Value;
 
                 sliderElement = new Slider
                 {
@@ -110,9 +110,9 @@ internal sealed class UISpectatorSectionElement : UIPanel
                 };
 
                 sliderElement.Width.Set(SliderWidth, 0f);
-                sliderElement.SetRatio(config.GetRatio());
-                sliderElement.OnDrag += config.SetRatio;
-                sliderElement.OnRelease += config.SetRatio;
+                sliderElement.SetRatio(sliderRowConfig.GetRatio());
+                sliderElement.OnDrag += sliderRowConfig.SetRatio;
+                sliderElement.OnRelease += sliderRowConfig.SetRatio;
 
                 Append(sliderElement);
             }
