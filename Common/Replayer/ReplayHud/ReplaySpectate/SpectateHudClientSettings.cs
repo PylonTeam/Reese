@@ -2,10 +2,11 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
 internal enum SpectateHudSortMode
 {
-    Teams,
-    Id,
     Alphabetical,
-    Distance
+    Distance,
+    Health,
+    Id,
+    Teams,
 }
 
 internal static class SpectateHudClientSettings
@@ -30,10 +31,11 @@ internal static class SpectateHudClientSettings
     {
         SortMode = SortMode switch
         {
-            SpectateHudSortMode.Teams => SpectateHudSortMode.Id,
-            SpectateHudSortMode.Id => SpectateHudSortMode.Alphabetical,
             SpectateHudSortMode.Alphabetical => SpectateHudSortMode.Distance,
-            _ => SpectateHudSortMode.Teams
+            SpectateHudSortMode.Distance => SpectateHudSortMode.Health,
+            SpectateHudSortMode.Health => SpectateHudSortMode.Id,
+            SpectateHudSortMode.Id => SpectateHudSortMode.Teams,
+            _ => SpectateHudSortMode.Alphabetical
         };
 
         Touch();
@@ -47,10 +49,11 @@ internal static class SpectateHudClientSettings
     {
         return sortMode switch
         {
-            SpectateHudSortMode.Teams => "Teams",
-            SpectateHudSortMode.Id => "ID",
             SpectateHudSortMode.Alphabetical => "Alphabetical",
             SpectateHudSortMode.Distance => "Distance",
+            SpectateHudSortMode.Health => "Health",
+            SpectateHudSortMode.Id => "ID",
+            SpectateHudSortMode.Teams => "Teams",
             _ => "Teams"
         };
     }

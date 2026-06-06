@@ -835,6 +835,7 @@ internal sealed class SpectateHud : UIElement
             SpectateHudSortMode.Id => ComparePlayerTargetsById,
             SpectateHudSortMode.Alphabetical => ComparePlayerTargetsByName,
             SpectateHudSortMode.Distance => ComparePlayerTargetsByDistance,
+            SpectateHudSortMode.Health => ComparePlayerTargetsByHealth,
             _ => ComparePlayerTargetsByTeam
         });
     }
@@ -864,6 +865,12 @@ internal sealed class SpectateHud : UIElement
         return result != 0 ? result : ComparePlayerTargetsById(left, right);
     }
 
+    private static int ComparePlayerTargetsByHealth(int left, int right)
+    {
+        int result = GetHealthSortKey(left).CompareTo(GetHealthSortKey(right));
+        return result != 0 ? result : ComparePlayerTargetsById(left, right);
+    }
+
     private static int GetTeamSortKey(int playerIndex)
     {
         Player player = Main.player[playerIndex];
@@ -880,6 +887,12 @@ internal sealed class SpectateHud : UIElement
             return float.MaxValue;
 
         return Vector2.DistanceSquared(local.Center, player.Center);
+    }
+
+    private static int GetHealthSortKey(int playerIndex)
+    {
+        Player player = Main.player[playerIndex];
+        return player?.active == true ? Math.Max(0, player.statLife) : int.MaxValue;
     }
 
     private static List<int> GetNpcTargets()
