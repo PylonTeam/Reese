@@ -9,11 +9,20 @@ internal enum SpectateHudSortMode
     Teams,
 }
 
+internal enum PlayerHudMode
+{
+    Full,
+    Head,
+    Detailed,
+}
+
 internal static class SpectateHudClientSettings
 {
     public static int RowsVisible { get; private set; } = 2;
     public static SpectateHudSortMode SortMode { get; private set; } = SpectateHudSortMode.Teams;
     public static string SortModeDisplayName => GetSortModeDisplayName(SortMode);
+    public static PlayerHudMode PlayerHudMode { get; private set; } = PlayerHudMode.Full;
+    public static string PlayerHudModeDisplayName => GetPlayerHudModeDisplayName(PlayerHudMode);
     public static bool ShowPlayer { get; private set; } = true;
     public static bool ShowPlayerNameAndDistance { get; private set; } = true;
     public static bool ShowPlayerName => ShowPlayerNameAndDistance;
@@ -41,6 +50,18 @@ internal static class SpectateHudClientSettings
         Touch();
     }
 
+    public static void CyclePlayerHudMode()
+    {
+        PlayerHudMode = PlayerHudMode switch
+        {
+            PlayerHudMode.Full => PlayerHudMode.Head,
+            PlayerHudMode.Head => PlayerHudMode.Detailed,
+            _ => PlayerHudMode.Full
+        };
+
+        Touch();
+    }
+
     public static void ToggleShowPlayer() { ShowPlayer = !ShowPlayer; Touch(); }
     public static void ToggleShowPlayerNameAndDistance() { ShowPlayerNameAndDistance = !ShowPlayerNameAndDistance; Touch(); }
     public static void ToggleShowDescription() { ShowDescription = !ShowDescription; Touch(); }
@@ -55,6 +76,17 @@ internal static class SpectateHudClientSettings
             SpectateHudSortMode.Id => "ID",
             SpectateHudSortMode.Teams => "Teams",
             _ => "Teams"
+        };
+    }
+
+    private static string GetPlayerHudModeDisplayName(PlayerHudMode mode)
+    {
+        return mode switch
+        {
+            PlayerHudMode.Full => "Full",
+            PlayerHudMode.Head => "Head",
+            PlayerHudMode.Detailed => "Detailed",
+            _ => "Full"
         };
     }
 

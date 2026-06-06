@@ -4,6 +4,7 @@ using Reese.Core.Stats;
 using System;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
+using Terraria.ID;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
@@ -26,7 +27,9 @@ internal sealed class UIPlayerDetailPanel : UIPanel
     protected override void DrawSelf(SpriteBatch sb)
     {
         BackgroundColor = new Color(20, 27, 62) * 0.95f;
-        BorderColor = Color.Yellow;
+        BorderColor = PlayerIndex >= 0 && PlayerIndex < Main.maxPlayers && Main.player[PlayerIndex]?.active == true && SpectatorTargetSystem.IsLockedTargeting(Main.player[PlayerIndex])
+            ? Color.Yellow
+            : IsMouseHovering ? Colors.FancyUIFatButtonMouseOver : Color.Black;
         base.DrawSelf(sb);
 
         if (PlayerIndex is < 0 or >= Main.maxPlayers || Main.player[PlayerIndex]?.active != true)

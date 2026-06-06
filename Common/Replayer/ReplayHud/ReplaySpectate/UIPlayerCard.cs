@@ -77,37 +77,25 @@ internal sealed class UIPlayerCard : UIPanel
         int shrink = (int)MathF.Round(6f * scale);
         int textGap = (int)MathF.Round(1f * scale);
         Rectangle contentRect = new(rect.X + shrink, rect.Y + shrink, rect.Width - shrink * 2, rect.Height - shrink * 2);
-        bool showPlayer = SpectateHudClientSettings.ShowPlayer;
-        bool showName = SpectateHudClientSettings.ShowPlayerName;
-        bool showDistance = SpectateHudClientSettings.ShowPlayerDistance;
-        int nameHeight = showName ? (int)MathF.Round(24f * scale) : 0;
-        int distanceHeight = showDistance ? (int)MathF.Round(22f * scale) : 0;
+        int nameHeight = (int)MathF.Round(24f * scale);
+        int distanceHeight = (int)MathF.Round(22f * scale);
         int y = contentRect.Y;
 
-        if (showPlayer)
-        {
-            int previewHeight = Math.Max(0, contentRect.Height - nameHeight - distanceHeight - (showName || showDistance ? textGap : 0));
-            Rectangle playerPreviewRect = new(contentRect.X, y, contentRect.Width, previewHeight);
-            EntityDrawer.DrawEntityBackground(sb, playerPreviewRect);
-            EntityDrawer.DrawPlayerCardPreview(sb, player, playerPreviewRect);
-            y = playerPreviewRect.Bottom + (showName || showDistance ? textGap : 0);
-        }
+        int previewHeight = Math.Max(0, contentRect.Height - nameHeight - distanceHeight - textGap);
+        Rectangle playerPreviewRect = new(contentRect.X, y, contentRect.Width, previewHeight);
+        EntityDrawer.DrawEntityBackground(sb, playerPreviewRect);
+        EntityDrawer.DrawPlayerCardPreview(sb, player, playerPreviewRect);
+        y = playerPreviewRect.Bottom + textGap;
 
         Color textColor = GetPlayerTextColor(player);
 
-        if (showName)
-        {
-            Rectangle nameRect = new(contentRect.X, y, contentRect.Width, nameHeight);
-            string name = PlayerIndex == Main.myPlayer ? "You" : player.name;
-            DrawCenteredText(sb, StatDrawer.Truncate(FontAssets.MouseText.Value, name, nameRect.Width, 0.95f * scale), nameRect, 1.2f * scale, textColor);
-            y = nameRect.Bottom;
-        }
+        Rectangle nameRect = new(contentRect.X, y, contentRect.Width, nameHeight);
+        string name = PlayerIndex == Main.myPlayer ? "You" : player.name;
+        DrawCenteredText(sb, StatDrawer.Truncate(FontAssets.MouseText.Value, name, nameRect.Width, 0.95f * scale), nameRect, 1.2f * scale, textColor);
+        y = nameRect.Bottom;
 
-        if (showDistance)
-        {
-            Rectangle distanceRect = new(contentRect.X, y, contentRect.Width, distanceHeight);
-            DrawCenteredText(sb, GetDistanceText(player), distanceRect, 0.9f * scale, textColor);
-        }
+        Rectangle distanceRect = new(contentRect.X, y, contentRect.Width, distanceHeight);
+        DrawCenteredText(sb, GetDistanceText(player), distanceRect, 0.9f * scale, textColor);
     }
 
     internal static string GetDistanceText(Player player)
@@ -122,7 +110,7 @@ internal sealed class UIPlayerCard : UIPanel
         return player.team > 0 ? Main.teamColor[player.team] : Color.White;
     }
 
-    private static void DrawCenteredText(SpriteBatch sb, string text, Rectangle area, float scale, Color color)
+    internal static void DrawCenteredText(SpriteBatch sb, string text, Rectangle area, float scale, Color color)
     {
         Vector2 size = FontAssets.MouseText.Value.MeasureString(text) * scale;
         Vector2 position = new(area.X + (area.Width - size.X) * 0.5f, area.Y + (area.Height - size.Y) * 0.5f + 3f * scale);

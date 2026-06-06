@@ -28,7 +28,7 @@ public class ServerConfig : ModConfig
 
     [BackgroundColor(250, 60, 60, 150)]
     [DefaultValue(true)]
-    [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), grayWhenOff: true)]
+    [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), grayWhenOff: true, placement: ConfigIconPlacement.Cut)]
     public bool CaptureModsUsedInReplay = true;
 
     [Header("Spectating")]
@@ -44,10 +44,22 @@ public class ServerConfig : ModConfig
         [DefaultValue(true)]
         public bool AutoStartRecordingOnEnterWorld = true;
 
+        
+    }
+
+    public class MaxLengthRecordingConfig
+    {
+        [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), grayWhenOff: true)]
+        [BackgroundColor(250, 60, 60, 150)]
+        [DefaultValue(true)]
+        public bool EnableMaxLengthRecording = true;
+
+        [RequiresField]
         [BackgroundColor(250, 60, 60, 150)]
         [DefaultValue(60)]
         public int MaxRecordingLengthMinutes = 60;
 
+        [RequiresField]
         [BackgroundColor(250, 60, 60, 150)]
         [DefaultValue(true)]
         public bool AutoStartRecordingAfterMaxLength;

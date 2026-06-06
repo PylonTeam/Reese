@@ -267,6 +267,7 @@ internal sealed class SettingsTab : TabPage
                 new("Show Spectate HUD:", () => $"Show Spectate HUD: {OnOff(ReplayClientSettings.ShowSpectateHud)}", () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowSpectateHud),
                 new("Rows Visible:", () => $"Rows Visible: {SpectateHudClientSettings.RowsVisible}", () => Ass.IconResize.Value, onLeftClick: SpectateHudClientSettings.CycleRowsVisible),
                 new("Sort By:", () => $"Sort By: {SpectateHudClientSettings.SortModeDisplayName}", () => Ass.IconRefresh.Value, onLeftClick: SpectateHudClientSettings.CycleSortMode),
+                new("Player HUD Mode:", () => $"Player HUD Mode: {SpectateHudClientSettings.PlayerHudModeDisplayName}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.CyclePlayerHudMode, iconScale: 0.8f),
                 //new("Show Player:", () => $"Show Player: {OnOff(SpectateHudClientSettings.ShowPlayer)}", () => Ass.IconPlayer.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayer, iconScale: 1.5f),
                 //new("Show Name/Distance:", () => $"Show Name/Distance: {OnOff(SpectateHudClientSettings.ShowPlayerNameAndDistance)}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerNameAndDistance, iconScale: 0.8f),
                 //new("Show Description:", () => $"Show Description: {OnOff(SpectateHudClientSettings.ShowDescription)}", () => Ass.IconEye.Value, onLeftClick: SpectateHudClientSettings.ToggleShowDescription)
