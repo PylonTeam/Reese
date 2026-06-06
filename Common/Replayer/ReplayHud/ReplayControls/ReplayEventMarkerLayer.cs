@@ -74,8 +74,10 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         {
             ReplayEventCategory.BossDefeated => ReplayClientSettings.ShowBossesDefeated,
             ReplayEventCategory.BossSummoned => ReplayClientSettings.ShowBossesSummoned,
-            ReplayEventCategory.PlayerDeath => ReplayClientSettings.ShowPlayerDeaths,
-            ReplayEventCategory.PlayerKill => ReplayClientSettings.ShowPlayerDeaths,
+            ReplayEventCategory.PlayerDeath => ReplayClientSettings.ShowPveDeaths,
+            ReplayEventCategory.PlayerJoined => ReplayClientSettings.ShowPlayerJoinLeave,
+            ReplayEventCategory.PlayerLeft => ReplayClientSettings.ShowPlayerJoinLeave,
+            ReplayEventCategory.PlayerKill => ReplayClientSettings.ShowPvpDeaths,
             ReplayEventCategory.InvasionStarted => ReplayClientSettings.ShowInvasions,
             _ => true
         };

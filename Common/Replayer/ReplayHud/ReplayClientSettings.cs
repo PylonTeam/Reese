@@ -101,7 +101,9 @@ internal static class ReplayClientSettings
     public static bool ShowReplayHudSeekbar { get; private set; } = true;
     public static bool ShowBossesSummoned { get; private set; } = true;
     public static bool ShowBossesDefeated { get; private set; } = true;
-    public static bool ShowPlayerDeaths { get; private set; } = true;
+    public static bool ShowPlayerJoinLeave { get; private set; } = true;
+    public static bool ShowPvpDeaths { get; private set; } = true;
+    public static bool ShowPveDeaths { get; private set; } = true;
     public static bool ShowInvasions { get; private set; } = true;
     public static int HudRevision { get; private set; }
     public static void ToggleShowSpectateHud() { ShowSpectateHud = !ShowSpectateHud; TouchHud(); }
@@ -111,7 +113,9 @@ internal static class ReplayClientSettings
     public static void ToggleShowReplayHudSeekbar() { ShowReplayHudSeekbar = !ShowReplayHudSeekbar; TouchHud(); }
     public static void ToggleShowBossesSummoned() { ShowBossesSummoned = !ShowBossesSummoned; TouchHud(); }
     public static void ToggleShowBossesDefeated() { ShowBossesDefeated = !ShowBossesDefeated; TouchHud(); }
-    public static void ToggleShowPlayerDeaths() { ShowPlayerDeaths = !ShowPlayerDeaths; TouchHud(); }
+    public static void ToggleShowPlayerJoinLeave() { ShowPlayerJoinLeave = !ShowPlayerJoinLeave; TouchHud(); }
+    public static void ToggleShowPvpDeaths() { ShowPvpDeaths = !ShowPvpDeaths; TouchHud(); }
+    public static void ToggleShowPveDeaths() { ShowPveDeaths = !ShowPveDeaths; TouchHud(); }
     public static void ToggleShowInvasions() { ShowInvasions = !ShowInvasions; TouchHud(); }
     private static void TouchHud()
     {

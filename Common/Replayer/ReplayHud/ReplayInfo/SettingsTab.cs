@@ -2,14 +2,12 @@ using Reese.Common.Replayer.GhostHooks;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Common.Replayer.ReplayHud.Shared.Sections;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
-using Reese.Common.Replayer.ReplayHud.Shared.UI;
 using ReLogic.Content;
 using System.Collections.Generic;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
 using Terraria.Localization;
-using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
 
@@ -89,7 +87,7 @@ internal sealed class SettingsTab : TabPage
     private sealed class ReplayHudSettingsSection : SettingsSection
     {
         public override string HeaderText => Loc.Get("ReplayHud.Settings.ReplayHudHeader");
-        public override float Height => 252f;
+        public override float Height => 314f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
@@ -101,7 +99,9 @@ internal sealed class SettingsTab : TabPage
                 // --- Events on the timeline ---
                 new(Loc.Get("ReplayHud.Settings.Labels.ShowBossesSummoned"), () => Loc.Get("ReplayHud.Settings.Rows.ShowBossesSummoned", OnOff(ReplayClientSettings.ShowBossesSummoned)), GetBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesSummoned),
                 new(Loc.Get("ReplayHud.Settings.Labels.ShowBossesDefeated"), () => Loc.Get("ReplayHud.Settings.Rows.ShowBossesDefeated", OnOff(ReplayClientSettings.ShowBossesDefeated)), GetDefeatedBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesDefeated),
-                new(Loc.Get("ReplayHud.Settings.Labels.ShowPlayerDeaths"), () => Loc.Get("ReplayHud.Settings.Rows.ShowPlayerDeaths", OnOff(ReplayClientSettings.ShowPlayerDeaths)), () => TextureAssets.MapDeath.Value, onLeftClick: ReplayClientSettings.ToggleShowPlayerDeaths),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowPlayerJoinLeave"), () => Loc.Get("ReplayHud.Settings.Rows.ShowPlayerJoinLeave", OnOff(ReplayClientSettings.ShowPlayerJoinLeave)), () => Ass.IconPlayerHead.Value, onLeftClick: ReplayClientSettings.ToggleShowPlayerJoinLeave, iconScale: 0.8f),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowPvpDeaths"), () => Loc.Get("ReplayHud.Settings.Rows.ShowPvpDeaths", OnOff(ReplayClientSettings.ShowPvpDeaths)), () => Ass.IconSword.Value, onLeftClick: ReplayClientSettings.ToggleShowPvpDeaths),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowPveDeaths"), () => Loc.Get("ReplayHud.Settings.Rows.ShowPveDeaths", OnOff(ReplayClientSettings.ShowPveDeaths)), () => TextureAssets.MapDeath.Value, onLeftClick: ReplayClientSettings.ToggleShowPveDeaths),
                 new(Loc.Get("ReplayHud.Settings.Labels.ShowInvasions"), () => Loc.Get("ReplayHud.Settings.Rows.ShowInvasions", OnOff(ReplayClientSettings.ShowInvasions)), () => Ass.Party_Center.Value, onLeftClick: ReplayClientSettings.ToggleShowInvasions),
 
                 // --- Hud width (keep this as last row!!) ---

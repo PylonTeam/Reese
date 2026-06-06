@@ -149,7 +149,9 @@ ReplayHud: {
 			HudWidth: HUD Width:
 			ShowBossesSummoned: Show Bosses Summoned:
 			ShowBossesDefeated: Show Bosses Defeated:
-			ShowPlayerDeaths: Show Player Deaths:
+			ShowPlayerJoinLeave: Show Player Join/Leave:
+			ShowPvpDeaths: Show PvP Deaths:
+			ShowPveDeaths: Show PvE Deaths:
 			ShowInvasions: Show Invasions:
 		}
 
@@ -173,7 +175,9 @@ ReplayHud: {
 			HudWidth: HUD Width: {0}%
 			ShowBossesSummoned: Show Bosses Summoned: {0}
 			ShowBossesDefeated: Show Bosses Defeated: {0}
-			ShowPlayerDeaths: Show Player Deaths: {0}
+			ShowPlayerJoinLeave: Show Player Join/Leave: {0}
+			ShowPvpDeaths: Show PvP Deaths: {0}
+			ShowPveDeaths: Show PvE Deaths: {0}
 			ShowInvasions: Show Invasions: {0}
 		}
 
