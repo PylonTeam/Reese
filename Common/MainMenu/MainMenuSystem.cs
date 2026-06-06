@@ -399,13 +399,13 @@ public class MainMenuSystem : ModSystem
     private void FailReplayLaunch(bool timedOut)
     {
         string message = timedOut
-            ? "Replay launch timed out after 10 seconds while force-loading with your current mods."
-            : "Replay launch failed before entering the replay world while force-loading with your current mods.";
+            ? Loc.Get("MainMenu.ReplayStartup.ForceLoadTimedOut", (int)ForceLoadReplayLaunchTimeout.TotalSeconds)
+            : Loc.Get("MainMenu.ReplayStartup.ForceLoadFailed");
 
         if (!string.IsNullOrWhiteSpace(forcedModMismatchReason))
-            message += $"\nMod mismatch: {forcedModMismatchReason}.";
+            message += "\n" + Loc.Get("MainMenu.ReplayStartup.ModMismatch", forcedModMismatchReason);
 
-        message += "\nEnable Try Load Mods Used In Replay or enable the replay's mods, then try again.";
+        message += "\n" + Loc.Get("MainMenu.ReplayStartup.ForceLoadAdvice");
 
         Log.Error(message);
 

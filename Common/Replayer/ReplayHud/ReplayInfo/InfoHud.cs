@@ -169,7 +169,7 @@ internal sealed class InfoHud : UIElement
 
     private static string GetReplayTitle()
     {
-        return ReplayPlayback.Metadata?.ReplayName ?? "Replay";
+        return ReplayPlayback.Metadata?.ReplayName ?? Loc.Get("ReplayHud.Info.FallbackTitle");
     }
 
 }

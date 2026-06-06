@@ -5,7 +5,6 @@ using System;
 using System.Reflection;
 using Terraria.GameContent.Bestiary;
 using Terraria.ID;
-using Terraria.Localization;
 using Biomes = Terraria.GameContent.Bestiary.BestiaryDatabaseNPCsPopulator.CommonTags.SpawnConditions.Biomes;
 
 namespace Reese.Common.Replayer.ReplayHud.Shared.Drawers;
@@ -43,7 +42,7 @@ internal static class BiomeHelper
         else
         {
             string key = visual.BestiaryBiome.GetDisplayNameKey();
-            name = Language.GetTextValue(key);
+            name = Terraria.Localization.Language.GetTextValue(key);
 
             if (string.IsNullOrWhiteSpace(name) || name == key)
                 return "an unknown biome";

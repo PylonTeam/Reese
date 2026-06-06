@@ -1,3 +1,4 @@
+using Reese.Common.Replayer.ReplayHud;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 using ReLogic.Content;
 using Terraria.GameContent;
@@ -11,13 +12,13 @@ internal static class PlayerStats
     public static PlayerStatSnapshot Life(Player player)
     {
         string text = $"{player.statLife}/{player.statLifeMax2}";
-        return new("Health", text, $"Health: {text}", TextureAssets.Heart, null);
+        return new(Language.GetTextValue("BestiaryInfo.Life"), text, Language.GetTextValue("LegacyInterface.0") + " " + text, TextureAssets.Heart, null);
     }
 
     public static PlayerStatSnapshot Mana(Player player)
     {
         string text = $"{player.statMana}/{player.statManaMax2}";
-        return new("Mana", text, $"Mana: {text}", TextureAssets.Mana, null);
+        return new(Language.GetTextValue("LegacyInterface.2"), text, Language.GetTextValue("LegacyInterface.2") + ": " + text, TextureAssets.Mana, null);
     }
 
     public static PlayerStatSnapshot Biome(Player player)
@@ -33,13 +34,13 @@ internal static class PlayerStats
             iconFrame = source;
         }
 
-        return new("Biome", text, $"Biome: {text}", icon, iconFrame);
+        return new(Loc.Get("ReplayHud.Spectate.Stats.Biome"), text, Loc.Get("ReplayHud.Spectate.Stats.BiomeText", text), icon, iconFrame);
     }
 
     private static string GetBiomeText(PlayerBiomeVisual biome)
     {
         if (biome.BestiaryBiome == BiomeHelper.ShimmerBiome)
-            return "Aether";
+            return Loc.Get("ReplayHud.Spectate.Biome.Aether");
 
         return Language.GetTextValue(biome.BestiaryBiome.GetDisplayNameKey());
     }

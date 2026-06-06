@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
@@ -16,8 +17,8 @@ internal sealed class SettingsTab : TabPage
 {
     protected override float ScrollbarHeight => -36f;
     public override SpectatorTab Tab => SpectatorTab.Settings;
-    public override string HeaderText => "Settings";
-    public override string TooltipText => "Fine-tune your experience";
+    public override string HeaderText => Language.GetTextValue("LegacyMenu.14");
+    public override string TooltipText => Loc.Get("ReplayHud.Settings.TabTooltip");
     public override Asset<Texture2D> Icon => Ass.IconGear;
 
     public override float IconScale => 1.1f;
@@ -36,19 +37,20 @@ internal sealed class SettingsTab : TabPage
         AddSection(list, new EventsSettingsSection());
         //AddSection(list, new DisplaySettings());
     }
+
     private sealed class GhostSettings : SettingsSection
     {
-        public override string HeaderText => "Visualization";
+        public override string HeaderText => Loc.Get("ReplayHud.Settings.VisualizationHeader");
         public override float Height => 80+26*4;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
             return
             [
-                new("Fullbright:", () => $"Fullbright: {OnOff(GhostFullbright.Enabled)}", GetFullbrightIcon, onLeftClick: () => GhostFullbright.Enabled = !GhostFullbright.Enabled),
-                new("Reveal Map:", () => $"Reveal Map: {OnOff(MapRevealHelper.Revealed)}", GetRevealMapIcon, onLeftClick: () => MapRevealHelper.SetRevealed(!MapRevealHelper.Revealed)),
-                new("Right Click Teleport:", () => $"Right Click Teleport: {OnOff(ReplayClientSettings.RightClickTeleport)}", GetRightClickTeleportIcon, onLeftClick: ReplayClientSettings.ToggleRightClickTeleport),
-                new("Zoom:", () => $"Zoom: {ReplayClientSettings.ReplayZoomPercent}%", () => Ass.IconEye.Value,
+                new(Loc.Get("ReplayHud.Settings.Labels.Fullbright"), () => Loc.Get("ReplayHud.Settings.Rows.Fullbright", OnOff(GhostFullbright.Enabled)), GetFullbrightIcon, onLeftClick: () => GhostFullbright.Enabled = !GhostFullbright.Enabled),
+                new(Loc.Get("ReplayHud.Settings.Labels.RevealMap"), () => Loc.Get("ReplayHud.Settings.Rows.RevealMap", OnOff(MapRevealHelper.Revealed)), GetRevealMapIcon, onLeftClick: () => MapRevealHelper.SetRevealed(!MapRevealHelper.Revealed)),
+                new(Loc.Get("ReplayHud.Settings.Labels.RightClickTeleport"), () => Loc.Get("ReplayHud.Settings.Rows.RightClickTeleport", OnOff(ReplayClientSettings.RightClickTeleport)), GetRightClickTeleportIcon, onLeftClick: ReplayClientSettings.ToggleRightClickTeleport),
+                new(Loc.Get("ReplayHud.Settings.Labels.Zoom"), () => Loc.Get("ReplayHud.Settings.Rows.Zoom", ReplayClientSettings.ReplayZoomPercent), () => Ass.IconEye.Value,
                     slider: new SliderRowConfig(
                         () => ReplayClientSettings.ReplayZoomRatio,
                         ReplayClientSettings.SetReplayZoomRatio))
@@ -120,7 +122,7 @@ internal sealed class SettingsTab : TabPage
 
             zoomSlider.HighlightColor = Main.OurFavoriteColor;
 
-            string text = $"Zoom: {ReplayClientSettings.ReplayZoomPercent}%";
+            string text = Loc.Get("ReplayHud.Settings.Rows.Zoom", ReplayClientSettings.ReplayZoomPercent);
 
             if (currentText == text)
                 return;
@@ -179,7 +181,7 @@ internal sealed class SettingsTab : TabPage
 
             widthSlider.HighlightColor = Main.OurFavoriteColor;
 
-            string text = $"Playback HUD Width: {ReplayClientSettings.PlaybackHudWidthPercent}%";
+            string text = Loc.Get("ReplayHud.Settings.Rows.PlaybackHudWidth", ReplayClientSettings.PlaybackHudWidthPercent);
 
             if (currentText == text)
                 return;
@@ -210,19 +212,19 @@ internal sealed class SettingsTab : TabPage
 
     private sealed class DrawSettings : SettingsSection
     {
-        public override string HeaderText => "Draw Settings";
+        public override string HeaderText => Loc.Get("ReplayHud.Settings.DrawHeader");
         public override float Height => 244f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
             return
             [
-                new("Draw Players:", () => $"Draw Players: {OnOff(ReplayClientSettings.IsDrawPlayersOn)}", () => Ass.IconPlayer.Value, onLeftClick: ReplayClientSettings.TogglePlayers, iconScale: 1.5f),
-                new("Draw Ghosts:", () => $"Draw Ghosts: {OnOff(ReplayClientSettings.IsDrawGhostsOn)}", GetGhostIcon, onLeftClick: ReplayClientSettings.ToggleGhosts, iconScale: 1.0f),
-                new("Draw Projectiles:", () => $"Draw Projectiles: {OnOff(ReplayClientSettings.IsDrawProjectilesOn)}", GetProjectileIcon, onLeftClick: ReplayClientSettings.ToggleProjectiles),
-                new("Draw NPCs:", () => $"Draw NPCs: {OnOff(ReplayClientSettings.IsDrawNPCsOn)}", () => Ass.IconNPC.Value, onLeftClick: ReplayClientSettings.ToggleNPCs),
-                new("Draw Items:", () => $"Draw Items: {OnOff(ReplayClientSettings.IsDrawItemsOn)}", GetItemIcon, onLeftClick: ReplayClientSettings.ToggleItems, iconScale: 0.8f),
-                new("Draw Nameplates:", () => $"Draw Nameplates: {OnOff(ReplayClientSettings.IsNameplatesOn)}", GetNameplateIcon, onLeftClick: ReplayClientSettings.ToggleNameplates, iconScale: 0.8f)
+                new(Loc.Get("ReplayHud.Settings.Labels.DrawPlayers"), () => Loc.Get("ReplayHud.Settings.Rows.DrawPlayers", OnOff(ReplayClientSettings.IsDrawPlayersOn)), () => Ass.IconPlayer.Value, onLeftClick: ReplayClientSettings.TogglePlayers, iconScale: 1.5f),
+                new(Loc.Get("ReplayHud.Settings.Labels.DrawGhosts"), () => Loc.Get("ReplayHud.Settings.Rows.DrawGhosts", OnOff(ReplayClientSettings.IsDrawGhostsOn)), GetGhostIcon, onLeftClick: ReplayClientSettings.ToggleGhosts, iconScale: 1.0f),
+                new(Loc.Get("ReplayHud.Settings.Labels.DrawProjectiles"), () => Loc.Get("ReplayHud.Settings.Rows.DrawProjectiles", OnOff(ReplayClientSettings.IsDrawProjectilesOn)), GetProjectileIcon, onLeftClick: ReplayClientSettings.ToggleProjectiles),
+                new(Loc.Get("ReplayHud.Settings.Labels.DrawNpcs"), () => Loc.Get("ReplayHud.Settings.Rows.DrawNpcs", OnOff(ReplayClientSettings.IsDrawNPCsOn)), () => Ass.IconNPC.Value, onLeftClick: ReplayClientSettings.ToggleNPCs),
+                new(Loc.Get("ReplayHud.Settings.Labels.DrawItems"), () => Loc.Get("ReplayHud.Settings.Rows.DrawItems", OnOff(ReplayClientSettings.IsDrawItemsOn)), GetItemIcon, onLeftClick: ReplayClientSettings.ToggleItems, iconScale: 0.8f),
+                new(Loc.Get("ReplayHud.Settings.Labels.DrawNameplates"), () => Loc.Get("ReplayHud.Settings.Rows.DrawNameplates", OnOff(ReplayClientSettings.IsNameplatesOn)), GetNameplateIcon, onLeftClick: ReplayClientSettings.ToggleNameplates, iconScale: 0.8f)
             ];
         }
 
@@ -261,17 +263,17 @@ internal sealed class SettingsTab : TabPage
 
     private sealed class SpectateHudSettingsSection : SettingsSection
     {
-        public override string HeaderText => "Spectate HUD";
+        public override string HeaderText => Loc.Get("ReplayHud.Settings.SpectateHudHeader");
         public override float Height => 80+26*4f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
             return
             [
-                new("Show Spectate HUD:", () => $"Show Spectate HUD: {OnOff(ReplayClientSettings.ShowSpectateHud)}", () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowSpectateHud),
-                new("Rows Visible:", () => $"Rows Visible: {SpectateHudClientSettings.RowsVisible}", () => Ass.IconResize.Value, onLeftClick: SpectateHudClientSettings.CycleRowsVisible),
-                new("Sort By:", () => $"Sort By: {SpectateHudClientSettings.SortModeDisplayName}", () => Ass.IconRefresh.Value, onLeftClick: SpectateHudClientSettings.CycleSortMode),
-                new("Show Player:", () => $"Show Player: {SpectateHudClientSettings.EntityHudModeDisplayName}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.CycleEntityHudMode, iconScale: 0.8f),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowSpectateHud"), () => Loc.Get("ReplayHud.Settings.Rows.ShowSpectateHud", OnOff(ReplayClientSettings.ShowSpectateHud)), () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowSpectateHud),
+                new(Loc.Get("ReplayHud.Settings.Labels.RowsVisible"), () => Loc.Get("ReplayHud.Settings.Rows.RowsVisible", SpectateHudClientSettings.RowsVisible), () => Ass.IconResize.Value, onLeftClick: SpectateHudClientSettings.CycleRowsVisible),
+                new(Loc.Get("ReplayHud.Settings.Labels.SortBy"), () => Loc.Get("ReplayHud.Settings.Rows.SortBy", SpectateHudClientSettings.SortModeDisplayName), () => Ass.IconRefresh.Value, onLeftClick: SpectateHudClientSettings.CycleSortMode),
+                new(Loc.Get("ReplayHud.Settings.Labels.PlayerHudMode"), () => Loc.Get("ReplayHud.Settings.Rows.PlayerHudMode", SpectateHudClientSettings.EntityHudModeDisplayName), () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.CycleEntityHudMode, iconScale: 0.8f),
                 //new("Show Player:", () => $"Show Player: {OnOff(SpectateHudClientSettings.ShowPlayer)}", () => Ass.IconPlayer.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayer, iconScale: 1.5f),
                 //new("Show Name/Distance:", () => $"Show Name/Distance: {OnOff(SpectateHudClientSettings.ShowPlayerNameAndDistance)}", () => Ass.IconPlayerHead.Value, onLeftClick: SpectateHudClientSettings.ToggleShowPlayerNameAndDistance, iconScale: 0.8f),
                 //new("Show Description:", () => $"Show Description: {OnOff(SpectateHudClientSettings.ShowDescription)}", () => Ass.IconEye.Value, onLeftClick: SpectateHudClientSettings.ToggleShowDescription)
@@ -281,15 +283,15 @@ internal sealed class SettingsTab : TabPage
 
     private sealed class ReplayHudSettingsSection : SettingsSection
     {
-        public override string HeaderText => "Replay HUD";
+        public override string HeaderText => Loc.Get("ReplayHud.Settings.ReplayHudHeader");
         public override float Height => 112f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
             return
             [
-                new("Show Replay HUD:", () => $"Show Replay HUD: {OnOff(ReplayClientSettings.ShowPlaybackHud)}", () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowPlaybackHud),
-                new("HUD Width:", () => $"HUD Width: {ReplayClientSettings.PlaybackHudWidthPercent}%", () => Ass.IconResize.Value,
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowReplayHud"), () => Loc.Get("ReplayHud.Settings.Rows.ShowReplayHud", OnOff(ReplayClientSettings.ShowPlaybackHud)), () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowPlaybackHud),
+                new(Loc.Get("ReplayHud.Settings.Labels.HudWidth"), () => Loc.Get("ReplayHud.Settings.Rows.HudWidth", ReplayClientSettings.PlaybackHudWidthPercent), () => Ass.IconResize.Value,
                     slider: new SliderRowConfig(
                         () => ReplayClientSettings.PlaybackHudWidthRatio,
                         ReplayClientSettings.SetPlaybackHudWidthRatio))
@@ -302,17 +304,17 @@ internal sealed class SettingsTab : TabPage
 
     private sealed class EventsSettingsSection : SettingsSection
     {
-        public override string HeaderText => "Events";
+        public override string HeaderText => Loc.Get("ReplayHud.Settings.EventsHeader");
         public override float Height => 180f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
             return
             [
-                new("Show Bosses Summoned:", () => $"Show Bosses Summoned: {OnOff(ReplayClientSettings.ShowBossesSummoned)}", GetBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesSummoned),
-                new("Show Bosses Defeated:", () => $"Show Bosses Defeated: {OnOff(ReplayClientSettings.ShowBossesDefeated)}", GetDefeatedBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesDefeated),
-                new("Show Player Deaths:", () => $"Show Player Deaths: {OnOff(ReplayClientSettings.ShowPlayerDeaths)}", () => TextureAssets.MapDeath.Value, onLeftClick: ReplayClientSettings.ToggleShowPlayerDeaths),
-                new("Show Invasions:", () => $"Show Invasions: {OnOff(ReplayClientSettings.ShowInvasions)}", () => Ass.Party_Center.Value, onLeftClick: ReplayClientSettings.ToggleShowInvasions)
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowBossesSummoned"), () => Loc.Get("ReplayHud.Settings.Rows.ShowBossesSummoned", OnOff(ReplayClientSettings.ShowBossesSummoned)), GetBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesSummoned),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowBossesDefeated"), () => Loc.Get("ReplayHud.Settings.Rows.ShowBossesDefeated", OnOff(ReplayClientSettings.ShowBossesDefeated)), GetDefeatedBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesDefeated),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowPlayerDeaths"), () => Loc.Get("ReplayHud.Settings.Rows.ShowPlayerDeaths", OnOff(ReplayClientSettings.ShowPlayerDeaths)), () => TextureAssets.MapDeath.Value, onLeftClick: ReplayClientSettings.ToggleShowPlayerDeaths),
+                new(Loc.Get("ReplayHud.Settings.Labels.ShowInvasions"), () => Loc.Get("ReplayHud.Settings.Rows.ShowInvasions", OnOff(ReplayClientSettings.ShowInvasions)), () => Ass.Party_Center.Value, onLeftClick: ReplayClientSettings.ToggleShowInvasions)
             ];
         }
 

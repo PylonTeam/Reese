@@ -16,8 +16,8 @@ namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
 internal sealed class WorldInfoTab : TabPage
 {
     public override SpectatorTab Tab => SpectatorTab.World;
-    public override string HeaderText => "World";
-    public override string TooltipText => "World stats";
+    public override string HeaderText => Language.GetTextValue("LegacyWorldGen.57");
+    public override string TooltipText => Loc.Get("ReplayHud.World.TabTooltip");
     public override Asset<Texture2D> Icon => Ass.IconWorld;
     public override float IconScale => 1f;
     public override Vector2 IconOffset => new Vector2(-2, 0);
@@ -32,21 +32,21 @@ internal sealed class WorldInfoTab : TabPage
 
     private sealed class WorldInfo : InfoSection
     {
-        public override string HeaderText => "World";
+        public override string HeaderText => Language.GetTextValue("LegacyWorldGen.57");
         public override float Height => 286f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
             return
             [
-                new("World:", () => Main.worldName, GetWorldSignTexture, iconScale: 1.3f),
-                new("Size:", GetWorldSizeText, GetWorldSizeIcon, iconScale: 1.3f),
-                new("Difficulty:", GetDifficultyText, GetWorldDifficultyIcon, GetDifficultyColor, iconScale: 1.3f),
-                new("Evil:", GetEvilText, GetWorldEvilIcon, GetEvilColor, iconScale: 1.2f),
-                //new("Seed:", GetSeedText, GetWorldSeedIcon, iconScale: 1.3f),
-                new("Time:", GetTimeText, GetTimeIcon, iconScale: 0.65f),
-                new("Weather:", GetWeatherText, GetWeatherIcon, iconScale: 0.68f),
-                new("Moon:", GetMoonText, GetMoonIcon, iconScale: 0.75f)
+                new(Language.GetTextValue("LegacyWorldGen.57") + ":", () => Main.worldName, GetWorldSignTexture, iconScale: 1.3f),
+                new(Language.GetTextValue("UI.WorldCreationSize"), GetWorldSizeText, GetWorldSizeIcon, iconScale: 1.3f),
+                new(Language.GetTextValue("UI.WorldCreationDifficulty"), GetDifficultyText, GetWorldDifficultyIcon, GetDifficultyColor, iconScale: 1.3f),
+                new(Language.GetTextValue("UI.WorldCreationEvil"), GetEvilText, GetWorldEvilIcon, GetEvilColor, iconScale: 1.2f),
+                //new(Language.GetTextValue("UI.WorldCreationSeed"), GetSeedText, GetWorldSeedIcon, iconScale: 1.3f),
+                new(Loc.Get("ReplayHud.World.TimeLabel"), GetTimeText, GetTimeIcon, iconScale: 0.65f),
+                new(Loc.Get("ReplayHud.World.WeatherLabel"), GetWeatherText, GetWeatherIcon, iconScale: 0.68f),
+                new(Loc.Get("ReplayHud.World.MoonLabel"), GetMoonText, GetMoonIcon, iconScale: 0.75f)
             ];
         }
 
@@ -70,15 +70,15 @@ internal sealed class WorldInfoTab : TabPage
         private static string GetWorldSizeText()
         {
             if (Main.maxTilesX <= 4200)
-                return "Small";
+                return Language.GetTextValue("UI.WorldSizeSmall");
 
             if (Main.maxTilesX <= 6400)
-                return "Medium";
+                return Language.GetTextValue("UI.WorldSizeMedium");
 
             if (Main.maxTilesX <= 8400)
-                return "Large";
+                return Language.GetTextValue("UI.WorldSizeLarge");
 
-            return "Unknown";
+            return Language.GetTextValue("UI.WorldSizeUnknown");
         }
 
         private static Texture2D GetWorldDifficultyIcon()
@@ -99,21 +99,21 @@ internal sealed class WorldInfoTab : TabPage
             int mode = GetEffectiveDifficultyMode();
 
             if (mode == 0)
-                return "Difficulty: Classic";
+                return Loc.Get("ReplayHud.World.DifficultyText", Language.GetTextValue("GameUI.Normal"));
 
             if (mode == 1)
-                return "Difficulty: Expert";
+                return Loc.Get("ReplayHud.World.DifficultyText", Language.GetTextValue("GameUI.Expert"));
 
             if (mode == 2)
-                return "Difficulty: Master";
+                return Loc.Get("ReplayHud.World.DifficultyText", Language.GetTextValue("GameUI.Master"));
 
             if (mode == 3)
-                return "Difficulty: Journey";
+                return Loc.Get("ReplayHud.World.DifficultyText", Language.GetTextValue("UI.Creative"));
 
             if (mode == 4)
-                return "Difficulty: Legendary";
+                return Loc.Get("ReplayHud.World.DifficultyText", Language.GetTextValue("UI.Legendary"));
 
-            return $"Difficulty: Mode {mode}";
+            return Loc.Get("ReplayHud.World.DifficultyMode", mode);
         }
 
         private static Color GetDifficultyColor()
@@ -142,7 +142,7 @@ internal sealed class WorldInfoTab : TabPage
 
         private static string GetEvilText()
         {
-            return $"Evil: {(WorldGen.crimson ? "Crimson" : "Corruption")}";
+            return Loc.Get("ReplayHud.World.EvilText", Language.GetTextValue(WorldGen.crimson ? "LegacyMisc.102" : "LegacyMisc.101"));
         }
 
         private static Color GetEvilColor()
@@ -158,7 +158,7 @@ internal sealed class WorldInfoTab : TabPage
         private static string GetSeedText()
         {
             string seed = Main.ActiveWorldFileData?.SeedText;
-            return $"Seed: {(string.IsNullOrWhiteSpace(seed) ? "-" : seed)}";
+            return Loc.Get("ReplayHud.World.Seed", string.IsNullOrWhiteSpace(seed) ? "-" : seed);
         }
 
         private static Texture2D GetTimeIcon()
@@ -173,7 +173,7 @@ internal sealed class WorldInfoTab : TabPage
 
         private static string GetTimeText()
         {
-            string amPm = Language.GetTextValue("GameUI.TimeAtMorning");
+            string amPm = Terraria.Localization.Language.GetTextValue("GameUI.TimeAtMorning");
             double time = Main.time;
             if (!Main.dayTime)
                 time += 54000.0;
@@ -184,7 +184,7 @@ internal sealed class WorldInfoTab : TabPage
                 time += 24.0;
 
             if (time >= 12.0)
-                amPm = Language.GetTextValue("GameUI.TimePastMorning");
+                amPm = Terraria.Localization.Language.GetTextValue("GameUI.TimePastMorning");
 
             int hoursString = (int)time;
             double secondRemainder = time - hoursString;
@@ -199,15 +199,15 @@ internal sealed class WorldInfoTab : TabPage
             if (hoursString == 0)
                 hoursString = 12;
 
-            return Language.GetTextValue("CLI.Time", hoursString + ":" + minutesString + " " + amPm);
+            return Terraria.Localization.Language.GetTextValue("CLI.Time", hoursString + ":" + minutesString + " " + amPm);
         }
 
         private static string GetWeatherText()
         {
             string name = GetWeatherName();
             int wind = (int)Math.Round(Math.Abs(Main.windSpeedCurrent) * 60f);
-            string direction = Main.windSpeedCurrent >= 0f ? "E" : "W";
-            return $"Weather: {name} ({wind} mph {direction})";
+            string windText = Language.GetTextValue(Main.windSpeedCurrent >= 0f ? "GameUI.EastWind" : "GameUI.WestWind", wind).TrimStart();
+            return Loc.Get("ReplayHud.World.WeatherText", name, windText);
         }
 
         private static Texture2D GetMoonIcon()
@@ -220,17 +220,17 @@ internal sealed class WorldInfoTab : TabPage
         {
             string name = Main.moonPhase switch
             {
-                0 => "Full Moon",
-                1 => "Waning Gibbous",
-                2 => "Third Quarter",
-                3 => "Waning Crescent",
-                4 => "New Moon",
-                5 => "Waxing Crescent",
-                6 => "First Quarter",
-                _ => "Waxing Gibbous"
+                0 => Language.GetTextValue("GameUI.FullMoon"),
+                1 => Language.GetTextValue("GameUI.WaningGibbous"),
+                2 => Language.GetTextValue("GameUI.ThirdQuarter"),
+                3 => Language.GetTextValue("GameUI.WaningCrescent"),
+                4 => Language.GetTextValue("GameUI.NewMoon"),
+                5 => Language.GetTextValue("GameUI.WaxingCrescent"),
+                6 => Language.GetTextValue("GameUI.FirstQuarter"),
+                _ => Language.GetTextValue("GameUI.WaxingGibbous")
             };
 
-            return $"Moon Phase: {name} ({Main.moonPhase + 1}/8)";
+            return Loc.Get("ReplayHud.World.MoonPhase", name, Main.moonPhase + 1);
         }
 
         private static int GetEffectiveDifficultyMode()
@@ -246,33 +246,33 @@ internal sealed class WorldInfoTab : TabPage
         private static string GetWeatherName()
         {
             if (Main.maxRaining >= 0.6f)
-                return "Heavy Rain";
+                return Language.GetTextValue("GameUI.HeavyRain");
 
             if (Main.maxRaining >= 0.2f)
-                return "Rain";
+                return Language.GetTextValue("GameUI.Rain");
 
             if (Main.maxRaining > 0f)
-                return "Light Rain";
+                return Language.GetTextValue("GameUI.LightRain");
 
             if (Main.cloudAlpha >= 0.8f)
-                return "Overcast";
+                return Language.GetTextValue("GameUI.Overcast");
 
             if (Main.cloudAlpha >= 0.6f)
-                return "Mostly Cloudy";
+                return Language.GetTextValue("GameUI.MostlyCloudy");
 
             if (Main.cloudAlpha >= 0.35f)
-                return "Cloudy";
+                return Language.GetTextValue("GameUI.Cloudy");
 
             if (Main.cloudAlpha >= 0.15f)
-                return "Partly Cloudy";
+                return Language.GetTextValue("GameUI.PartlyCloudy");
 
-            return "Clear";
+            return Language.GetTextValue("GameUI.Clear");
         }
     }
 
     private sealed class MiscInfo : InfoSection
     {
-        public override string HeaderText => "Players";
+        public override string HeaderText => Language.GetTextValue("LegacyMultiplayer.7");
         public override float Height => 112f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
@@ -349,11 +349,11 @@ internal sealed class WorldInfoTab : TabPage
 
             Rectangle box = GetDimensions().ToRectangle();
             sb.Draw(TextureAssets.MagicPixel.Value, new Rectangle(box.X + 10, box.Y + 28, box.Width - 20, 2), Color.White * 0.10f);
-            Utils.DrawBorderString(sb, "Bosses", new Vector2(box.X + 10, box.Y + 6), new Color(255, 228, 140), 0.9f);
+            Utils.DrawBorderString(sb, Loc.Get("ReplayHud.World.BossesHeader"), new Vector2(box.X + 10, box.Y + 6), new Color(255, 228, 140), 0.9f);
 
             Rectangle statBox = new(box.X + ContentInset, box.Y + (int)(HeaderHeight + 4f), box.Width - ContentInset * 2, (int)RowHeight);
             string bossesDefeatedText = GetBossesDefeatedText();
-            StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.IconCheckmarkGreen.Value, bossesDefeatedText, $"Bosses Defeated: {bossesDefeatedText}", textColor: Color.Gray, label: "Bosses Defeated:");
+            StatDrawer.DrawWorldStatPanel(sb, statBox, Ass.IconCheckmarkGreen.Value, bossesDefeatedText, Loc.Get("ReplayHud.World.BossesDefeated", bossesDefeatedText), textColor: Color.Gray, label: Loc.Get("ReplayHud.World.BossesDefeatedLabel"));
 
             int dividerY = statBox.Bottom + 8;
             sb.Draw(TextureAssets.MagicPixel.Value, new Rectangle(box.X + 10, dividerY, box.Width - 20, 2), Color.White * 0.10f);
@@ -388,7 +388,7 @@ internal sealed class WorldInfoTab : TabPage
                 }
 
                 if (canShowHover)
-                    ShowHover(slot, $"{boss.Name} ({(boss.Downed ? "Downed" : "Not downed")})");
+                    ShowHover(slot, Loc.Get("ReplayHud.World.BossStatus", boss.Name, Loc.Get("ReplayHud.World." + (boss.Downed ? "Downed" : "NotDowned"))));
             }
         }
 
@@ -420,34 +420,34 @@ internal sealed class WorldInfoTab : TabPage
             if (WorldGen.crimson)
             {
                 evilBossId = NPCID.BrainofCthulhu;
-                evilBossName = "Brain of Cthulhu";
+                evilBossName = Lang.GetNPCNameValue(NPCID.BrainofCthulhu);
             }
             else
             {
                 evilBossId = NPCID.EaterofWorldsHead;
-                evilBossName = "Eater of Worlds";
+                evilBossName = Lang.GetNPCNameValue(NPCID.EaterofWorldsHead);
             }
 
             return
             [
-                new(NPCID.KingSlime, "King Slime", NPC.downedSlimeKing),
-                new(NPCID.EyeofCthulhu, "Eye of Cthulhu", NPC.downedBoss1),
+                new(NPCID.KingSlime, Lang.GetNPCNameValue(NPCID.KingSlime), NPC.downedSlimeKing),
+                new(NPCID.EyeofCthulhu, Lang.GetNPCNameValue(NPCID.EyeofCthulhu), NPC.downedBoss1),
                 new(evilBossId, evilBossName, NPC.downedBoss2),
-                new(NPCID.QueenBee, "Queen Bee", NPC.downedQueenBee),
-                new(NPCID.Deerclops, "Deerclops", NPC.downedDeerclops),
-                new(NPCID.SkeletronHead, "Skeletron", NPC.downedBoss3),
-                new(NPCID.WallofFlesh, "Wall of Flesh", Main.hardMode),
-                new(NPCID.QueenSlimeBoss, "Queen Slime", NPC.downedQueenSlime),
-                new(NPCID.TheDestroyer, "The Destroyer", NPC.downedMechBoss1),
-                new(NPCID.Retinazer, "The Twins", NPC.downedMechBoss2),
-                new(NPCID.SkeletronPrime, "Skeletron Prime", NPC.downedMechBoss3),
-                new(NPCID.Plantera, "Plantera", NPC.downedPlantBoss),
-                new(NPCID.Golem, "Golem", NPC.downedGolemBoss),
-                new(NPCID.DukeFishron, "Duke Fishron", NPC.downedFishron),
-                new(NPCID.HallowBoss, "Empress of Light", NPC.downedEmpressOfLight),
-                new(NPCID.CultistBoss, "Lunatic Cultist", NPC.downedAncientCultist),
-                new(NPCID.LunarTowerSolar, "Lunar Pillars", NPC.downedTowerSolar && NPC.downedTowerVortex && NPC.downedTowerNebula && NPC.downedTowerStardust),
-                new(NPCID.MoonLordCore, "Moon Lord", NPC.downedMoonlord)
+                new(NPCID.QueenBee, Lang.GetNPCNameValue(NPCID.QueenBee), NPC.downedQueenBee),
+                new(NPCID.Deerclops, Lang.GetNPCNameValue(NPCID.Deerclops), NPC.downedDeerclops),
+                new(NPCID.SkeletronHead, Lang.GetNPCNameValue(NPCID.SkeletronHead), NPC.downedBoss3),
+                new(NPCID.WallofFlesh, Lang.GetNPCNameValue(NPCID.WallofFlesh), Main.hardMode),
+                new(NPCID.QueenSlimeBoss, Lang.GetNPCNameValue(NPCID.QueenSlimeBoss), NPC.downedQueenSlime),
+                new(NPCID.TheDestroyer, Lang.GetNPCNameValue(NPCID.TheDestroyer), NPC.downedMechBoss1),
+                new(NPCID.Retinazer, Language.GetTextValue("Enemies.TheTwins"), NPC.downedMechBoss2),
+                new(NPCID.SkeletronPrime, Lang.GetNPCNameValue(NPCID.SkeletronPrime), NPC.downedMechBoss3),
+                new(NPCID.Plantera, Lang.GetNPCNameValue(NPCID.Plantera), NPC.downedPlantBoss),
+                new(NPCID.Golem, Lang.GetNPCNameValue(NPCID.Golem), NPC.downedGolemBoss),
+                new(NPCID.DukeFishron, Lang.GetNPCNameValue(NPCID.DukeFishron), NPC.downedFishron),
+                new(NPCID.HallowBoss, Lang.GetNPCNameValue(NPCID.HallowBoss), NPC.downedEmpressOfLight),
+                new(NPCID.CultistBoss, Lang.GetNPCNameValue(NPCID.CultistBoss), NPC.downedAncientCultist),
+                new(NPCID.LunarTowerSolar, Loc.Get("ReplayHud.World.Boss.LunarPillars"), NPC.downedTowerSolar && NPC.downedTowerVortex && NPC.downedTowerNebula && NPC.downedTowerStardust),
+                new(NPCID.MoonLordCore, Lang.GetNPCNameValue(NPCID.MoonLordCore), NPC.downedMoonlord)
                 ];
         }
 

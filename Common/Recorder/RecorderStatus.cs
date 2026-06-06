@@ -1,18 +1,15 @@
-﻿using Microsoft.Xna.Framework;
-using Reese.Common.Replayer;
+﻿using Reese.Common.Replayer;
 using Reese.Content;
+using Reese.Core.Localization;
 using Reese.Core.Net;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using Terraria;
 using Terraria.Chat;
 using Terraria.ID;
 using Terraria.Localization;
-using Terraria.ModLoader;
-using static Reese.Reese;
 
 namespace Reese.Common.Recorder;
 
@@ -141,15 +138,15 @@ internal static class RecorderStatus
     public static string GetStatusString()
     {
         if (!HasStatus)
-            return "Recorder has not been initialized yet.";
+            return Loc.Get("Recorder.Status.NotInitialized");
 
         if (!IsRecording)
-            return $"Recording is not running. Last recording: \"{ReplayName}\" | Final Tick: {Tick}";
+            return Loc.Get("Recorder.Status.Inactive", ReplayName, Tick);
 
         string timeString = TimeSpan.FromSeconds(Tick / 60.0).ToString(@"hh\:mm\:ss");
         double sizeKb = TotalBytesSent / 1024.0;
 
-        return $"Recording to: \"{ReplayName}\" | Length: {timeString} | Packets: {TotalPacketsSent} | Size: {sizeKb:F0} KB";
+        return Loc.Get("Recorder.Status.Active", ReplayName, timeString, TotalPacketsSent, sizeKb.ToString("F0"));
     }
 
     /// <summary>
@@ -185,7 +182,7 @@ internal sealed class RecorderJoinMessagePlayer : ModPlayer
 {
     public override void OnEnterWorld()
     {
-        ModContent.GetInstance<Reese>().Logger.Info($"Player entered world: {Player.whoAmI}");
+        Log.Info($"Player entered world: {Player.whoAmI}");
 
         if (Main.netMode != NetmodeID.Server)
             return;

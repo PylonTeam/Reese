@@ -1,14 +1,14 @@
-﻿using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Graphics;
 using System;
 using System.Reflection;
 using ReLogic.Graphics;
 using Terraria.DataStructures;
 using Terraria.GameContent;
-using Terraria.Localization;
 using Terraria.ModLoader.Default;
 using Terraria.UI;
 using Terraria.UI.Chat;
 using Terraria.UI.Gamepad;
+using Reese.Common.Replayer.ReplayHud;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay.Drawers;
@@ -52,7 +52,7 @@ public static class InventoryDrawer
         {
             Main.inventoryScale = 0.85f;
 
-            string name = player.name + "'s " + Lang.inter[4].Value;
+            string name = Loc.Get("ReplayHud.Spectate.InventoryTitle", player.name, Lang.inter[4].Value);
             sb.DrawString(FontAssets.MouseText.Value, name, new Vector2(4f, 0f), new Color(Main.mouseTextColor, Main.mouseTextColor, Main.mouseTextColor, Main.mouseTextColor), 0f, Vector2.Zero, 1f, SpriteEffects.None, 0f);
 
             DrawItems(player);
@@ -692,7 +692,7 @@ public static class InventoryDrawer
                         Main.spriteBatch.Draw(value2, r2.TopLeft(), Color.White);
                         if (num26 > 0)
                         {
-                            SetHoverText(Language.GetTextValue((num26 == 1) ? "GameUI.SuperCartDisabled" : "GameUI.SuperCartEnabled"));
+                            SetHoverText(Terraria.Localization.Language.GetTextValue((num26 == 1) ? "GameUI.SuperCartDisabled" : "GameUI.SuperCartEnabled"));
                         }
                     }
                 }
@@ -829,7 +829,7 @@ public static class InventoryDrawer
 
     private static void DrawCoins(Player player)
     {
-        Vector2 vector2 = FontAssets.MouseText.Value.MeasureString("Coins");
+        Vector2 vector2 = FontAssets.MouseText.Value.MeasureString(Lang.inter[26].Value);
         Vector2 vector3 = FontAssets.MouseText.Value.MeasureString(Lang.inter[26].Value);
         float num96 = vector2.X / vector3.X;
         Main.spriteBatch.DrawString(FontAssets.MouseText.Value, Lang.inter[26].Value, new Vector2(496f, 84f + (vector2.Y - vector2.Y * num96) / 2f), new Color(Main.mouseTextColor, Main.mouseTextColor, Main.mouseTextColor, Main.mouseTextColor), 0f, default(Vector2), 0.75f * num96, SpriteEffects.None, 0f);
@@ -858,7 +858,7 @@ public static class InventoryDrawer
 
     private static void DrawAmmo(Player player)
     {
-        Vector2 vector4 = FontAssets.MouseText.Value.MeasureString("Ammo");
+        Vector2 vector4 = FontAssets.MouseText.Value.MeasureString(Lang.inter[27].Value);
         Vector2 vector5 = FontAssets.MouseText.Value.MeasureString(Lang.inter[27].Value);
         float num100 = vector4.X / vector5.X;
         Main.spriteBatch.DrawString(FontAssets.MouseText.Value, Lang.inter[27].Value, new Vector2(532f, 84f + (vector4.Y - vector4.Y * num100) / 2f), new Color(Main.mouseTextColor, Main.mouseTextColor, Main.mouseTextColor, Main.mouseTextColor), 0f, default(Vector2), 0.75f * num100, SpriteEffects.None, 0f);

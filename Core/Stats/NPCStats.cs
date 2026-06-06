@@ -1,7 +1,9 @@
+using Reese.Common.Replayer.ReplayHud;
 using ReLogic.Content;
 using System;
 using Terraria.GameContent;
 using Terraria.ID;
+using Terraria.Localization;
 
 namespace Reese.Core.Stats;
 
@@ -10,19 +12,19 @@ internal static class NPCStats
     public static NPCStatSnapshot Life(NPC npc)
     {
         string text = $"{Math.Max(0, npc.life)}/{Math.Max(1, npc.lifeMax)}";
-        return new("Health", text, $"Health: {text}", TextureAssets.Heart, null);
+        return new(Language.GetTextValue("BestiaryInfo.Life"), text, Language.GetTextValue("LegacyInterface.0") + " " + text, TextureAssets.Heart, null);
     }
 
     public static NPCStatSnapshot Damage(NPC npc)
     {
         string text = npc.damage.ToString();
-        return new("Damage", text, $"Damage: {text}", Ass.IconSword, null);
+        return new(Loc.Get("ReplayHud.Spectate.Stats.Damage"), text, Loc.Get("ReplayHud.Spectate.Stats.DamageText", text), Ass.IconSword, null);
     }
 
     public static NPCStatSnapshot Defense(NPC npc)
     {
         string text = npc.defense.ToString();
-        return new("Defense", text, $"Defense: {text}", TextureAssets.Extra[ExtrasID.DefenseShield], null);
+        return new(Language.GetTextValue("BestiaryInfo.Defense"), text, Language.GetTextValue("BestiaryInfo.Defense") + ": " + text, TextureAssets.Extra[ExtrasID.DefenseShield], null);
     }
 }
 

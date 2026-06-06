@@ -1,4 +1,4 @@
-﻿using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Input;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
 using Reese.Common.Replayer.ReplayHud.Shared.UI;
@@ -206,7 +206,7 @@ internal sealed class SpectateHud : UIElement
             case SpectatorTab.Players:
                 BuildTargetContent(
                     playerTargets,
-                    "No players are available\n to spectate.",
+                    Loc.Get("ReplayHud.Spectate.NoPlayersAvailable"),
                     (playerIndex, listIndex) => new UIPlayerCard(playerIndex, listIndex, GetEntityCardScale(cardScale)),
                     TogglePlayerTarget);
                 return;
@@ -214,7 +214,7 @@ internal sealed class SpectateHud : UIElement
             case SpectatorTab.NPCs:
                 BuildTargetContent(
                     npcTargets,
-                    "No NPCs are available\n to spectate.",
+                    Loc.Get("ReplayHud.Spectate.NoNpcsAvailable"),
                     (npcIndex, listIndex) => new UINPCCard(npcIndex, listIndex, GetEntityCardScale(cardScale)),
                     ToggleNpcTarget);
                 return;
@@ -510,21 +510,21 @@ internal sealed class SpectateHud : UIElement
         if (hovered >= 0 && Main.player[hovered]?.active == true)
         {
             if (locked == hovered)
-                return $"Click to stop spectating {Main.player[hovered].name}";
+                return Loc.Get("ReplayHud.Spectate.StopSpectatingPlayer", Main.player[hovered].name);
 
-            return $"Click to spectate {Main.player[hovered].name}";
+            return Loc.Get("ReplayHud.Spectate.SpectatePlayer", Main.player[hovered].name);
         }
 
         if (locked >= 0 && Main.player[locked]?.active == true)
-            return $"Spectating {Main.player[locked].name}";
+            return Loc.Get("ReplayHud.Spectate.SpectatingPlayer", Main.player[locked].name);
 
         if (lockedNpc >= 0 && Main.npc[lockedNpc]?.active == true)
-            return $"Spectating {Main.npc[lockedNpc].FullName}";
+            return Loc.Get("ReplayHud.Spectate.SpectatingNpc", Main.npc[lockedNpc].FullName);
 
         if (SpectatorMode.IsLocalGhost)
-            return "Ghost mode enabled";
+            return Loc.Get("ReplayHud.Spectate.GhostModeEnabled");
 
-        return "You are not spectating anyone";
+        return Loc.Get("ReplayHud.Spectate.NotSpectatingAnyone");
     }
 
     public override void Draw(SpriteBatch spriteBatch)
@@ -975,8 +975,8 @@ internal sealed class SpectateHud : UIElement
     private sealed class PlayersTab : ITab
     {
         public SpectatorTab Tab => SpectatorTab.Players;
-        public string HeaderText => $"Players ({GetPlayerTargetCount()})";
-        public string TooltipText => "Spectate players";
+        public string HeaderText => Loc.Get("ReplayHud.Spectate.PlayersTab", GetPlayerTargetCount());
+        public string TooltipText => Loc.Get("ReplayHud.Spectate.PlayersTooltip");
         public Asset<Texture2D> Icon => Ass.IconPlayer;
         public float IconScale => 1.2f;
         public Vector2 IconOffset => new(2, 2);
@@ -989,8 +989,8 @@ internal sealed class SpectateHud : UIElement
     private sealed class NPCsTab : ITab
     {
         public SpectatorTab Tab => SpectatorTab.NPCs;
-        public string HeaderText => $"NPCs ({GetNpcTargetCount()})";
-        public string TooltipText => "Spectate NPCs";
+        public string HeaderText => Loc.Get("ReplayHud.Spectate.NpcsTab", GetNpcTargetCount());
+        public string TooltipText => Loc.Get("ReplayHud.Spectate.NpcsTooltip");
         public Asset<Texture2D> Icon => Ass.IconNPC;
         public float IconScale => 1f;
         public Vector2 IconOffset => new(-2, -2);

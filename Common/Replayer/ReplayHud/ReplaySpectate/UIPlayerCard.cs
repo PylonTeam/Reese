@@ -1,4 +1,4 @@
-﻿using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 using Reese.Core.Stats;
 using ReLogic.Content;
@@ -38,7 +38,7 @@ internal sealed class UIPlayerCard : UIEntityCard<Player>
 
     protected override string GetDisplayName(Player player)
     {
-        return PlayerIndex == Main.myPlayer ? "You" : player.name;
+        return PlayerIndex == Main.myPlayer ? Loc.Get("ReplayHud.Spectate.You") : player.name;
     }
 
     protected override Color GetTextColor(Player player)
@@ -109,8 +109,8 @@ internal sealed class UIPlayerCard : UIEntityCard<Player>
             new PlayerCardAction(
                 Ass.IconInventoryClosed,
                 Ass.IconInventoryOpen,
-                "Open inventory",
-                "Close inventory",
+                Loc.Get("ReplayHud.Spectate.OpenInventory"),
+                Loc.Get("ReplayHud.Spectate.CloseInventory"),
                 TeammateHudOverlay.Toggle,
                 TeammateHudOverlay.IsOpen)
         ];

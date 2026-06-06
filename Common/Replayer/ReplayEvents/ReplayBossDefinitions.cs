@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Reese.Common.Replayer.ReplayHud;
 using Terraria.ID;
+using Terraria.Localization;
 
 namespace Reese.Common.Replayer.ReplayEvents;
 
@@ -14,12 +16,12 @@ internal readonly record struct ReplayBossDefinition(string Key, string Name, in
 
     public ReplayTimelineEvent CreateSummonedEvent(uint tick)
     {
-        return new ReplayTimelineEvent(tick, ReplayEventCategory.BossSummoned, Key, $"{Name} summoned", ReplayEventIconKind.BossHead, HeadNpcId);
+        return new ReplayTimelineEvent(tick, ReplayEventCategory.BossSummoned, Key, Loc.Get("ReplayHud.Events.BossSummoned", Name), ReplayEventIconKind.BossHead, HeadNpcId);
     }
 
     public ReplayTimelineEvent CreateDefeatedEvent(uint tick)
     {
-        return new ReplayTimelineEvent(tick, ReplayEventCategory.BossDefeated, Key, $"{Name} defeated", ReplayEventIconKind.BossHead, HeadNpcId);
+        return new ReplayTimelineEvent(tick, ReplayEventCategory.BossDefeated, Key, Loc.Get("ReplayHud.Events.BossDefeated", Name), ReplayEventIconKind.BossHead, HeadNpcId);
     }
 }
 
@@ -36,37 +38,37 @@ internal static class ReplayBossDefinitions
         {
             evilBossId = NPCID.BrainofCthulhu;
             evilBossKey = "brain-of-cthulhu";
-            evilBossName = "Brain of Cthulhu";
+            evilBossName = Lang.GetNPCNameValue(NPCID.BrainofCthulhu);
             evilBossNpcIds = [NPCID.BrainofCthulhu];
         }
         else
         {
             evilBossId = NPCID.EaterofWorldsHead;
             evilBossKey = "eater-of-worlds";
-            evilBossName = "Eater of Worlds";
+            evilBossName = Lang.GetNPCNameValue(NPCID.EaterofWorldsHead);
             evilBossNpcIds = [NPCID.EaterofWorldsHead, NPCID.EaterofWorldsBody, NPCID.EaterofWorldsTail];
         }
 
         return
         [
-            Create("king-slime", "King Slime", NPCID.KingSlime, () => NPC.downedSlimeKing, NPCID.KingSlime),
-            Create("eye-of-cthulhu", "Eye of Cthulhu", NPCID.EyeofCthulhu, () => NPC.downedBoss1, NPCID.EyeofCthulhu),
+            Create("king-slime", Lang.GetNPCNameValue(NPCID.KingSlime), NPCID.KingSlime, () => NPC.downedSlimeKing, NPCID.KingSlime),
+            Create("eye-of-cthulhu", Lang.GetNPCNameValue(NPCID.EyeofCthulhu), NPCID.EyeofCthulhu, () => NPC.downedBoss1, NPCID.EyeofCthulhu),
             Create(evilBossKey, evilBossName, evilBossId, () => NPC.downedBoss2, evilBossNpcIds),
-            Create("queen-bee", "Queen Bee", NPCID.QueenBee, () => NPC.downedQueenBee, NPCID.QueenBee),
-            Create("deerclops", "Deerclops", NPCID.Deerclops, () => NPC.downedDeerclops, NPCID.Deerclops),
-            Create("skeletron", "Skeletron", NPCID.SkeletronHead, () => NPC.downedBoss3, NPCID.SkeletronHead),
-            Create("wall-of-flesh", "Wall of Flesh", NPCID.WallofFlesh, () => Main.hardMode, NPCID.WallofFlesh, NPCID.WallofFleshEye),
-            Create("queen-slime", "Queen Slime", NPCID.QueenSlimeBoss, () => NPC.downedQueenSlime, NPCID.QueenSlimeBoss),
-            Create("destroyer", "The Destroyer", NPCID.TheDestroyer, () => NPC.downedMechBoss1, NPCID.TheDestroyer, NPCID.TheDestroyerBody, NPCID.TheDestroyerTail),
-            Create("twins", "The Twins", NPCID.Retinazer, () => NPC.downedMechBoss2, NPCID.Retinazer, NPCID.Spazmatism),
-            Create("skeletron-prime", "Skeletron Prime", NPCID.SkeletronPrime, () => NPC.downedMechBoss3, NPCID.SkeletronPrime),
-            Create("plantera", "Plantera", NPCID.Plantera, () => NPC.downedPlantBoss, NPCID.Plantera),
-            Create("golem", "Golem", NPCID.GolemHead, () => NPC.downedGolemBoss, NPCID.Golem, NPCID.GolemHead),
-            Create("duke-fishron", "Duke Fishron", NPCID.DukeFishron, () => NPC.downedFishron, NPCID.DukeFishron),
-            Create("empress-of-light", "Empress of Light", NPCID.HallowBoss, () => NPC.downedEmpressOfLight, NPCID.HallowBoss),
-            Create("lunatic-cultist", "Lunatic Cultist", NPCID.CultistBoss, () => NPC.downedAncientCultist, NPCID.CultistBoss),
-            Create("lunar-pillars", "Lunar Pillars", NPCID.LunarTowerSolar, () => NPC.downedTowerSolar && NPC.downedTowerVortex && NPC.downedTowerNebula && NPC.downedTowerStardust, NPCID.LunarTowerSolar, NPCID.LunarTowerVortex, NPCID.LunarTowerNebula, NPCID.LunarTowerStardust),
-            Create("moon-lord", "Moon Lord", NPCID.MoonLordHead, () => NPC.downedMoonlord, NPCID.MoonLordCore, NPCID.MoonLordHead, NPCID.MoonLordHand)
+            Create("queen-bee", Lang.GetNPCNameValue(NPCID.QueenBee), NPCID.QueenBee, () => NPC.downedQueenBee, NPCID.QueenBee),
+            Create("deerclops", Lang.GetNPCNameValue(NPCID.Deerclops), NPCID.Deerclops, () => NPC.downedDeerclops, NPCID.Deerclops),
+            Create("skeletron", Lang.GetNPCNameValue(NPCID.SkeletronHead), NPCID.SkeletronHead, () => NPC.downedBoss3, NPCID.SkeletronHead),
+            Create("wall-of-flesh", Lang.GetNPCNameValue(NPCID.WallofFlesh), NPCID.WallofFlesh, () => Main.hardMode, NPCID.WallofFlesh, NPCID.WallofFleshEye),
+            Create("queen-slime", Lang.GetNPCNameValue(NPCID.QueenSlimeBoss), NPCID.QueenSlimeBoss, () => NPC.downedQueenSlime, NPCID.QueenSlimeBoss),
+            Create("destroyer", Lang.GetNPCNameValue(NPCID.TheDestroyer), NPCID.TheDestroyer, () => NPC.downedMechBoss1, NPCID.TheDestroyer, NPCID.TheDestroyerBody, NPCID.TheDestroyerTail),
+            Create("twins", Language.GetTextValue("Enemies.TheTwins"), NPCID.Retinazer, () => NPC.downedMechBoss2, NPCID.Retinazer, NPCID.Spazmatism),
+            Create("skeletron-prime", Lang.GetNPCNameValue(NPCID.SkeletronPrime), NPCID.SkeletronPrime, () => NPC.downedMechBoss3, NPCID.SkeletronPrime),
+            Create("plantera", Lang.GetNPCNameValue(NPCID.Plantera), NPCID.Plantera, () => NPC.downedPlantBoss, NPCID.Plantera),
+            Create("golem", Lang.GetNPCNameValue(NPCID.Golem), NPCID.GolemHead, () => NPC.downedGolemBoss, NPCID.Golem, NPCID.GolemHead),
+            Create("duke-fishron", Lang.GetNPCNameValue(NPCID.DukeFishron), NPCID.DukeFishron, () => NPC.downedFishron, NPCID.DukeFishron),
+            Create("empress-of-light", Lang.GetNPCNameValue(NPCID.HallowBoss), NPCID.HallowBoss, () => NPC.downedEmpressOfLight, NPCID.HallowBoss),
+            Create("lunatic-cultist", Lang.GetNPCNameValue(NPCID.CultistBoss), NPCID.CultistBoss, () => NPC.downedAncientCultist, NPCID.CultistBoss),
+            Create("lunar-pillars", Loc.Get("ReplayHud.Events.Boss.LunarPillars"), NPCID.LunarTowerSolar, () => NPC.downedTowerSolar && NPC.downedTowerVortex && NPC.downedTowerNebula && NPC.downedTowerStardust, NPCID.LunarTowerSolar, NPCID.LunarTowerVortex, NPCID.LunarTowerNebula, NPCID.LunarTowerStardust),
+            Create("moon-lord", Lang.GetNPCNameValue(NPCID.MoonLordCore), NPCID.MoonLordHead, () => NPC.downedMoonlord, NPCID.MoonLordCore, NPCID.MoonLordHead, NPCID.MoonLordHand)
         ];
     }
 

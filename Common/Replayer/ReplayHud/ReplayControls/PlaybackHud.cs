@@ -4,6 +4,7 @@ using Reese.Core.Configs;
 using System;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
+using Terraria.Localization;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplayControls;
@@ -27,7 +28,7 @@ public sealed class PlaybackHud : DraggablePanel
 
     private int settingsRevision = ReplayClientSettings.HudRevision;
 
-    public PlaybackHud() : base("Replay")
+    public PlaybackHud() : base(Loc.Get("ReplayHud.Playback.Title"))
     {
         PlaybackLayout.ApplyDefaultAnchor(this);
 
@@ -67,14 +68,14 @@ public sealed class PlaybackHud : DraggablePanel
         transportTickLabel = new CenteredHudText(0.86f);
         transportButtons =
         [
-            CreateTransportButton(Ass.IconSpeedDown,    "Go to start",   GoToStart),
-            CreateTransportButton(Ass.IconNextFrame,    "Next Frame",    StepOneFrame),
-            CreateTransportButton(Ass.IconBackArrow, "-30 Seconds", SeekBackward30, "-30"),
-            CreateTransportButton(Ass.IconPlay,         "Play",          Resume),
-            CreateTransportButton(Ass.IconPause,        "Pause",         Pause),
-            CreateTransportButton(Ass.IconForwardsArrow, "+30 Seconds",   SeekForward30, "+30"),
-            CreateTransportButton(Ass.IconStop,         "Stop Replay",   () => ReplayPlayback.End("user stopped replay", quitPlayer: true)),
-            CreateTransportButton(Ass.IconSpeedUp,      "Go to end",     GoToEnd),
+            CreateTransportButton(Ass.IconSpeedDown, Loc.Get("ReplayHud.Playback.GoToStart"), GoToStart),
+            CreateTransportButton(Ass.IconNextFrame, Loc.Get("ReplayHud.Playback.NextFrame"), StepOneFrame),
+            CreateTransportButton(Ass.IconBackArrow, Loc.Get("ReplayHud.Playback.SeekBackwardSeconds", 30), SeekBackward30, "-30"),
+            CreateTransportButton(Ass.IconPlay, Language.GetTextValue("UI.Play"), Resume),
+            CreateTransportButton(Ass.IconPause, Loc.Get("ReplayHud.Playback.Pause"), Pause),
+            CreateTransportButton(Ass.IconForwardsArrow, Loc.Get("ReplayHud.Playback.SeekForwardSeconds", 30), SeekForward30, "+30"),
+            CreateTransportButton(Ass.IconStop, Loc.Get("ReplayHud.Playback.StopReplay"), () => ReplayPlayback.End("user stopped replay", quitPlayer: true)),
+            CreateTransportButton(Ass.IconSpeedUp, Loc.Get("ReplayHud.Playback.GoToEnd"), GoToEnd),
         ];
 
         RebuildContent();
@@ -289,7 +290,7 @@ public sealed class PlaybackHud : DraggablePanel
 
         if (ReplayClientSettings.ShowReplayHudSpeed)
         {
-            speedLabel.SetTextIfChanged($"Speed: {FormatSpeedButton(speed)}");
+            speedLabel.SetTextIfChanged(Loc.Get("ReplayHud.Playback.Speed", FormatSpeedButton(speed)));
 
             for (int i = 0; i < speedButtons.Length; i++)
             {
@@ -308,9 +309,9 @@ public sealed class PlaybackHud : DraggablePanel
         if (!ReplayClientSettings.ShowReplayHudPlaybackControls)
             return;
 
-        transportStatusLabel.SetTextIfChanged($"Status: {GetReplayStatus(currentTick, durationTicks, paused)}");
+        transportStatusLabel.SetTextIfChanged(Loc.Get("ReplayHud.Playback.Status", GetReplayStatus(currentTick, durationTicks, paused)));
         RefreshTimeLabel(displayTick, durationTicks);
-        transportTickLabel.SetTextIfChanged($"Tick: {currentTick}");
+        transportTickLabel.SetTextIfChanged(Loc.Get("ReplayHud.Playback.Tick", currentTick));
 
         for (int i = 0; i < transportButtons.Length; i++)
             transportButtons[i].SetSelected(false);
@@ -333,7 +334,7 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void RefreshTimeLabel(uint displayTick, uint durationTicks)
     {
-        positionLabel.SetTextIfChanged($"Time: {FormatTime(displayTick)} / {FormatTime(durationTicks)}");
+        positionLabel.SetTextIfChanged(Loc.Get("ReplayHud.Playback.Time", FormatTime(displayTick), FormatTime(durationTicks)));
     }
 
     private static uint GetDurationTicks()
@@ -360,15 +361,15 @@ public sealed class PlaybackHud : DraggablePanel
     private static string GetReplayStatus(uint currentTick, uint durationTicks, bool paused)
     {
         if (ReplayPlayback.IsSeeking)
-            return "Seeking";
+            return Loc.Get("ReplayHud.Playback.ReplayStatus.Seeking");
 
         if (durationTicks > 1 && currentTick >= durationTicks)
-            return "End";
+            return Loc.Get("ReplayHud.Playback.ReplayStatus.End");
 
         if (currentTick == 0)
-            return "Start";
+            return Language.GetTextValue("LegacyMenu.144");
 
-        return paused ? "Paused" : "Playing";
+        return Loc.Get("ReplayHud.Playback." + (paused ? "ReplayStatus.Paused" : "ReplayStatus.Playing"));
     }
 
     private static string FormatTime(uint ticks)

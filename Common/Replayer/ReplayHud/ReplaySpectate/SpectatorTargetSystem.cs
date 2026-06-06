@@ -1,4 +1,4 @@
-﻿using Reese.Common.Spectator;
+using Reese.Common.Spectator;
 using System;
 using System.Collections.Generic;
 using Terraria.ID;
@@ -176,10 +176,10 @@ public class SpectatorTargetSystem : ModSystem
     public static string GetLockedTargetStatusText()
     {
         if (GetLockedNPCTarget() is NPC npc)
-            return $"Spectating \"{npc.FullName}\"";
+            return Loc.Get("ReplayHud.Spectate.SpectatingNpcQuoted", npc.FullName);
 
         if (GetLockedPlayerTarget() is Player player)
-            return $"Spectating {player.name}";
+            return Loc.Get("ReplayHud.Spectate.SpectatingPlayer", player.name);
 
         return null;
     }

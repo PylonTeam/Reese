@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using Reese.Common.Replayer.ReplayHud;
 using Terraria.DataStructures;
 using Terraria.ID;
 
@@ -55,7 +56,7 @@ internal static class ReplayTimelineRecorder
             return;
 
         string playerName = GetPlayerName(player);
-        Add(new ReplayTimelineEvent(tick, ReplayEventCategory.PlayerDeath, $"player-death:{player.whoAmI}:{tick}", $"{playerName} died", ReplayEventIconKind.MapDeath));
+        Add(new ReplayTimelineEvent(tick, ReplayEventCategory.PlayerDeath, $"player-death:{player.whoAmI}:{tick}", Loc.Get("ReplayHud.Events.PlayerDied", playerName), ReplayEventIconKind.MapDeath));
     }
 
     private static bool TryRecordPlayerKill(Player killedPlayer, PlayerDeathReason damageSource, uint tick)
@@ -79,7 +80,7 @@ internal static class ReplayTimelineRecorder
             tick,
             ReplayEventCategory.PlayerKill,
             $"player-kill:{killerIndex}:{killedPlayer.whoAmI}:{tick}",
-            $"{killerName} killed {killedName}",
+            Loc.Get("ReplayHud.Events.PlayerKilled", killerName, killedName),
             ReplayEventIconKind.PlayerHead,
             weaponItemId,
             ReplayPlayerHeadSnapshot.FromPlayer(killerPlayer)));
@@ -107,7 +108,7 @@ internal static class ReplayTimelineRecorder
             tick,
             ReplayEventCategory.PlayerJoined,
             $"player-join:{player.whoAmI}:{tick}",
-            $"{playerName} joined",
+            Loc.Get("ReplayHud.Events.PlayerJoined", playerName),
             ReplayEventIconKind.PlayerHead,
             player.whoAmI,
             ReplayPlayerHeadSnapshot.FromPlayer(player)));
@@ -123,7 +124,7 @@ internal static class ReplayTimelineRecorder
             tick,
             ReplayEventCategory.PlayerLeft,
             $"player-left:{player.whoAmI}:{tick}",
-            $"{playerName} left",
+            Loc.Get("ReplayHud.Events.PlayerLeft", playerName),
             ReplayEventIconKind.PlayerHead,
             player.whoAmI,
             ReplayPlayerHeadSnapshot.FromPlayer(player)));
@@ -143,7 +144,7 @@ internal static class ReplayTimelineRecorder
 
     private static string GetPlayerName(Player player)
     {
-        return string.IsNullOrWhiteSpace(player?.name) ? $"Player {(player?.whoAmI ?? 0) + 1}" : player.name.Trim();
+        return string.IsNullOrWhiteSpace(player?.name) ? Loc.Get("ReplayHud.Events.FallbackPlayerName", (player?.whoAmI ?? 0) + 1) : player.name.Trim();
     }
 
     private static int GetKillWeaponItemId(PlayerDeathReason damageSource)

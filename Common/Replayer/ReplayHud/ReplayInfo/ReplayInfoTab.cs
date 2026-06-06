@@ -9,6 +9,7 @@ using System.Linq;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
@@ -16,8 +17,8 @@ namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
 internal sealed class ReplayInfoTab : TabPage
 {
     public override Shared.Tabs.SpectatorTab Tab => Shared.Tabs.SpectatorTab.Replay;
-    public override string HeaderText => "Replay";
-    public override string TooltipText => "Replay info";
+    public override string HeaderText => Loc.Get("ReplayHud.Info.Tab");
+    public override string TooltipText => Loc.Get("ReplayHud.Info.TabTooltip");
     public override Asset<Texture2D> Icon => Ass.IconCameraSmall;
 
     public override float IconScale => 1.1f;
@@ -33,18 +34,18 @@ internal sealed class ReplayInfoTab : TabPage
 
     private sealed class ReplayInfo : Shared.Sections.InfoSection
     {
-        public override string HeaderText => "Replay Info";
+        public override string HeaderText => Loc.Get("ReplayHud.Info.ReplayInfoHeader");
         public override float Height => 222f;
 
         public override IReadOnlyList<Shared.Sections.SpectatorSectionRow> GetRows()
         {
             return
             [
-                new("File:", GetFileText),
-                new("Size:", GetFileSizeText),
-                new("Recorded:", GetRecordedText),
-                new("Length:", GetLengthText),
-                new("World:", GetWorldText)
+                new(Loc.Get("ReplayHud.Info.FileLabel"), GetFileText),
+                new(Language.GetTextValue("UI.WorldCreationSize"), GetFileSizeText),
+                new(Loc.Get("ReplayHud.Info.RecordedLabel"), GetRecordedText),
+                new(Loc.Get("ReplayHud.Info.LengthLabel"), GetLengthText),
+                new(Language.GetTextValue("LegacyWorldGen.57") + ":", GetWorldText)
             ];
         }
 
@@ -120,7 +121,7 @@ internal sealed class ReplayInfoTab : TabPage
         private static string FormatFileSizeText(long bytes)
         {
             long kilobytes = Math.Max(1, (long)Math.Ceiling(bytes / 1024d));
-            return kilobytes.ToString("N0", CultureInfo.InvariantCulture).Replace(",", " ") + " KB";
+            return Loc.Get("ReplayHud.Common.Kilobytes", kilobytes.ToString("N0", CultureInfo.InvariantCulture).Replace(",", " "));
         }
 
         private static string EmptyToDash(string value)
@@ -157,16 +158,16 @@ internal sealed class ReplayInfoTab : TabPage
 
             Rectangle box = GetDimensions().ToRectangle();
             sb.Draw(TextureAssets.MagicPixel.Value, new Rectangle(box.X + 10, box.Y + 28, box.Width - 20, 2), Color.White * 0.10f);
-            Utils.DrawBorderString(sb, "Mods", new Vector2(box.X + 10, box.Y + 6), new Color(255, 228, 140), 0.9f);
+            Utils.DrawBorderString(sb, Language.GetTextValue("tModLoader.MenuMods"), new Vector2(box.X + 10, box.Y + 6), new Color(255, 228, 140), 0.9f);
 
             Rectangle statBox = new(box.X + ContentInset, box.Y + (int)(HeaderHeight + 4f), box.Width - ContentInset * 2, (int)RowHeight);
             string modsText = mods.Count == 0 ? "-" : $"{mods.Count:N0}";
 
             string tooltip = mods.Count == 0
-                ? "No mods used in replay"
-                : "Mods used in replay:\n" + string.Join($"\n", mods.Select(x => $"[mi:{x.InternalName}]{x.DisplayName}"));
+                ? Loc.Get("ReplayHud.Info.NoModsUsed")
+                : Loc.Get("ReplayHud.Info.ModsUsed", string.Join($"\n", mods.Select(x => $"[mi:{x.InternalName}]{x.DisplayName}")));
 
-            StatDrawer.DrawWorldStatPanel(sb, statBox, null, modsText, tooltip, textColor: Color.Gray, label: "Mods:");
+            StatDrawer.DrawWorldStatPanel(sb, statBox, null, modsText, tooltip, textColor: Color.Gray, label: Language.GetTextValue("tModLoader.MenuMods") + ":");
 
             int dividerY = statBox.Bottom + 8;
             sb.Draw(TextureAssets.MagicPixel.Value, new Rectangle(box.X + 10, dividerY, box.Width - 20, 2), Color.White * 0.10f);

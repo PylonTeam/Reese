@@ -1,6 +1,8 @@
 using Microsoft.Xna.Framework.Graphics;
+using Reese.Common.Replayer.ReplayHud;
 using System;
 using System.Collections.Generic;
+using Terraria.Localization;
 
 namespace Reese.Common.Replayer.ReplayHud.Shared.Sections;
 
@@ -58,7 +60,7 @@ internal abstract class SettingsSection : SpectatorSectionBase
 {
     public override bool UsesOptionRowStyle => true;
 
-    protected static string OnOff(bool value) => value ? "On" : "Off";
+    protected static string OnOff(bool value) => Language.GetTextValue(value ? "LegacyInterface.72" : "LegacyInterface.73");
 }
 
 internal abstract class InfoSection : SpectatorSectionBase

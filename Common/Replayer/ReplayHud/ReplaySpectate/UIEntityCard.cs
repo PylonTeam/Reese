@@ -1,4 +1,4 @@
-﻿using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
+using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 using Reese.Core.Stats;
 using System;
 using System.Globalization;
@@ -12,10 +12,10 @@ namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 /// Compact card (half the height of UIPlayerCard) used by PlayerHudMode.Head.
 //// Layout: player head on the left, name + distance stacked to its right.
 ////
-////  ┌──────────────────────────────┐
-////  │  ╔══╗  PlayerName            │  ← 65 px total
-////  │  ╚══╝    (123 ft)            │ <- LMAO this is kinda sick
-////  └──────────────────────────────┘
+////  +------------------------------+
+////  �  +--+  PlayerName            �  ? 65 px total
+////  �  +--+    (123 ft)            � <- LMAO this is kinda sick
+////  +------------------------------+
 /// </summary>
 internal abstract class UIEntityCard<T> : UIPanel where T : Entity
 {
@@ -157,7 +157,7 @@ internal abstract class UIEntityCard<T> : UIPanel where T : Entity
     {
         Player local = Main.LocalPlayer;
         float feet = local?.active == true ? Vector2.Distance(local.Center, entity.Center) / 8f : 0f;
-        return $"({feet.ToString("F0", CultureInfo.InvariantCulture)} ft)";
+        return Loc.Get("ReplayHud.Spectate.DistanceFeet", feet.ToString("F0", CultureInfo.InvariantCulture));
     }
 
     internal static void DrawCenteredText(SpriteBatch sb, string text, Rectangle area, float scale, Color color)

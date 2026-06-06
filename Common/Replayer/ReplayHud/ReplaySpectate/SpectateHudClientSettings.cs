@@ -1,3 +1,5 @@
+using Terraria.Localization;
+
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
 internal enum SpectateHudSortMode
@@ -22,7 +24,7 @@ internal static class SpectateHudClientSettings
     public static SpectateHudSortMode SortMode { get; private set; } = SpectateHudSortMode.Teams;
     public static string SortModeDisplayName => GetSortModeDisplayName(SortMode);
     public static EntityHudMode EntityHudMode { get; private set; } = EntityHudMode.Full;
-    public static string EntityHudModeDisplayName => EntityHudMode.ToString();
+    public static string EntityHudModeDisplayName => Loc.Get("ReplayHud.Settings.EntityHudMode." + EntityHudMode);
     public static bool ShowPlayer { get; private set; } = true;
     public static bool ShowPlayerNameAndDistance { get; private set; } = true;
     public static bool ShowPlayerName => ShowPlayerNameAndDistance;
@@ -70,12 +72,12 @@ internal static class SpectateHudClientSettings
     {
         return sortMode switch
         {
-            SpectateHudSortMode.Alphabetical => "Alphabetical",
-            SpectateHudSortMode.Distance => "Distance",
-            SpectateHudSortMode.Health => "Health",
-            SpectateHudSortMode.Id => "ID",
-            SpectateHudSortMode.Teams => "Teams",
-            _ => "Teams"
+            SpectateHudSortMode.Alphabetical => Language.GetTextValue("BestiaryInfo.Sort_Alphabetical"),
+            SpectateHudSortMode.Distance => Loc.Get("ReplayHud.Settings.SortMode.Distance"),
+            SpectateHudSortMode.Health => Language.GetTextValue("BestiaryInfo.Life"),
+            SpectateHudSortMode.Id => Language.GetTextValue("BestiaryInfo.Sort_ID"),
+            SpectateHudSortMode.Teams => Loc.Get("ReplayHud.Settings.SortMode.Teams"),
+            _ => Loc.Get("ReplayHud.Settings.SortMode.Teams")
         };
     }
 

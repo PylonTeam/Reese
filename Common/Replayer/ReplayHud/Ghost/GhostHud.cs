@@ -3,6 +3,7 @@ using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Replayer.ReplayHud.Shared.Tabs;
 using System.Collections.Generic;
 using Terraria.GameContent.UI.Elements;
+using Terraria.Localization;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.Ghost;
@@ -158,6 +159,6 @@ internal sealed class GhostHud : UIElement
 
     private static string GetGhostTitle()
     {
-        return "Ghost";
+        return Language.GetTextValue("NPCName.Ghost");
     }
 }

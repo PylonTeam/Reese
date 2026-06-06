@@ -8,6 +8,7 @@ using Terraria.Audio;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
 using Terraria.ID;
+using Terraria.Localization;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 
@@ -71,9 +72,9 @@ internal sealed class ReplayListItem : UIPanel
 
         ButtonAction[] actions =
         [
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), "Play", () => ReplayActions.EnterReplay(metadata.FullPath)),
-            new(favoriteTexture, isFavorite ? "Unfavorite" : "Favorite", () => ReplayActions.Favorite(metadata.FullPath, flags => onFavoriteToggled?.Invoke(metadata.FullPath, flags))),
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), "Rename", () => ReplayActions.Rename(metadata.FullPath, onEntryChanged))
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), Language.GetTextValue("UI.Play"), () => ReplayActions.EnterReplay(metadata.FullPath)),
+            new(favoriteTexture, Language.GetTextValue(isFavorite ? "UI.Unfavorite" : "UI.Favorite"), () => ReplayActions.Favorite(metadata.FullPath, flags => onFavoriteToggled?.Invoke(metadata.FullPath, flags))),
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), Language.GetTextValue("UI.Rename"), () => ReplayActions.Rename(metadata.FullPath, onEntryChanged))
         ];
 
         actionLabel = AddLabel(10f + actions.Length * ReplayLayout.ActionButtonSize + Math.Max(0, actions.Length - 1) * ReplayLayout.ActionButtonGap + ReplayLayout.ActionLabelGap);
@@ -106,8 +107,8 @@ internal sealed class ReplayListItem : UIPanel
         }
 
         ButtonAction deleteAction = isFavorite
-            ? new ButtonAction(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Cannot Delete (Favorited)", null)
-            : new ButtonAction(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), "Delete", () => ReplayActions.Delete(metadata.FullPath, onEntryChanged));
+            ? new ButtonAction(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), Language.GetTextValue("UI.CannotDeleteFavorited"), null)
+            : new ButtonAction(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), Language.GetTextValue("UI.Delete"), () => ReplayActions.Delete(metadata.FullPath, onEntryChanged));
 
         UIImageButton deleteButton = Button(deleteAction, rightLabel, deleteLeft, buttonTop, ReplayLayout.ActionButtonSize);
         Append(deleteButton);
@@ -412,7 +413,7 @@ internal sealed class ReplayListItem : UIPanel
     private static string GetReplayUnavailableReason(ReplayMetadata metadata)
     {
         if (metadata.DurationTicks == 0)
-            return "Replay metadata is invalid or incomplete.";
+            return Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.InvalidMetadata");
 
         string[] replayMods = NormalizeReplayMods(metadata.ModNames);
         string[] enabledMods = GetEnabledModNames();
@@ -432,26 +433,26 @@ internal sealed class ReplayListItem : UIPanel
 
         List<string> lines =
         [
-            "[c/ffcc66:Mod mismatch]",
-            "This replay was recorded with different mods than you have enabled."
+            Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.ModMismatchHeader"),
+            Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.ModMismatchDescription")
         ];
 
         if (missingMods.Length > 0)
         {
             lines.Add("");
-            lines.Add($"Missing mods ({missingMods.Length}):");
+            lines.Add(Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.MissingMods", missingMods.Length));
 
             foreach (string modName in missingMods)
-                lines.Add($"[mi:{modName}][c/ff5555:{modName} (disabled)]");
+                lines.Add(Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.MissingModEntry", modName));
         }
 
         if (extraMods.Length > 0)
         {
             lines.Add("");
-            lines.Add($"Extra enabled mods ({extraMods.Length}):");
+            lines.Add(Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.ExtraMods", extraMods.Length));
 
             foreach (string modName in extraMods)
-                lines.Add($"[mi:{modName}][c/1ec2ff:{modName} (disable before playing)]");
+                lines.Add(Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.ExtraModEntry", modName));
         }
 
         return string.Join("\n", lines);

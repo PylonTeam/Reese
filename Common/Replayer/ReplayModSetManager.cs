@@ -100,14 +100,14 @@ internal static class ReplayModSetManager
 
             ApplyReplayModSet(session);
             SetReplaySyncHeaders(session.Mods);
-            RequestReload($"Preparing replay mods for {Path.GetFileNameWithoutExtension(replayPath)}...");
+            RequestReload(Loc.Get("MainMenu.ReplayStartup.PreparingMods", Path.GetFileNameWithoutExtension(replayPath)));
             return (false, null);
         }
         catch (Exception e)
         {
             RestorePreparationFailure(session);
             Log.Error($"Failed to prepare replay mods for {Path.GetFileName(replayPath)}: {e}");
-            Main.statusText = "Failed to prepare replay mods";
+            Main.statusText = Loc.Get("MainMenu.ReplayStartup.FailedToPrepareMods");
             Main.menuMode = MainMenuId;
             return (false, null);
         }
@@ -205,7 +205,7 @@ internal static class ReplayModSetManager
 
         launchReloadRescueStarted = true;
         Log.Warn($"Replay mod session is waiting for launch reload while still in menuMode {Main.menuMode}; re-requesting tML reload.");
-        RequestReload($"Preparing replay mods for {Path.GetFileNameWithoutExtension(session.ReplayPath)}...");
+        RequestReload(Loc.Get("MainMenu.ReplayStartup.PreparingMods", Path.GetFileNameWithoutExtension(session.ReplayPath)));
     }
 
     private static ReplayModSetSession CreateSession(string replayPath, ReplayModBundle bundle)
@@ -354,7 +354,7 @@ internal static class ReplayModSetManager
         if (!CurrentModSetMatches(session.Mods, out string mismatch))
         {
             Log.Error($"Replay mod load verification failed: {mismatch}");
-            Main.statusText = $"Replay mod verification failed: {mismatch}";
+            Main.statusText = Loc.Get("MainMenu.ReplayStartup.ModVerificationFailed", mismatch);
             session.Phase = PhaseRestorePending;
             SaveSession(session);
             TryBeginRestore();
@@ -386,13 +386,13 @@ internal static class ReplayModSetManager
         {
             Log.Info($"Beginning replay mod restore reload for {Path.GetFileName(session.ReplayPath)}.");
             ApplyPreviousModSet(session);
-            RequestReload("Restoring previous mods...");
+            RequestReload(Loc.Get("MainMenu.ReplayStartup.RestoringPreviousMods"));
         }
         catch (Exception e)
         {
             restoreStarted = false;
             Log.Error($"Failed to restore previous mod set: {e}");
-            Main.statusText = "Failed to restore previous mods";
+            Main.statusText = Loc.Get("MainMenu.ReplayStartup.FailedToRestorePreviousMods");
         }
     }
 

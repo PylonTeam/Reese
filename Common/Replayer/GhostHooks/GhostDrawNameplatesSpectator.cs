@@ -5,7 +5,6 @@ using System.Reflection;
 using Terraria.GameContent;
 using Terraria.GameContent.UI;
 using Terraria.GameInput;
-using Terraria.Localization;
 using Terraria.UI.Chat;
 using Reese.Common.Spectator;
 
@@ -215,7 +214,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
                     float num4 = 20f;
                     float num5 = -27f;
                     num5 -= (measurement.X - 85f) / 2f;
-                    string textValue = Language.GetTextValue("GameUI.PlayerDistance", (int)(num3 / 16f * 2f));
+                    string textValue = Terraria.Localization.Language.GetTextValue("GameUI.PlayerDistance", (int)(num3 / 16f * 2f));
                     Vector2 npDistPos = value.MeasureString(textValue);
                     npDistPos.X = namePlatePos.X - num5;
                     npDistPos.Y = namePlatePos.Y + measurement.Y / 2f - npDistPos.Y / 2f - num4;

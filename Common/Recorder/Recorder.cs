@@ -11,7 +11,6 @@ using System.Reflection;
 using Terraria.GameContent.Creative;
 using Terraria.GameContent.Events;
 using Terraria.ID;
-using Terraria.Localization;
 using Terraria.Net;
 using Terraria.Net.Sockets;
 
@@ -294,7 +293,7 @@ public class Recorder : ModSystem, ITicker
         NPC.RevengeManager.SendAllMarkersToPlayer(recordClient.Id);
 
         NetMessage.SendData(MessageID.AnglerQuest, recordClient.Id,
-            text: NetworkText.FromLiteral(Main.player[recordClient.Id].name), number: Main.anglerQuest);
+            text: Terraria.Localization.NetworkText.FromLiteral(Main.player[recordClient.Id].name), number: Main.anglerQuest);
 
         if (initial)
             NetMessage.SendData(MessageID.FinishedConnectingToServer, recordClient.Id);

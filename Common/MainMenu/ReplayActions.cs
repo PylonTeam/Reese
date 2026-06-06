@@ -67,7 +67,7 @@ internal static class ReplayActions
             {
                 try
                 {
-                    Main.statusText = $"Reading {fileName}..."; // file scan + baseline index takes a few seconds.
+                    Main.statusText = Loc.Get("MainMenu.ReplayStartup.Reading", fileName); // file scan + baseline index takes a few seconds.
                     ReplayPlayback.BeginPlayback(replayPath);
                 }
                 catch (Exception e)
@@ -80,7 +80,7 @@ internal static class ReplayActions
                             return;
                         }
                         Log.Error("Failed to start replay: " + e);
-                        Main.statusText = "Failed to start replay";
+                        Main.statusText = Loc.Get("MainMenu.ReplayStartup.FailedToStart");
                         ReplayPlayback.End("playback launch failed");
                         ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
                     });
@@ -105,7 +105,7 @@ internal static class ReplayActions
                         }
 
                         // Connect to magic ip
-                        Main.statusText = string.IsNullOrWhiteSpace(forcedModMismatchReason) ? "Connecting..." : "Connecting with current mods...";
+                        Main.statusText = Loc.Get("MainMenu.ReplayStartup." + (string.IsNullOrWhiteSpace(forcedModMismatchReason) ? "Connecting" : "ConnectingWithCurrentMods"));
                         ReplayFlags.MarkWatched(replayPath);
                         Netplay.SetRemoteIP("10.2.3.4");
                         Main.autoPass = true;
@@ -115,7 +115,7 @@ internal static class ReplayActions
                     catch (Exception e)
                     {
                         Log.Error("Failed to start replay: " + e);
-                        Main.statusText = "Failed to start replay";
+                        Main.statusText = Loc.Get("MainMenu.ReplayStartup.FailedToStart");
                         ReplayPlayback.End("playback launch failed");
                         ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
                     }

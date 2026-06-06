@@ -1,10 +1,11 @@
 using Reese.Content;
 using Reese.Core.Configs;
+using Reese.Core.Localization;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
+using System;
 using System.IO;
 using Terraria.Chat;
 using Terraria.ID;
-using Terraria.Localization;
 
 namespace Reese.Common.Replayer;
 
@@ -36,16 +37,21 @@ internal sealed class ReplayEnterWorldPlayer : ModPlayer
 
         string smallCameraItemTag = $"[i:{ModContent.ItemType<SmallCameraItem>()}]";
         string bigCameraItemTag = $"[i:{ModContent.ItemType<CameraItem>()}]";
+        string[] lines = Loc.Get("Replayer.ReplayWelcomeMessage", fileName)
+            .Replace("\r\n", "\n")
+            .Split('\n');
+        int lastLine = Array.FindLastIndex(lines, line => !string.IsNullOrWhiteSpace(line));
 
-        // Send the message
-        //ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{bigCameraItemTag} Welcome to your Reese replay! Now playing: '[c/FFFFFF:{fileName}]'"), Main.OurFavoriteColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{bigCameraItemTag} Welcome to your Reese replay!"), Main.OurFavoriteColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Quick guide:"), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Top HUD: spectate players/NPCs"), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Bottom HUD: playback controls"), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Right side HUD: settings"), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Right click to teleport around the world."), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} To toggle the entire replay HUD, assign a keybind in controls."), reeseColor, Player.whoAmI);
-        ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{smallCameraItemTag} Enjoy!"), Main.OurFavoriteColor, Player.whoAmI);
+        for (int i = 0; i < lines.Length; i++)
+        {
+            string line = lines[i];
+
+            if (string.IsNullOrWhiteSpace(line))
+                continue;
+
+            string icon = i == 0 ? bigCameraItemTag : smallCameraItemTag;
+            Color color = i == 0 || i == lastLine ? Main.OurFavoriteColor : reeseColor;
+            ChatHelper.SendChatMessageToClient(Terraria.Localization.NetworkText.FromLiteral($"{icon} {line}"), color, Player.whoAmI);
+        }
     }
 }

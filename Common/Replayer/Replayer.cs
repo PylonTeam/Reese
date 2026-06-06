@@ -1,4 +1,4 @@
-﻿using log4net;
+using log4net;
 using MonoMod.Cil;
 using MonoMod.RuntimeDetour;
 using Reese.Common.MainMenu;
@@ -66,7 +66,7 @@ public class Replayer : ModSystem, ITicker
 
         if (!File.Exists(replayPath))
         {
-            string fileNotExistMessage = $"Replay not found";
+            string fileNotExistMessage = Loc.Get("MainMenu.ReplayStartup.NotFound");
             Log.Error(fileNotExistMessage);
             ReplayPlayback.End(fileNotExistMessage);
             Main.statusText = fileNotExistMessage;
@@ -76,7 +76,7 @@ public class Replayer : ModSystem, ITicker
 
         if (string.IsNullOrWhiteSpace(replayPath))
         {
-            string replayNull = $"Replay {fileName} not found or null";
+            string replayNull = Loc.Get("MainMenu.ReplayStartup.NotFoundOrNull", fileName);
             Log.Error(replayNull);
             ReplayPlayback.End(replayNull);
             Main.statusText = replayNull;
@@ -159,7 +159,6 @@ public class Replayer : ModSystem, ITicker
 
     public class ReplaySocket(ITicker ticker, ReplayFile replayFile) : ISocket
     {
-        private static readonly ILog Logger = LogManager.GetLogger(typeof(ReplaySocket));
         private readonly ReplayRemoteAddress _remoteAddress = new();
         private readonly object replayFileLock = new();
         public IReadOnlyList<ReplayBaselineEntry> Baselines
@@ -233,7 +232,7 @@ public class Replayer : ModSystem, ITicker
 
         public void AsyncSend(byte[] data, int offset, int size, SocketSendCallback callback, object state)
         {
-            // Outgoing client packets (Hello, etc.) are discarded — we're in replay mode.
+            // Outgoing client packets (Hello, etc.) are discarded � we're in replay mode.
             // But we must invoke the callback or the client loop hangs waiting for confirmation.
             callback?.Invoke(state);
         }

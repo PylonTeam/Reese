@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
+using Terraria.Localization;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 using Terraria.UI.Chat;
@@ -100,12 +101,11 @@ internal sealed class ReplayBrowserPanel : UIElement
         tableHeader.Height.Set(ReplayLayout.TableColumnHeight, 0f);
         container.Append(tableHeader);
 
-        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, "Name", 0f, ReplayLayout.NameColumnWidth);
-        UISortableTableColumn dateColumn = UISortableTableColumn.AppendHeader(tableHeader, "Date", ReplayLayout.NameColumnWidth, ReplayLayout.DateColumnWidth);
-        UISortableTableColumn lengthColumn = UISortableTableColumn.AppendHeader(tableHeader, "Length", ReplayLayout.NameColumnWidth + ReplayLayout.DateColumnWidth, ReplayLayout.LengthColumnWidth);
-        UISortableTableColumn modsColumn = UISortableTableColumn.AppendHeader(tableHeader, "Mods", ReplayLayout.ModsLeft, ReplayLayout.ModsColumnWidth);
-        UISortableTableColumn sizeColumn = UISortableTableColumn.AppendHeader(tableHeader, "Size", ReplayLayout.SizeLeft, ReplayLayout.SizeColumnWidth);
-
+        UISortableTableColumn nameColumn = UISortableTableColumn.AppendHeader(tableHeader, Language.GetTextValue("BestiaryInfo.Sort_Alphabetical"), 0f, ReplayLayout.NameColumnWidth);
+        UISortableTableColumn dateColumn = UISortableTableColumn.AppendHeader(tableHeader, Loc.Get("MainMenu.ReplayBrowser.Date"), ReplayLayout.NameColumnWidth, ReplayLayout.DateColumnWidth);
+        UISortableTableColumn lengthColumn = UISortableTableColumn.AppendHeader(tableHeader, Loc.Get("MainMenu.ReplayBrowser.Length"), ReplayLayout.NameColumnWidth + ReplayLayout.DateColumnWidth, ReplayLayout.LengthColumnWidth);
+        UISortableTableColumn modsColumn = UISortableTableColumn.AppendHeader(tableHeader, Language.GetTextValue("tModLoader.MenuMods"), ReplayLayout.ModsLeft, ReplayLayout.ModsColumnWidth);
+        UISortableTableColumn sizeColumn = UISortableTableColumn.AppendHeader(tableHeader, Language.GetTextValue("UI.WorldCreationSize"), ReplayLayout.SizeLeft, ReplayLayout.SizeColumnWidth);
         void RefreshColumnStates()
         {
             nameColumn.SetSortState(sortColumn == SortColumn.Name, sortAscending);
@@ -196,7 +196,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         buttonStrip.Height.Set(headerButtonSize, 0f);
         header.Append(buttonStrip);
 
-        UI.UIHoverImage openFolderButton = new(Ass.ButtonOpenFolder, "Open folder")
+        UI.UIHoverImage openFolderButton = new(Ass.ButtonOpenFolder, Language.GetTextValue("LegacyMenu.110"))
         {
             ImageScale = 0.9f,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -212,7 +212,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         };
         buttonStrip.Append(openFolderButton);
 
-        UI.UIHoverImage configButton = new(UICommon.ButtonModConfigTexture, "Open config")
+        UI.UIHoverImage configButton = new(UICommon.ButtonModConfigTexture, Language.GetTextValue("tModLoader.ModsOpenConfig"))
         {
             ImageScale = 0.9f,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -224,7 +224,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         configButton.OnLeftClick += (_, _) => OpenReeseClientConfig();
         buttonStrip.Append(configButton);
 
-        UI.UIHoverImage refreshButton = new(Ass.ButtonRefresh, "Refresh")
+        UI.UIHoverImage refreshButton = new(Ass.ButtonRefresh, Loc.Get("MainMenu.ReplayBrowser.Refresh"))
         {
             ImageScale = 0.9f,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -240,7 +240,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         };
         buttonStrip.Append(refreshButton);
 
-        searchBox = new("Type to search")
+        searchBox = new(Language.GetTextValue("tModLoader.ModsTypeToSearch"))
         {
             Width = { Pixels = 156f },
             Height = { Pixels = 28f },

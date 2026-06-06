@@ -1,4 +1,5 @@
 ﻿using Reese.Common.Replayer;
+using Reese.Core.Localization;
 using System;
 using System.Net;
 using System.Net.Security;
@@ -275,7 +276,7 @@ public class EncryptEverything : ModSystem
         Main.myPlayer = 255;
         Netplay.ServerIP = IPAddress.Any;
         Main.menuMode = MenuID.MultiplayerJoining;
-        Main.statusText = Language.GetTextValue("Mods.Reese.ServerStartedSsl");
+        Main.statusText = Loc.Get("ServerStartedSsl");
         Main.netMode = NetmodeID.Server;
         Netplay.Disconnect = false;
 

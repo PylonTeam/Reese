@@ -1,4 +1,6 @@
+using Reese.Common.Replayer.ReplayHud;
 using Terraria.ID;
+using Terraria.Localization;
 
 namespace Reese.Common.Replayer.ReplayEvents;
 
@@ -10,18 +12,18 @@ internal static class ReplayInvasionDefinitions
         int itemId = GetIconItemId(invasionType);
         ReplayEventIconKind iconKind = itemId > 0 ? ReplayEventIconKind.Item : ReplayEventIconKind.None;
 
-        return new ReplayTimelineEvent(tick, ReplayEventCategory.InvasionStarted, $"invasion:{invasionType}", $"{name} started", iconKind, itemId);
+        return new ReplayTimelineEvent(tick, ReplayEventCategory.InvasionStarted, $"invasion:{invasionType}", Loc.Get("ReplayHud.Events.InvasionStarted", name), iconKind, itemId);
     }
 
     private static string GetName(int invasionType)
     {
         return invasionType switch
         {
-            InvasionID.GoblinArmy => "Goblin Army",
-            InvasionID.SnowLegion => "Snow Legion",
-            InvasionID.PirateInvasion => "Pirate Invasion",
-            InvasionID.MartianMadness => "Martian Madness",
-            _ => $"Invasion {invasionType}"
+            InvasionID.GoblinArmy => Language.GetTextValue("LegacyInterface.88"),
+            InvasionID.SnowLegion => Language.GetTextValue("LegacyInterface.87"),
+            InvasionID.PirateInvasion => Language.GetTextValue("LegacyInterface.86"),
+            InvasionID.MartianMadness => Language.GetTextValue("LegacyInterface.85"),
+            _ => Loc.Get("ReplayHud.Events.Invasion.Unknown", invasionType)
         };
     }
 
