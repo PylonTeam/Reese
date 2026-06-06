@@ -9,8 +9,9 @@ namespace Reese.Common.Replayer.ReplayHud.ReplayControls;
 
 internal sealed class ReplayEventMarkerLayer : UIElement
 {
-    private const int BossIconSize = 30;
+    private const int BossIconSize = 26;
     private const int EventIconSize = 22;
+    private const int PlayerHeadIconSize = 26;
     private const int MarkerWidth = 5;
     private static Player snapshotHeadPlayer;
 
@@ -72,7 +73,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         return timelineEvent.Category switch
         {
             ReplayEventCategory.BossDefeated => ReplayClientSettings.ShowBossesDefeated,
-            ReplayEventCategory.BossSummoned => ReplayClientSettings.ShowBossesDefeated,
+            ReplayEventCategory.BossSummoned => ReplayClientSettings.ShowBossesSummoned,
             ReplayEventCategory.PlayerDeath => ReplayClientSettings.ShowPlayerDeaths,
             ReplayEventCategory.PlayerKill => ReplayClientSettings.ShowPlayerDeaths,
             ReplayEventCategory.InvasionStarted => ReplayClientSettings.ShowInvasions,
@@ -93,7 +94,13 @@ internal sealed class ReplayEventMarkerLayer : UIElement
 
     private static Rectangle GetIconArea(ReplayTimelineEvent timelineEvent, int x, int trackTop)
     {
-        int size = timelineEvent.Category is ReplayEventCategory.BossDefeated or ReplayEventCategory.BossSummoned ? BossIconSize : EventIconSize;
+        int size = timelineEvent.IconKind switch
+        {
+            ReplayEventIconKind.BossHead => BossIconSize,
+            ReplayEventIconKind.PlayerHead => PlayerHeadIconSize,
+            _ => EventIconSize
+        };
+
         int top = trackTop - size - 4;
 
         return new Rectangle(x - size / 2, top, size, size);
@@ -103,12 +110,12 @@ internal sealed class ReplayEventMarkerLayer : UIElement
     {
         return category switch
         {
-            ReplayEventCategory.BossDefeated => new Color(255, 215, 84),
-            ReplayEventCategory.BossSummoned => new Color(180, 120, 255),
-            ReplayEventCategory.PlayerDeath => new Color(255, 88, 88),
+            ReplayEventCategory.BossDefeated => new Color(213, 45, 52),
+            ReplayEventCategory.BossSummoned => new Color(32, 190, 146),
+            ReplayEventCategory.PlayerDeath => new Color(255, 72, 108),
             ReplayEventCategory.InvasionStarted => new Color(120, 220, 255),
-            ReplayEventCategory.PlayerJoined => new Color(88, 220, 126),
-            ReplayEventCategory.PlayerLeft => new Color(155, 155, 165),
+            ReplayEventCategory.PlayerJoined => new Color(74, 230, 95),
+            ReplayEventCategory.PlayerLeft => new Color(46, 50, 58, 110),
             ReplayEventCategory.PlayerKill => new Color(255, 132, 72),
             _ => Main.OurFavoriteColor
         };
@@ -119,7 +126,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         switch (timelineEvent.IconKind)
         {
             case ReplayEventIconKind.BossHead:
-                DrawBossHead(spriteBatch, timelineEvent.IconId, area);
+                DrawBossHead(spriteBatch, timelineEvent.IconId, area, timelineEvent.Category == ReplayEventCategory.BossDefeated);
                 return;
 
             case ReplayEventIconKind.MapDeath:
@@ -138,7 +145,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         DrawDiamond(spriteBatch, area, color);
     }
 
-    private static void DrawBossHead(SpriteBatch spriteBatch, int headNpcId, Rectangle area)
+    private static void DrawBossHead(SpriteBatch spriteBatch, int headNpcId, Rectangle area, bool grayscale)
     {
         if (headNpcId < 0 ||
             headNpcId >= NPCID.Sets.BossHeadTextures.Length ||
@@ -148,7 +155,18 @@ internal sealed class ReplayEventMarkerLayer : UIElement
             return;
         }
 
-        Main.BossNPCHeadRenderer.DrawWithOutlines(null, NPCID.Sets.BossHeadTextures[headNpcId], area.Center.ToVector2(), Color.White, 0f, 0.62f, SpriteEffects.None);
+        if (grayscale && EffectLoader.TryGetGrayscaleEffect(out Effect effect))
+        {
+            DrawWithEffect(spriteBatch, effect, () => DrawBossHeadDirect(headNpcId, area));
+            return;
+        }
+
+        DrawBossHeadDirect(headNpcId, area);
+    }
+
+    private static void DrawBossHeadDirect(int headNpcId, Rectangle area)
+    {
+        Main.BossNPCHeadRenderer.DrawWithOutlines(null, NPCID.Sets.BossHeadTextures[headNpcId], area.Center.ToVector2(), Color.White, 0f, 0.54f, SpriteEffects.None);
     }
 
     private static void DrawItem(SpriteBatch spriteBatch, int itemId, Rectangle area)
@@ -210,6 +228,11 @@ internal sealed class ReplayEventMarkerLayer : UIElement
             return;
         }
 
+        DrawWithEffect(spriteBatch, effect, () => DrawPlayerHeadDirect(player, position, scale));
+    }
+
+    private static void DrawWithEffect(SpriteBatch spriteBatch, Effect effect, Action draw)
+    {
         GraphicsDevice device = spriteBatch.GraphicsDevice;
         Rectangle scissor = device.ScissorRectangle;
         RasterizerState oldRasterizer = device.RasterizerState;
@@ -219,7 +242,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         spriteBatch.End();
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, oldRasterizer, effect, Main.UIScaleMatrix);
         device.ScissorRectangle = scissor;
-        DrawPlayerHeadDirect(player, position, scale);
+        draw();
 
         spriteBatch.End();
         spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.AnisotropicClamp, DepthStencilState.None, oldRasterizer, null, Main.UIScaleMatrix);

@@ -8,6 +8,7 @@ using ReLogic.Content;
 using System.Collections.Generic;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
+using Terraria.ID;
 using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
@@ -283,9 +284,9 @@ internal sealed class SettingsTab : TabPage
             return
             [
                 new("Show Replay HUD:", () => $"Show Replay HUD: {OnOff(ReplayClientSettings.ShowPlaybackHud)}", () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleShowPlaybackHud),
-                new("Show Speed:", () => $"Show Speed: {OnOff(ReplayClientSettings.ShowReplayHudSpeed)}", () => Ass.IconSpeedUp.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSpeed),
-                new("Show Playback Controls:", () => $"Show Playback Controls: {OnOff(ReplayClientSettings.ShowReplayHudPlaybackControls)}", () => Ass.IconPlay.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudPlaybackControls),
-                new("Show Seekbar:", () => $"Show Seekbar: {OnOff(ReplayClientSettings.ShowReplayHudSeekbar)}", () => Ass.SliderHighlight.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSeekbar)
+                //new("Show Speed:", () => $"Show Speed: {OnOff(ReplayClientSettings.ShowReplayHudSpeed)}", () => Ass.IconSpeedUp.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSpeed),
+                //new("Show Playback Controls:", () => $"Show Playback Controls: {OnOff(ReplayClientSettings.ShowReplayHudPlaybackControls)}", () => Ass.IconPlay.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudPlaybackControls),
+                //new("Show Seekbar:", () => $"Show Seekbar: {OnOff(ReplayClientSettings.ShowReplayHudSeekbar)}", () => Ass.SliderHighlight.Value, onLeftClick: ReplayClientSettings.ToggleShowReplayHudSeekbar)
             ];
         }
     }
@@ -293,16 +294,45 @@ internal sealed class SettingsTab : TabPage
     private sealed class EventsSettingsSection : SettingsSection
     {
         public override string HeaderText => "Events";
-        public override float Height => 146f;
+        public override float Height => 180f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
             return
             [
-                new("Show Bosses Defeated:", () => $"Show Bosses Defeated: {OnOff(ReplayClientSettings.ShowBossesDefeated)}", () => Ass.IconCheckmarkGreen.Value, onLeftClick: ReplayClientSettings.ToggleShowBossesDefeated),
+                new("Show Bosses Summoned:", () => $"Show Bosses Summoned: {OnOff(ReplayClientSettings.ShowBossesSummoned)}", GetBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesSummoned),
+                new("Show Bosses Defeated:", () => $"Show Bosses Defeated: {OnOff(ReplayClientSettings.ShowBossesDefeated)}", GetDefeatedBossHeadIcon, onLeftClick: ReplayClientSettings.ToggleShowBossesDefeated),
                 new("Show Player Deaths:", () => $"Show Player Deaths: {OnOff(ReplayClientSettings.ShowPlayerDeaths)}", () => TextureAssets.MapDeath.Value, onLeftClick: ReplayClientSettings.ToggleShowPlayerDeaths),
                 new("Show Invasions:", () => $"Show Invasions: {OnOff(ReplayClientSettings.ShowInvasions)}", () => Ass.IconSword.Value, onLeftClick: ReplayClientSettings.ToggleShowInvasions)
             ];
+        }
+
+        private static Texture2D defeatedBossHeadIcon;
+
+        private static Texture2D GetBossHeadIcon()
+        {
+            int head = NPCID.Sets.BossHeadTextures[NPCID.KingSlime];
+            return head >= 0 && head < TextureAssets.NpcHeadBoss.Length ? TextureAssets.NpcHeadBoss[head].Value : Ass.IconNPC.Value;
+        }
+
+        private static Texture2D GetDefeatedBossHeadIcon()
+        {
+            if (defeatedBossHeadIcon != null)
+                return defeatedBossHeadIcon;
+
+            Texture2D source = GetBossHeadIcon();
+            Color[] data = new Color[source.Width * source.Height];
+
+            source.GetData(data);
+            for (int i = 0; i < data.Length; i++)
+            {
+                byte gray = (byte)((data[i].R * 30 + data[i].G * 59 + data[i].B * 11) / 100);
+                data[i] = new Color(gray, gray, gray, data[i].A);
+            }
+
+            defeatedBossHeadIcon = new Texture2D(Main.graphics.GraphicsDevice, source.Width, source.Height);
+            defeatedBossHeadIcon.SetData(data);
+            return defeatedBossHeadIcon;
         }
     }
 }

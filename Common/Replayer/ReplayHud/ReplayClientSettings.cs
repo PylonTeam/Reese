@@ -99,6 +99,7 @@ internal static class ReplayClientSettings
     public static bool ShowReplayHudSpeed { get; private set; } = true;
     public static bool ShowReplayHudPlaybackControls { get; private set; } = true;
     public static bool ShowReplayHudSeekbar { get; private set; } = true;
+    public static bool ShowBossesSummoned { get; private set; } = true;
     public static bool ShowBossesDefeated { get; private set; } = true;
     public static bool ShowPlayerDeaths { get; private set; } = true;
     public static bool ShowInvasions { get; private set; } = true;
@@ -108,6 +109,7 @@ internal static class ReplayClientSettings
     public static void ToggleShowReplayHudSpeed() { ShowReplayHudSpeed = !ShowReplayHudSpeed; TouchHud(); }
     public static void ToggleShowReplayHudPlaybackControls() { ShowReplayHudPlaybackControls = !ShowReplayHudPlaybackControls; TouchHud(); }
     public static void ToggleShowReplayHudSeekbar() { ShowReplayHudSeekbar = !ShowReplayHudSeekbar; TouchHud(); }
+    public static void ToggleShowBossesSummoned() { ShowBossesSummoned = !ShowBossesSummoned; TouchHud(); }
     public static void ToggleShowBossesDefeated() { ShowBossesDefeated = !ShowBossesDefeated; TouchHud(); }
     public static void ToggleShowPlayerDeaths() { ShowPlayerDeaths = !ShowPlayerDeaths; TouchHud(); }
     public static void ToggleShowInvasions() { ShowInvasions = !ShowInvasions; TouchHud(); }
