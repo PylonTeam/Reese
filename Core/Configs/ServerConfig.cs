@@ -26,6 +26,11 @@ public class ServerConfig : ModConfig
     [ConfigIcon(nameof(Ass.Stopwatch), ConfigIconPlacement.Cut)]
     public int BaselineIntervalSeconds = DefaultBaselineIntervalSeconds;
 
+    [BackgroundColor(250, 60, 60, 150)]
+    [DefaultValue(true)]
+    [ConfigIcon(nameof(Ass.IconCheckGreen), nameof(Ass.IconXGray), grayWhenOff: true)]
+    public bool CaptureModsUsedInReplay = true;
+
     [Header("Spectating")]
     [ConfigIcon(nameof(Ass.Ghost), ConfigIconPlacement.Cut)]
     [BackgroundColor(30, 150, 150)]

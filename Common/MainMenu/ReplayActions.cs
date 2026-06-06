@@ -17,16 +17,17 @@ internal static class ReplayActions
     {
         Log.Info($"EnterReplay requested for {Path.GetFileName(replayPath)}.");
 
-        if (!ReplayModSetManager.PrepareReplayModsOrContinue(replayPath))
+        var modPreparation = ReplayModSetManager.PrepareReplayModsOrContinue(replayPath);
+        if (!modPreparation.ShouldContinue)
         {
             Log.Info("Replay playback is waiting for bundled mod preparation/reload.");
             return;
         }
 
-        EnterReplayPrepared(replayPath);
+        EnterReplayPrepared(replayPath, modPreparation.ForcedModMismatchReason);
     }
 
-    internal static void EnterReplayPrepared(string replayPath)
+    internal static void EnterReplayPrepared(string replayPath, string forcedModMismatchReason = null)
     {
         Log.Info($"Starting replay playback with prepared mods: {Path.GetFileName(replayPath)}.");
         SoundEngine.PlaySound(SoundID.MenuOpen);
@@ -35,7 +36,7 @@ internal static class ReplayActions
             string fileName = Path.GetFileName(replayPath);
 
             // Owns the lifetime of this launch attempt
-            ReplayLaunchSession session = ModContent.GetInstance<MainMenuSystem>().BeginReplayLaunch();
+            ReplayLaunchSession session = ModContent.GetInstance<MainMenuSystem>().BeginReplayLaunch(forcedModMismatchReason);
             ReplayPlayback.IsLaunchCancelled = () => session.IsCancelled;
 
             Log.Info($"Loading {fileName}...");
@@ -104,7 +105,7 @@ internal static class ReplayActions
                         }
 
                         // Connect to magic ip
-                        Main.statusText = "Connecting...";
+                        Main.statusText = string.IsNullOrWhiteSpace(forcedModMismatchReason) ? "Connecting..." : "Connecting with current mods...";
                         ReplayFlags.MarkWatched(replayPath);
                         Netplay.SetRemoteIP("10.2.3.4");
                         Main.autoPass = true;

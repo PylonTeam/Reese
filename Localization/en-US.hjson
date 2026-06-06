@@ -23,6 +23,15 @@ Mods: {
 					Tooltip: ""
 				}
 
+				TryLoadModsUsedInReplay: {
+					Label: Try Load Mods Used In Replay
+					Tooltip:
+						'''
+						When enabled, Reese tries to load the embedded mods recorded with a replay before playback.
+						When disabled, Reese force-loads the replay with your current mods even if they do not match.
+						'''
+				}
+
 				SeekMaxMillisecondsPerFrame: {
 					Label: Seek Milliseconds Per Frame
 					Tooltip:
@@ -58,6 +67,15 @@ Mods: {
 						How often Reese writes replay baseline checkpoints.
 						Shorter values makes replay seeking faster, but increases file size quickly.
 						Larger values keep file size small, but makes replay seeking slower.
+						'''
+				}
+
+				CaptureModsUsedInReplay: {
+					Label: Capture Mods Used In Replay
+					Tooltip:
+						'''
+						Embeds loaded .tmod files in new replays so Reese can try to load the exact replay mod set later.
+						Disable this to keep replay files smaller; replay metadata will still list mod names.
 						'''
 				}
 

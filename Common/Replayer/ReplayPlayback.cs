@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using Terraria;
 using Terraria.Localization;
+using Reese.Common.MainMenu;
 using Reese.Common.Replayer.ReplayEvents;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using Reese.Core.Configs;
@@ -89,6 +90,7 @@ public static class ReplayPlayback
 
         HasEnteredReplayWorld = true;
         Log.Info($"Replay world entered; bootstrap tick advancement stopping at replay tick {CurrentTick}.");
+        ModContent.GetInstance<MainMenuSystem>()?.CompleteReplayLaunch();
     }
 
 	public static void End(string reason = null, bool quitPlayer=false)

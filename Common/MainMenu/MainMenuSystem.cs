@@ -20,6 +20,7 @@ public class MainMenuSystem : ModSystem
 {
     private const int SharedMenuMode = 888;
     private const string ButtonLabel = "Reese";
+    private static readonly TimeSpan ForceLoadReplayLaunchTimeout = TimeSpan.FromSeconds(10);
 
 
     public UserInterface ui;
@@ -290,7 +291,16 @@ public class MainMenuSystem : ModSystem
         if (IsLaunchingReplay && Netplay.Disconnect)
         {
             Netplay.Disconnect = false;
-            CancelReplayLaunch();
+            if (IsForceLoadingModMismatch)
+                FailReplayLaunch(timedOut: false);
+            else
+                CancelReplayLaunch();
+        }
+        else if (IsLaunchingReplay &&
+                 IsForceLoadingModMismatch &&
+                 DateTime.UtcNow >= forceLoadReplayDeadlineUtc)
+        {
+            FailReplayLaunch(timedOut: true);
         }
 
         // Escape
@@ -348,12 +358,16 @@ public class MainMenuSystem : ModSystem
         }
     }
     private ReplayLaunchSession activeSession;
+    private string forcedModMismatchReason;
+    private DateTime forceLoadReplayDeadlineUtc;
 
-    public ReplayLaunchSession BeginReplayLaunch()
+    public ReplayLaunchSession BeginReplayLaunch(string forcedModMismatchReason = null)
     {
         activeSession?.Cancel();
         activeSession?.Dispose();
         Netplay.Disconnect = false;
+        this.forcedModMismatchReason = forcedModMismatchReason;
+        forceLoadReplayDeadlineUtc = DateTime.UtcNow + ForceLoadReplayLaunchTimeout;
         activeSession = new ReplayLaunchSession(ReplayPlayback.BeginLaunchAttempt());
         MainMenuActions.BeginReplayLaunch(ui, reeseMainMenuUI);
         return activeSession;
@@ -366,6 +380,7 @@ public class MainMenuSystem : ModSystem
         activeSession?.Cancel();
         activeSession?.Dispose();
         activeSession = null;
+        forcedModMismatchReason = null;
         MainMenuActions.CloseAllMenuUI(ui, reeseMainMenuUI, resetMenuMode: true);
     }
 
@@ -375,9 +390,39 @@ public class MainMenuSystem : ModSystem
         ReplayPlayback.IsLaunchCancelled = null;
         activeSession?.Dispose();
         activeSession = null;
+        forcedModMismatchReason = null;
     }
 
     public bool IsLaunchingReplay => activeSession != null && !activeSession.IsCancelled && ReplayPlayback.IsReplayLaunchActive;
+    private bool IsForceLoadingModMismatch => !string.IsNullOrWhiteSpace(forcedModMismatchReason);
+
+    private void FailReplayLaunch(bool timedOut)
+    {
+        string message = timedOut
+            ? "Replay launch timed out after 10 seconds while force-loading with your current mods."
+            : "Replay launch failed before entering the replay world while force-loading with your current mods.";
+
+        if (!string.IsNullOrWhiteSpace(forcedModMismatchReason))
+            message += $"\nMod mismatch: {forcedModMismatchReason}.";
+
+        message += "\nEnable Try Load Mods Used In Replay or enable the replay's mods, then try again.";
+
+        Log.Error(message);
+
+        Netplay.Disconnect = true;
+        if (Netplay.Connection != null)
+        {
+            Netplay.Connection.IsActive = false;
+            Netplay.Connection.StatusText = string.Empty;
+        }
+
+        ReplayPlayback.End(message);
+        CancelReplayLaunch();
+
+        Main.statusText = message;
+        Main.MenuUI.SetState(null);
+        Main.menuMode = MenuID.MultiplayerJoining;
+    }
 
     // Actions
     internal void OpenConfirmDelete(string targetName, Action onConfirm)

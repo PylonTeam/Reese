@@ -25,6 +25,9 @@ public class ClientConfig : ModConfig
     [BackgroundColor(250, 60, 60, 150)]
     [DefaultValue(true)] public bool ShowWelcomeMessageOnEnterWorld;
 
+    [BackgroundColor(250, 60, 60, 150)]
+    [DefaultValue(true)] public bool TryLoadModsUsedInReplay = true;
+
     // Smooth = 8 ms, Fast = 16-32 ms, Snappy = 50-100 ms, Laggy = 100+ (only do on strong computers)
     [BackgroundColor(250, 60, 60, 150)]
     [Range(MinSeekMaxMillisecondsPerFrame, MaxSeekMaxMillisecondsPerFrame)]

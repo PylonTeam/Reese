@@ -325,8 +325,14 @@ public class Recorder : ModSystem, ITicker
         string savedReplayPath = currentReplayPath;
         string worldName = ReplayStats.GetCurrentWorldName();
         string[] modNames = ReplayStats.GetCurrentModNames();
-        ReplayModBundle modBundle = ReplayModBundle.CaptureLoadedMods();
-        Log.Info($"Stopping recording with embedded replay mod bundle: {modBundle.Mods.Length} mods, {ReplayModFile.FormatBytes(modBundle.Mods.Sum(x => x.PayloadLength))}.");
+        ReplayModBundle modBundle = ShouldCaptureModsUsedInReplay()
+            ? ReplayModBundle.CaptureLoadedMods()
+            : null;
+
+        if (modBundle != null)
+            Log.Info($"Stopping recording with embedded replay mod bundle: {modBundle.Mods.Length} mods, {ReplayModFile.FormatBytes(modBundle.Mods.Sum(x => x.PayloadLength))}.");
+        else
+            Log.Info("Stopping recording without an embedded replay mod bundle because CaptureModsUsedInReplay is disabled.");
 
         var recordClient = Netplay.Clients[RecordClientIndex];
 
@@ -529,6 +535,11 @@ public class Recorder : ModSystem, ITicker
     private static ServerConfig.AutoRecordingConfig GetAutoRecordingConfig()
     {
         return ModContent.GetInstance<ServerConfig>()?.autoRecordingConfig;
+    }
+
+    private static bool ShouldCaptureModsUsedInReplay()
+    {
+        return ModContent.GetInstance<ServerConfig>()?.CaptureModsUsedInReplay ?? true;
     }
 
     public override void OnWorldUnload()

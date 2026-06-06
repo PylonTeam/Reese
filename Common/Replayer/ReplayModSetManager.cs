@@ -1,4 +1,5 @@
 using Reese.Common.MainMenu;
+using Reese.Core.Configs;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -49,18 +50,26 @@ internal static class ReplayModSetManager
 
     private static string SessionPath => Path.Combine(ReplayPaths.GetFolder(), SessionFileName);
 
-    public static bool PrepareReplayModsOrContinue(string replayPath)
+    public static (bool ShouldContinue, string ForcedModMismatchReason) PrepareReplayModsOrContinue(string replayPath)
     {
         Log.Info($"Replay play requested: {Path.GetFileName(replayPath)}");
+
+        bool tryLoadReplayMods = ModContent.GetInstance<ClientConfig>()?.TryLoadModsUsedInReplay ?? true;
 
         if (!ReplayFile.TryReadModBundle(replayPath, out ReplayModBundle bundle))
         {
             Log.Warn($"Replay {Path.GetFileName(replayPath)} has no embedded .tmod bundle; Reese cannot auto-prepare exact replay mods.");
 
-            if (HasNameMismatchWithoutBundle(ReplayMetadata.FromFile(replayPath)))
+            bool hasNameMismatch = HasNameMismatchWithoutBundle(ReplayMetadata.FromFile(replayPath));
+            if (hasNameMismatch)
+            {
                 Log.Warn($"Replay {Path.GetFileName(replayPath)} has a mod mismatch but does not contain bundled .tmod files; playing with the current loaded mods.");
 
-            return true;
+                if (!tryLoadReplayMods)
+                    return ForceLoadWithCurrentMods("enabled mods differ from replay metadata");
+            }
+
+            return (true, null);
         }
 
         ReplayModSessionEntry[] requiredMods = ToSessionEntries(bundle.Mods);
@@ -70,8 +79,11 @@ internal static class ReplayModSetManager
         if (CurrentModSetMatches(requiredMods, out string currentMismatch))
         {
             Log.Info("Current loaded mod set already matches replay manifest; starting playback without reload.");
-            return true;
+            return (true, null);
         }
+
+        if (!tryLoadReplayMods)
+            return ForceLoadWithCurrentMods(currentMismatch);
 
         Log.Info($"Current loaded mod set does not match replay manifest: {currentMismatch}. Preparing embedded replay mods.");
 
@@ -89,7 +101,7 @@ internal static class ReplayModSetManager
             ApplyReplayModSet(session);
             SetReplaySyncHeaders(session.Mods);
             RequestReload($"Preparing replay mods for {Path.GetFileNameWithoutExtension(replayPath)}...");
-            return false;
+            return (false, null);
         }
         catch (Exception e)
         {
@@ -97,8 +109,15 @@ internal static class ReplayModSetManager
             Log.Error($"Failed to prepare replay mods for {Path.GetFileName(replayPath)}: {e}");
             Main.statusText = "Failed to prepare replay mods";
             Main.menuMode = MainMenuId;
-            return false;
+            return (false, null);
         }
+    }
+
+    private static (bool ShouldContinue, string ForcedModMismatchReason) ForceLoadWithCurrentMods(string mismatch)
+    {
+        string reason = string.IsNullOrWhiteSpace(mismatch) ? "unknown mod mismatch" : mismatch;
+        Log.Warn($"TryLoadModsUsedInReplay is disabled; force-loading replay with the current mod set despite mismatch: {reason}");
+        return (true, reason);
     }
 
     private static void RestorePreparationFailure(ReplayModSetSession session)
