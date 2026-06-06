@@ -1,5 +1,6 @@
 using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.Replayer.ReplayHud.ReplayInfo;
+using Reese.Common.Replayer.ReplayHud.Shared.UI;
 using Reese.Core.Stats;
 using System;
 using System.Collections.Generic;
@@ -15,6 +16,13 @@ internal sealed class UISpectatorSectionElement : UIPanel
     private const float HeaderHeight = 34f;
     private const float RowHeight = 30f;
     private const float RowStep = 34f;
+
+    private const float SliderWidth = 104f;
+    private const float SliderHeight = 14f;
+    private const float SliderRightPadding = 8f;
+    private const float SliderTextLeftPadding = 10f;
+    private const float SliderTextGap = 8f;
+
     private const int ContentInset = 7;
 
     private readonly SpectatorSectionBase section;
@@ -44,15 +52,18 @@ internal sealed class UISpectatorSectionElement : UIPanel
     private void BuildRows()
     {
         IReadOnlyList<SpectatorSectionRow> rows = section.GetRows();
+        float y = HeaderHeight + 4f;
 
         for (int i = 0; i < rows.Count; i++)
         {
             UISpectatorSectionRowElement row = new(rows[i], section, IsMouseInsideSpectatorInfoPanel);
-            row.Top.Set(HeaderHeight + 4f + i * RowStep, 0f);
+            row.Top.Set(y, 0f);
             row.Left.Set(ContentInset, 0f);
             row.Width.Set(-ContentInset * 2, 1f);
             row.Height.Set(RowHeight, 0f);
             Append(row);
+
+            y += RowStep;
         }
     }
 
@@ -72,6 +83,7 @@ internal sealed class UISpectatorSectionElement : UIPanel
         private readonly SpectatorSectionRow row;
         private readonly SpectatorSectionBase section;
         private readonly Func<bool> canShowHover;
+        private readonly Slider sliderElement;
 
         public UISpectatorSectionRowElement(SpectatorSectionRow row, SpectatorSectionBase section, Func<bool> canShowHover)
         {
@@ -84,6 +96,26 @@ internal sealed class UISpectatorSectionElement : UIPanel
 
             if (row.OnRightClick is not null)
                 OnRightClick += (_, _) => row.OnRightClick();
+
+            if (row.Slider.HasValue)
+            {
+                SliderRowConfig config = row.Slider.Value;
+
+                sliderElement = new Slider
+                {
+                    Top = new StyleDimension((RowHeight - SliderHeight) * 0.5f, 0f),
+                    Left = new StyleDimension(-SliderWidth - SliderRightPadding, 1f),
+                    Height = new StyleDimension(SliderHeight, 0f),
+                    HighlightColor = Main.OurFavoriteColor
+                };
+
+                sliderElement.Width.Set(SliderWidth, 0f);
+                sliderElement.SetRatio(config.GetRatio());
+                sliderElement.OnDrag += config.SetRatio;
+                sliderElement.OnRelease += config.SetRatio;
+
+                Append(sliderElement);
+            }
         }
 
         protected override void DrawSelf(SpriteBatch sb)
@@ -95,11 +127,28 @@ internal sealed class UISpectatorSectionElement : UIPanel
             string text = row.GetText?.Invoke() ?? string.Empty;
             Color textColor = row.GetTextColor?.Invoke() ?? GetDefaultTextColor();
 
-            string commonTooltipText = section.UsesCommonRowTooltips && canShowHover() ? text : null;
-            string label = section.UsesOptionRowStyle ? null : row.Label;
-            Color valueColor = row.GetTextColor is null && !section.UsesOptionRowStyle ? Color.Gray : textColor;
+            if (sliderElement is not null)
+            {
+                StatDrawer.DrawWorldStatPanel(sb, box, null, "", null, textColor: Color.White, iconScale: 1f, label: null);
 
-            StatDrawer.DrawWorldStatPanel(sb, box, icon, text, commonTooltipText, textColor: valueColor, iconScale: row.IconScale, label: label);
+                float scale = 0.82f;
+                float sliderLeft = box.Right - SliderRightPadding - SliderWidth;
+                float maxTextWidth = sliderLeft - box.X - SliderTextLeftPadding - SliderTextGap;
+                Vector2 textSize = FontAssets.MouseText.Value.MeasureString(text) * scale;
+
+                if (textSize.X > maxTextWidth && maxTextWidth > 20f)
+                    scale *= maxTextWidth / textSize.X;
+
+                Utils.DrawBorderString(sb, text, new Vector2(box.X + SliderTextLeftPadding, box.Y + 6f), textColor, scale);
+            }
+            else
+            {
+                string commonTooltipText = section.UsesCommonRowTooltips && canShowHover() ? text : null;
+                string label = section.UsesOptionRowStyle ? null : row.Label;
+                Color valueColor = row.GetTextColor is null && !section.UsesOptionRowStyle ? Color.Gray : textColor;
+
+                StatDrawer.DrawWorldStatPanel(sb, box, icon, text, commonTooltipText, textColor: valueColor, iconScale: row.IconScale, label: label);
+            }
         }
 
         private Color GetDefaultTextColor()
@@ -111,6 +160,14 @@ internal sealed class UISpectatorSectionElement : UIPanel
         public override void Update(GameTime gameTime)
         {
             base.Update(gameTime);
+
+            if (sliderElement is not null)
+            {
+                if (!sliderElement.IsHeld)
+                    sliderElement.SetRatio(row.Slider.Value.GetRatio());
+
+                sliderElement.HighlightColor = Main.OurFavoriteColor;
+            }
 
             if (!IsMouseHovering || !canShowHover())
                 return;

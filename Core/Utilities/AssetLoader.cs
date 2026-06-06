@@ -20,6 +20,7 @@ public static class Ass
     public static Asset<Texture2D> IconCheckGreen;
     public static Asset<Texture2D> IconXGray;
     public static Asset<Texture2D> Stopwatch;
+    public static Asset<Texture2D> Party_Center;
 
     // Main menu
     public static Asset<Texture2D> IconNewlyGenerated;
