@@ -1,5 +1,5 @@
 displayName = Reese
-author = resin <hey@amberres.in> & Erky
+author = resin <hey@amberres.in>, Erky, Prince
 buildIgnore = *.csproj, *.user, *.md, obj\*, bin\*, .vs\*, Assets\Old\*, Assets\Workshop\*, *.psd
 version = 0.2.7
 hideCode = true

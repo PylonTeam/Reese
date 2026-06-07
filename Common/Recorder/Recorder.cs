@@ -39,6 +39,8 @@ public class Recorder : ModSystem, ITicker
     private uint nextBaselineTick;
     private uint baselineIntervalTicks;
     private bool suppressAutoStartAfterMaxLength;
+    private bool pendingStartupTileResync;
+    private const uint StartupTileResyncTick = 60; //how many ticks after joining world to resend tile sections
     private const uint TicksPerMinute = 60 * 60;
 
     // Reflection fields
@@ -146,6 +148,9 @@ public class Recorder : ModSystem, ITicker
         // Flush now, so that it comes at update delta 0
         recordSocket.FlushTick();
         isRecording = true;
+        // After recording starts send tile data one more time to ensure it is synced
+        // If any other data isn't synced when joining world follow this approach
+        pendingStartupTileResync = true;
         RecorderStatus.SyncToClients(force: true);
 
         for (int i = 0; i < Main.maxPlayers; i++)
@@ -314,6 +319,7 @@ public class Recorder : ModSystem, ITicker
             return "";
 
         isRecording = false;
+        pendingStartupTileResync = false;
         ReplayTimelineEvent[] timelineEvents = ReplayTimelineRecorder.Finish();
         ModContent.GetInstance<ReplayTimelineTrackerSystem>().EndRecording();
 
@@ -421,6 +427,12 @@ public class Recorder : ModSystem, ITicker
                 return;
             }
 
+            if (pendingStartupTileResync && Ticks >= StartupTileResyncTick)
+            {
+                pendingStartupTileResync = false;
+                SendReplayStartupTileResync();
+            }
+
             UpdateBaselineSchedule();
 
             if (baselineIntervalTicks > 0 && Ticks >= nextBaselineTick)
@@ -482,6 +494,40 @@ public class Recorder : ModSystem, ITicker
 
         if (completed)
             Log.Info($"Recorded replay baseline at tick {baselineTick}: {byteSize} bytes, {recordSocket.BaselineCount} total baselines.");
+    }
+
+    private static void SendReplayStartupTileResync()
+    {
+        const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
+        RemoteClient recordClient = Netplay.Clients[RecordClientIndex];
+
+        if (recordClient?.Socket is not RecordSocket recordSocket)
+        {
+            Log.Warn("Could not write startup tile resync because the record socket was unavailable.");
+            return;
+        }
+
+        SendReplayTileSectionsOnly(recordClient);
+        recordSocket.FlushTick();
+    }
+
+    private static void SendReplayTileSectionsOnly(RemoteClient recordClient)
+    {
+        int expectedSectionCount = Main.maxSectionsX * Main.maxSectionsY;
+
+        // Netmessage internally doesn't send sections that it believes the RemoteClient already has loaded
+        // So force it into believing the client has no data instead
+        int clearedSectionArrays = ClearFakeClientSentSections(recordClient);
+
+        Log.Info(
+            $"Recording startup tile resync for fake client {recordClient.Id}: " +
+            $"expected {expectedSectionCount} sections; cleared {clearedSectionArrays} sent-section arrays.");
+
+        for (var x = 0; x < Main.maxSectionsX; x++)
+        {
+            for (var y = 0; y < Main.maxSectionsY; y++)
+                NetMessage.SendSection(recordClient.Id, x, y);
+        }
     }
 
     private void UpdateBaselineSchedule()
