@@ -1,7 +1,9 @@
 using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.Replayer;
 using Reese.Common.Spectator;
+using System.Collections.Generic;
 using Terraria.DataStructures;
+using Terraria.UI;
 
 namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 
@@ -43,6 +45,21 @@ internal static class ReplayDrawGate
         }
 
         return !SpectatorMode.CanSpectate || ReplayClientSettings.IsNameplatesOn;
+    }
+}
+
+[Autoload(Side = ModSide.Client)]
+internal sealed class ReplayChatDrawGateSystem : ModSystem
+{
+    public override void ModifyInterfaceLayers(List<GameInterfaceLayer> layers)
+    {
+        if (!SpectatorMode.CanSpectate || ReplayClientSettings.IsDrawChatOn)
+            return;
+
+        GameInterfaceLayer layer = layers.Find(static layer => layer.Name == "Vanilla: Player Chat");
+
+        if (layer is not null)
+            layer.Active = false;
     }
 }
 

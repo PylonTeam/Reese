@@ -144,7 +144,7 @@ internal sealed class SettingsTab : TabPage
     private sealed class DrawSettings : SettingsSection
     {
         public override string HeaderText => Loc.Get("ReplayHud.Settings.DrawHeader");
-        public override float Height => 244f;
+        public override float Height => 278f;
 
         public override IReadOnlyList<SpectatorSectionRow> GetRows()
         {
@@ -155,6 +155,7 @@ internal sealed class SettingsTab : TabPage
                 new(Loc.Get("ReplayHud.Settings.Labels.DrawProjectiles"), () => Loc.Get("ReplayHud.Settings.Rows.DrawProjectiles", OnOff(ReplayClientSettings.IsDrawProjectilesOn)), GetProjectileIcon, onLeftClick: ReplayClientSettings.ToggleProjectiles),
                 new(Loc.Get("ReplayHud.Settings.Labels.DrawNpcs"), () => Loc.Get("ReplayHud.Settings.Rows.DrawNpcs", OnOff(ReplayClientSettings.IsDrawNPCsOn)), () => Ass.IconNPC.Value, onLeftClick: ReplayClientSettings.ToggleNPCs),
                 new(Loc.Get("ReplayHud.Settings.Labels.DrawItems"), () => Loc.Get("ReplayHud.Settings.Rows.DrawItems", OnOff(ReplayClientSettings.IsDrawItemsOn)), GetItemIcon, onLeftClick: ReplayClientSettings.ToggleItems, iconScale: 0.8f),
+                new(Loc.Get("ReplayHud.Settings.Labels.DrawChat"), () => Loc.Get("ReplayHud.Settings.Rows.DrawChat", OnOff(ReplayClientSettings.IsDrawChatOn)), () => Ass.IconEye.Value, onLeftClick: ReplayClientSettings.ToggleChat),
                 new(Loc.Get("ReplayHud.Settings.Labels.DrawNameplates"), () => Loc.Get("ReplayHud.Settings.Rows.DrawNameplates", OnOff(ReplayClientSettings.IsNameplatesOn)), GetNameplateIcon, onLeftClick: ReplayClientSettings.ToggleNameplates, iconScale: 0.8f)
             ];
         }

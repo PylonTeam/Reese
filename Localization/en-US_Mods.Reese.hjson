@@ -140,6 +140,7 @@ ReplayHud: {
 			DrawProjectiles: Draw Projectiles:
 			DrawNpcs: Draw NPCs:
 			DrawItems: Draw Items:
+			DrawChat: Draw Chat:
 			DrawNameplates: Draw Nameplates:
 			ShowSpectateHud: Show Spectate HUD:
 			RowsVisible: Rows:
@@ -166,6 +167,7 @@ ReplayHud: {
 			DrawProjectiles: Draw Projectiles: {0}
 			DrawNpcs: Draw NPCs: {0}
 			DrawItems: Draw Items: {0}
+			DrawChat: Draw Chat: {0}
 			DrawNameplates: Draw Nameplates: {0}
 			ShowSpectateHud: Show Spectate HUD: {0}
 			RowsVisible: Rows Visible: {0}

@@ -85,6 +85,7 @@ internal static class ReplayClientSettings
     public static bool IsDrawProjectilesOn { get; set; } = true;
     public static bool IsDrawNPCsOn { get; set; } = true;
     public static bool IsDrawItemsOn { get; set; } = true;
+    public static bool IsDrawChatOn { get; set; } = true;
     public static bool IsNameplatesOn { get; set; } = true;
     public static void ToggleNameplates() => IsNameplatesOn = !IsNameplatesOn;
     public static void TogglePlayers() => IsDrawPlayersOn = !IsDrawPlayersOn;
@@ -92,6 +93,7 @@ internal static class ReplayClientSettings
     public static void ToggleProjectiles() => IsDrawProjectilesOn = !IsDrawProjectilesOn;
     public static void ToggleNPCs() => IsDrawNPCsOn = !IsDrawNPCsOn;
     public static void ToggleItems() => IsDrawItemsOn = !IsDrawItemsOn;
+    public static void ToggleChat() => IsDrawChatOn = !IsDrawChatOn;
 
     // HUD settings
     public static bool ShowSpectateHud { get; private set; } = true;

@@ -29,7 +29,7 @@ internal sealed class SpectateHud : UIElement
     private const int MaxCardsPerRow = 5;
     private const int MaxDetailedCardsPerRow = 4;
     private const int MaxHeadCardsPerRow = 6;
-    private const uint TargetListRefreshIntervalTicks = 60 * 15;
+    private const uint NpcTargetListRefreshIntervalTicks = 60 * 15;
 
     // Targeting
     private int locked = -1; // currently locked spectated player index, -1 means no locked target
@@ -38,9 +38,12 @@ internal sealed class SpectateHud : UIElement
     private float currentContentHeight;
     private float playerCardScale = GetPlayerCardScale();
     private int settingsRevision = SpectateHudClientSettings.Revision;
-    private uint lastTargetListRefreshUpdate;
+    private int playerTargetsSignature = -1;
+    private uint lastNpcTargetListRefreshUpdate;
     
     // Content
+    private readonly List<int> playerTargets = [];
+    private readonly List<int> npcTargets = [];
     private readonly List<ITab> tabs = [];
     private ITab currentTab;
     private TabBar tabBar;
@@ -67,8 +70,8 @@ internal sealed class SpectateHud : UIElement
         Width.Set(ReplayInfo.InfoHud.PanelWidth, 0f);
         Height.Set(GetPanelHeight(GetGridContentHeight(0)), 0f);
 
-        tabs.Add(new PlayersTab());
-        tabs.Add(new NPCsTab());
+        tabs.Add(new PlayersTab(() => playerTargets.Count));
+        tabs.Add(new NPCsTab(() => npcTargets.Count));
         currentTab = tabs[0];
 
         Rebuild();
@@ -90,12 +93,14 @@ internal sealed class SpectateHud : UIElement
         targetGrid = null;
         backgroundPanel = null;
 
+        currentTab ??= tabs.Count > 0 ? tabs[0] : null;
+        RefreshPlayerTargetCache();
+        RefreshNpcTargetCache();
+
         // Layout
         float tabHeight = GetTabHeight();
         float playerPanelPadding = GetPlayerPanelPadding();
         float contentHeight = currentContentHeight = GetActiveContentHeight();
-
-        currentTab ??= tabs.Count > 0 ? tabs[0] : null;
 
         Height.Set(GetPanelHeight(contentHeight), 0f);
 
@@ -128,15 +133,27 @@ internal sealed class SpectateHud : UIElement
         contentPanel.BorderColor = Color.Transparent;
         Append(contentPanel);
 
-        RefreshTargets();
+        RebuildTargetsFromCache();
     }
 
-    private void RefreshTargets()
+    private void RefreshTargets(bool refreshPlayers = true, bool refreshNpcs = true)
     {
         if (contentPanel == null)
             return;
 
-        lastTargetListRefreshUpdate = Main.GameUpdateCount;
+        if (refreshPlayers)
+            RefreshPlayerTargetCache();
+
+        if (refreshNpcs)
+            RefreshNpcTargetCache();
+
+        RebuildTargetsFromCache();
+    }
+
+    private void RebuildTargetsFromCache()
+    {
+        if (contentPanel == null)
+            return;
 
         if (targetScrollbar != null)
         {
@@ -150,9 +167,6 @@ internal sealed class SpectateHud : UIElement
 
         float playerPanelPadding = GetPlayerPanelPadding();
 
-        List<int> playerTargets = GetPlayerTargets();
-        List<int> npcTargets = GetNpcTargets();
-
         if (!playerTargets.Contains(locked))
             locked = -1;
 
@@ -162,7 +176,7 @@ internal sealed class SpectateHud : UIElement
         if (!npcTargets.Contains(lockedNpc))
             lockedNpc = -1;
 
-        int slotCount = GetActiveSlotCount(playerTargets, npcTargets);
+        int slotCount = GetActiveSlotCount();
         currentContentHeight = GetGridContentHeight(slotCount);
 
         Width.Set(GetGridPanelWidth(slotCount), 0f);
@@ -172,7 +186,7 @@ internal sealed class SpectateHud : UIElement
 
 
         tabBar?.RefreshHeaders();
-        BuildContent(playerTargets, npcTargets);
+        BuildContent();
     }
 
     private void ShowTab(SpectatorTab tab)
@@ -184,12 +198,16 @@ internal sealed class SpectateHud : UIElement
 
         if (currentTab == nextTab)
         {
-            RefreshTargets();
+            RefreshTargets(
+                refreshPlayers: nextTab.Tab == SpectatorTab.Players,
+                refreshNpcs: nextTab.Tab == SpectatorTab.NPCs);
             return;
         }
 
         currentTab = nextTab;
-        RefreshTargets();
+        RefreshTargets(
+            refreshPlayers: nextTab.Tab == SpectatorTab.Players,
+            refreshNpcs: nextTab.Tab == SpectatorTab.NPCs);
     }
 
     private ITab GetTab(SpectatorTab tab)
@@ -203,7 +221,7 @@ internal sealed class SpectateHud : UIElement
         return null;
     }
 
-    private void BuildContent(List<int> playerTargets, List<int> npcTargets)
+    private void BuildContent()
     {
         if (contentPanel == null)
             return;
@@ -569,7 +587,7 @@ internal sealed class SpectateHud : UIElement
             return;
 
         playerCardScale = nextScale;
-        RefreshTargets();
+        RefreshTargets(refreshPlayers: currentTab?.Tab == SpectatorTab.Players, refreshNpcs: false);
     }
 
     private void RefreshSettingsIfNeeded()
@@ -579,7 +597,7 @@ internal sealed class SpectateHud : UIElement
 
         //Log.Chat($"RefreshSettingsIfNeeded update={Main.GameUpdateCount} revision {settingsRevision} -> {SpectateHudClientSettings.Revision}");
         settingsRevision = SpectateHudClientSettings.Revision;
-        RefreshTargets();
+        RefreshTargets(refreshPlayers: true, refreshNpcs: false);
     }
 
     private static bool IsTargetValid(int playerIndex)
@@ -628,25 +646,23 @@ internal sealed class SpectateHud : UIElement
 
     private void NavigateTarget(int direction)
     {
-        List<int> targets = GetPlayerTargets();
-
-        if (targets.Count == 0)
+        if (playerTargets.Count == 0)
         {
             SpectatorTargetSystem.ClearTarget();
             UpdateTarget();
             return;
         }
 
-        int currentIndex = targets.IndexOf(locked);
-        int nextIndex = currentIndex < 0 ? direction < 0 ? targets.Count - 1 : 0 : currentIndex + direction;
+        int currentIndex = playerTargets.IndexOf(locked);
+        int nextIndex = currentIndex < 0 ? direction < 0 ? playerTargets.Count - 1 : 0 : currentIndex + direction;
 
         if (nextIndex < 0)
-            nextIndex = targets.Count - 1;
+            nextIndex = playerTargets.Count - 1;
 
-        if (nextIndex >= targets.Count)
+        if (nextIndex >= playerTargets.Count)
             nextIndex = 0;
 
-        int playerIndex = targets[nextIndex];
+        int playerIndex = playerTargets[nextIndex];
 
         SpectatorTargetSystem.SetPlayerTarget(playerIndex);
         locked = playerIndex;
@@ -664,25 +680,23 @@ internal sealed class SpectateHud : UIElement
 
     private void NavigateNpcTarget(int direction)
     {
-        List<int> targets = GetNpcTargets();
-
-        if (targets.Count == 0)
+        if (npcTargets.Count == 0)
         {
             SpectatorTargetSystem.ClearTarget();
             UpdateTarget();
             return;
         }
 
-        int currentIndex = targets.IndexOf(lockedNpc);
-        int nextIndex = currentIndex < 0 ? direction < 0 ? targets.Count - 1 : 0 : currentIndex + direction;
+        int currentIndex = npcTargets.IndexOf(lockedNpc);
+        int nextIndex = currentIndex < 0 ? direction < 0 ? npcTargets.Count - 1 : 0 : currentIndex + direction;
 
         if (nextIndex < 0)
-            nextIndex = targets.Count - 1;
+            nextIndex = npcTargets.Count - 1;
 
-        if (nextIndex >= targets.Count)
+        if (nextIndex >= npcTargets.Count)
             nextIndex = 0;
 
-        int npcIndex = targets[nextIndex];
+        int npcIndex = npcTargets[nextIndex];
 
         SpectatorTargetSystem.SetNPCTarget(npcIndex);
         lockedNpc = npcIndex;
@@ -733,22 +747,102 @@ internal sealed class SpectateHud : UIElement
 
     #endregion
 
-    #region Timed target list refresh
+    #region Target list refresh
     private void RefreshTargetsIfNeeded()
     {
-        uint elapsed = Main.GameUpdateCount - lastTargetListRefreshUpdate;
-
-        if (elapsed < TargetListRefreshIntervalTicks)
-            return;
-
-        RefreshTargets();
+        RefreshPlayerTargetsIfNeeded();
+        RefreshNpcTargetsIfNeeded();
     }
 
-    private static List<int> GetPlayerTargets()
+    private void RefreshPlayerTargetsIfNeeded()
     {
-        List<int> targets = SpectatorTargetSystem.GetTargets(Main.myPlayer);
-        SortPlayerTargets(targets);
-        return targets;
+        if (!RefreshPlayerTargetCacheIfChanged())
+            return;
+
+        if (currentTab?.Tab == SpectatorTab.Players)
+            RebuildTargetsFromCache();
+        else
+        {
+            SyncTargetSelectionWithCache();
+            tabBar?.RefreshHeaders();
+        }
+    }
+
+    private void RefreshNpcTargetsIfNeeded()
+    {
+        uint elapsed = Main.GameUpdateCount - lastNpcTargetListRefreshUpdate;
+
+        if (elapsed < NpcTargetListRefreshIntervalTicks)
+            return;
+
+        RefreshNpcTargetCache();
+
+        if (currentTab?.Tab == SpectatorTab.NPCs)
+            RebuildTargetsFromCache();
+        else
+        {
+            SyncTargetSelectionWithCache();
+            tabBar?.RefreshHeaders();
+        }
+    }
+
+    private bool RefreshPlayerTargetCacheIfChanged()
+    {
+        List<int> nextTargets = SpectatorTargetSystem.GetTargets(Main.myPlayer);
+        int nextSignature = GetTargetSignature(nextTargets);
+
+        if (nextSignature == playerTargetsSignature)
+            return false;
+
+        SetPlayerTargetCache(nextTargets, nextSignature);
+        return true;
+    }
+
+    private void RefreshPlayerTargetCache()
+    {
+        List<int> nextTargets = SpectatorTargetSystem.GetTargets(Main.myPlayer);
+        SetPlayerTargetCache(nextTargets, GetTargetSignature(nextTargets));
+    }
+
+    private void SetPlayerTargetCache(List<int> nextTargets, int nextSignature)
+    {
+        SortPlayerTargets(nextTargets);
+
+        playerTargets.Clear();
+        playerTargets.AddRange(nextTargets);
+        playerTargetsSignature = nextSignature;
+    }
+
+    private void RefreshNpcTargetCache()
+    {
+        npcTargets.Clear();
+        npcTargets.AddRange(GetNpcTargets());
+        lastNpcTargetListRefreshUpdate = Main.GameUpdateCount;
+    }
+
+    private void SyncTargetSelectionWithCache()
+    {
+        if (!playerTargets.Contains(locked))
+            locked = -1;
+
+        if (!playerTargets.Contains(hovered))
+            hovered = -1;
+
+        if (!npcTargets.Contains(lockedNpc))
+            lockedNpc = -1;
+    }
+
+    private static int GetTargetSignature(List<int> targets)
+    {
+        unchecked
+        {
+            int signature = targets.Count;
+
+            for (int i = 0; i < targets.Count; i++)
+                signature = signature * 397 ^ targets[i];
+
+            return signature;
+        }
     }
 
     private static void SortPlayerTargets(List<int> targets)
@@ -835,17 +929,7 @@ internal sealed class SpectateHud : UIElement
         return targets;
     }
 
-    private static int GetPlayerTargetCount()
-    {
-        return GetPlayerTargets().Count;
-    }
-
-    private static int GetNpcTargetCount()
-    {
-        return GetNpcTargets().Count;
-    }
-
-    private int GetActiveSlotCount(List<int> playerTargets, List<int> npcTargets)
+    private int GetActiveSlotCount()
     {
         int count = currentTab?.Tab == SpectatorTab.NPCs ? npcTargets.Count : playerTargets.Count;
         return GetSlotCount(count, GetEntityItemSpan);
@@ -919,7 +1003,7 @@ internal sealed class SpectateHud : UIElement
 
     private float GetActiveContentHeight()
     {
-        return GetGridContentHeight(GetActiveSlotCount(GetPlayerTargets(), GetNpcTargets()));
+        return GetGridContentHeight(GetActiveSlotCount());
     }
 
     private static float GetPanelHeight(float contentHeight)
@@ -935,8 +1019,15 @@ internal sealed class SpectateHud : UIElement
 
     private sealed class PlayersTab : ITab
     {
+        private readonly Func<int> getTargetCount;
+
+        public PlayersTab(Func<int> getTargetCount)
+        {
+            this.getTargetCount = getTargetCount;
+        }
+
         public SpectatorTab Tab => SpectatorTab.Players;
-        public string HeaderText => Loc.Get("ReplayHud.Spectate.PlayersTab", GetPlayerTargetCount());
+        public string HeaderText => Loc.Get("ReplayHud.Spectate.PlayersTab", getTargetCount());
         public string TooltipText => Loc.Get("ReplayHud.Spectate.PlayersTooltip");
         public Asset<Texture2D> Icon => Ass.IconPlayer;
         public float IconScale => 1.2f;
@@ -949,8 +1040,15 @@ internal sealed class SpectateHud : UIElement
 
     private sealed class NPCsTab : ITab
     {
+        private readonly Func<int> getTargetCount;
+
+        public NPCsTab(Func<int> getTargetCount)
+        {
+            this.getTargetCount = getTargetCount;
+        }
+
         public SpectatorTab Tab => SpectatorTab.NPCs;
-        public string HeaderText => Loc.Get("ReplayHud.Spectate.NpcsTab", GetNpcTargetCount());
+        public string HeaderText => Loc.Get("ReplayHud.Spectate.NpcsTab", getTargetCount());
         public string TooltipText => Loc.Get("ReplayHud.Spectate.NpcsTooltip");
         public Asset<Texture2D> Icon => Ass.IconNPC;
         public float IconScale => 1f;
