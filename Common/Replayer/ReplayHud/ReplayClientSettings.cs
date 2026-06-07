@@ -7,7 +7,7 @@ internal static class ReplayClientSettings
 {
     // Zoom settings
     public const float ReplayZoomMin = 0.33f;
-    public const float ReplayZoomMax = 3f;
+    public const float ReplayZoomMax = 5f;
 
     public static float ReplayZoom { get; private set; } = 1f;
     public static int ReplayZoomPercent => (int)Math.Round(ReplayZoom * 100f);
@@ -48,7 +48,7 @@ internal static class ReplayClientSettings
     }
 
     // Playback HUD sizing
-    public const float PlaybackHudWidthMin = 526f;
+    public const float PlaybackHudWidthMin = 866f;
     public const float PlaybackHudWidthMax = 1600f;
 
     public static float PlaybackHudWidthRatio { get; private set; } = 0f;

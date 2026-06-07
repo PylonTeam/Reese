@@ -43,7 +43,7 @@ public sealed class PlaybackHud : DraggablePanel
 
         verticalRule = new VerticalRule();
 
-        positionLabel = new CenteredHudText(0.86f);
+        positionLabel = new CenteredHudText(0.86f, 0f);
         positionSlider = new Slider();
         eventMarkerLayer = new ReplayEventMarkerLayer();
         positionSlider.OnDrag += ratio =>
@@ -64,8 +64,8 @@ public sealed class PlaybackHud : DraggablePanel
         };
 
         horizontalRule = new HorizontalRule();
-        transportStatusLabel = new CenteredHudText(0.86f);
-        transportTickLabel = new CenteredHudText(0.86f);
+        transportStatusLabel = new CenteredHudText(0.86f, 0f);
+        transportTickLabel = new CenteredHudText(0.86f, 0f);
         transportButtons =
         [
             CreateTransportButton(Ass.IconSpeedDown, Loc.Get("ReplayHud.Playback.GoToStart"), GoToStart),
@@ -146,9 +146,6 @@ public sealed class PlaybackHud : DraggablePanel
             for (int i = 0; i < speedButtons.Length; i++)
                 ContentPanel.Append(speedButtons[i]);
         }
-
-        if (showSpeed && (showSeekbar || showControls))
-            ContentPanel.Append(verticalRule);
 
         if (showSeekbar)
         {
@@ -397,12 +394,14 @@ public sealed class PlaybackHud : DraggablePanel
     private sealed class CenteredHudText : UIText
     {
         private readonly float scale;
+        private readonly float textOriginX;
         private string currentText = "";
 
-        public CenteredHudText(float scale) : base("", scale)
+        public CenteredHudText(float scale, float textOriginX = 0.5f) : base("", scale)
         {
             this.scale = scale;
-            TextOriginX = 0.5f;
+            this.textOriginX = textOriginX;
+            TextOriginX = textOriginX;
             TextOriginY = 0f;
         }
 
@@ -418,9 +417,9 @@ public sealed class PlaybackHud : DraggablePanel
         protected override void DrawSelf(SpriteBatch spriteBatch)
         {
             CalculatedStyle dimensions = GetInnerDimensions();
-            Vector2 position = new(dimensions.X + dimensions.Width * 0.5f, dimensions.Y);
+            Vector2 position = new(dimensions.X + dimensions.Width * textOriginX, dimensions.Y);
 
-            Utils.DrawBorderString(spriteBatch, currentText, position, TextColor, scale, 0.5f, 0f);
+            Utils.DrawBorderString(spriteBatch, currentText, position, TextColor, scale, textOriginX, 0f);
         }
     }
 }

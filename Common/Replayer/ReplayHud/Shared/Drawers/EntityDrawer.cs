@@ -248,7 +248,8 @@ public static class EntityDrawer
 
         try
         {
-            Main.PlayerRenderer.DrawPlayerHead(Main.Camera, drawPlayer, position, scale: scale);
+            Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, drawPlayer, position, scale: scale, borderColor: Main.teamColor[drawPlayer.team]);
+            //Main.PlayerRenderer.DrawPlayerHead(Main.Camera, drawPlayer, position, scale: scale);
         }
         finally
         {
