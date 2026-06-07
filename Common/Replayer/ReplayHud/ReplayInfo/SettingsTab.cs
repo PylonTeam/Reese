@@ -13,6 +13,13 @@ namespace Reese.Common.Replayer.ReplayHud.ReplayInfo;
 
 internal sealed class SettingsTab : TabPage
 {
+    private readonly bool showReplayHudSettings;
+
+    public SettingsTab(bool showReplayHudSettings = true)
+    {
+        this.showReplayHudSettings = showReplayHudSettings;
+    }
+
     protected override float ScrollbarHeight => -36f;
     public override SpectatorTab Tab => SpectatorTab.Settings;
     public override string HeaderText => Language.GetTextValue("LegacyMenu.14");
@@ -28,7 +35,10 @@ internal sealed class SettingsTab : TabPage
     {
         AddSection(list, new VisualizationSettings());
         AddSection(list, new SpectateHudSettingsSection());
-        AddSection(list, new ReplayHudSettingsSection());
+
+        if (showReplayHudSettings)
+            AddSection(list, new ReplayHudSettingsSection());
+
         AddSection(list, new DrawSettings());
     }
 

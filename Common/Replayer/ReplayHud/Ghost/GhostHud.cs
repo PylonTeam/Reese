@@ -29,7 +29,7 @@ internal sealed class GhostHud : UIElement
         Top.Set(InfoHud.TopOffset, 0f);
         Width.Set(InfoHud.PanelWidth, 0f);
 
-        tabs.Add(new SettingsTab());
+        tabs.Add(new SettingsTab(showReplayHudSettings: false));
         tabs.Add(new WorldInfoTab());
         currentTab = tabs[0];
 

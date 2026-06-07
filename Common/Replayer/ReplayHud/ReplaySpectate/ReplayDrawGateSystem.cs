@@ -28,7 +28,7 @@ internal static class ReplayDrawGate
         if (ReplayPlayback.IsReplayPlayback)
             return ReplayClientSettings.IsDrawGhostsOn;
 
-        return SpectatorMode.ShouldDrawGhost(player);
+        return ReplayClientSettings.IsDrawGhostsOn && SpectatorMode.ShouldDrawGhost(player);
     }
 
     public static bool ShouldDrawNameplate(Player player, bool isSpectator)
