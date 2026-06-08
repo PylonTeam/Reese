@@ -489,9 +489,14 @@ internal static class ReplayModSetManager
             headers.Add(constructor.Invoke([mod.Name, mod.ParsedVersion, mod.Hash]));
 
         field.SetValue(null, headers);
-        netReloadActiveField.SetValue(null, headers.Count > 0);
 
-        Log.Info($"Replay ModNet sync headers set: {headers.Count} entries; NetReloadActive={headers.Count > 0}.");
+        // Reese is doing an offline modpack swap, not a tML multiplayer net reload.
+        // If this flag is true, ConfigManager.Load expects ModNet.pendingConfigs
+        // entries for every ServerSide config and throws when replay mods do not
+        // have matching net config payloads.
+        netReloadActiveField.SetValue(null, false);
+
+        Log.Info($"Replay ModNet sync headers set: {headers.Count} entries; NetReloadActive=false.");
     }
 
     private static void ClearReplaySyncHeaders()
