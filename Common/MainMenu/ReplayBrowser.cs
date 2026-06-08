@@ -196,7 +196,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         buttonStrip.Height.Set(headerButtonSize, 0f);
         header.Append(buttonStrip);
 
-        UI.UIHoverImage openFolderButton = new(Ass.ButtonOpenFolder, Language.GetTextValue("LegacyMenu.110"))
+        UI.UIHoverImage openFolderButton = new(Ass.ButtonOpenFolder, Loc.Get("MainMenu.ReplayBrowser.OpenFolder"))
         {
             ImageScale = 0.9f,
             RemoveFloatingPointsFromDrawPosition = true,
@@ -307,7 +307,7 @@ internal sealed class ReplayBrowserPanel : UIElement
                 {
                     Log.Error("Failed to read replay folder: " + task.Exception);
                     cachedEntries = [];
-                    AddMessage("Failed to read replay folder");
+                    AddMessage(Loc.Get("MainMenu.ReplayBrowser.FailedToReadFolder"));
                     list.Recalculate();
                     OnRefreshFinished?.Invoke();
                     return;
@@ -351,9 +351,9 @@ internal sealed class ReplayBrowserPanel : UIElement
         if (entries.Length == 0)
         {
             if (hasAnyReplays)
-                AddMessage("No replays found", "0 replays filtered by enabled search filter.");
+                AddMessage(Loc.Get("MainMenu.ReplayBrowser.NoReplaysFound"), Loc.Get("MainMenu.ReplayBrowser.NoReplaysFoundSearch"));
             else
-                AddMessage("No replays yet", "Host a multiplayer world to create one, or place a .reese file in the folder");
+                AddMessage(Loc.Get("MainMenu.ReplayBrowser.NoReplaysYet"), Loc.Get("MainMenu.ReplayBrowser.NoReplaysYetHint"));
 
             list.Recalculate();
             return 0;

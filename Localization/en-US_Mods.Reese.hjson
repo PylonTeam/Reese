@@ -5,9 +5,19 @@ MainMenu: {
 	ReplayBrowser: {
 		EnterReplayName: Enter Replay Name
 		ReeseButton: Reese Replays
+		OpenFolder: Open Replay Folder
 		Date: Date
 		Length: Length
 		Refresh: Refresh
+		Back: Back
+		Loading: Loading
+		Completed: Completed
+		RefreshingSeconds: Refreshing... {0}s
+		FailedToReadFolder: Failed to read replay folder
+		NoReplaysFound: No replays found
+		NoReplaysFoundSearch: No replays match the current search filter.
+		NoReplaysYet: No replays yet
+		NoReplaysYetHint: Host a multiplayer world to create one, or place a .reese file in the replay folder
 
 		ReplayUnavailable: {
 			InvalidMetadata: Replay metadata is invalid or incomplete.

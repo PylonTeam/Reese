@@ -30,7 +30,7 @@ internal sealed class MainMenuUIState : UIState
     private UIAutoScaleTextTextPanel<string> refreshButton;
     private UIBrowserStatus statusBadge;
     private MainMenuLoaderImage loaderImage;
-    private string statusText = "Completed";
+    private string statusText = string.Empty;
     private DateTime statusLoadingStarted;
     private int lastScreenWidth;
     private int lastScreenHeight;
@@ -105,10 +105,10 @@ internal sealed class MainMenuUIState : UIState
         buttons.Height.Set(0f, 1f);
         footer.Append(buttons);
 
-        refreshButton = CreateActionButton("Refresh", Refresh);
+        refreshButton = CreateActionButton(Loc.Get("MainMenu.ReplayBrowser.Refresh"), Refresh);
         buttons.Append(refreshButton);
 
-        UIAutoScaleTextTextPanel<string> backButton = CreateActionButton("Back", () => onBack?.Invoke());
+        UIAutoScaleTextTextPanel<string> backButton = CreateActionButton(Loc.Get("MainMenu.ReplayBrowser.Back"), () => onBack?.Invoke());
         backButton.Top.Set(FooterButtonHeight + FooterButtonGap, 0f);
         buttons.Append(backButton);
 
@@ -140,9 +140,9 @@ internal sealed class MainMenuUIState : UIState
         if (loading)
             statusLoadingStarted = DateTime.UtcNow;
 
-        refreshButton?.SetText(loading ? "Loading" : "Refresh");
+        refreshButton?.SetText(loading ? Loc.Get("MainMenu.ReplayBrowser.Loading") : Loc.Get("MainMenu.ReplayBrowser.Refresh"));
         statusBadge?.SetCurrentState(state);
-        statusText = text ?? state.ToString();
+        statusText = text ?? Loc.Get(loading ? "MainMenu.ReplayBrowser.Loading" : "MainMenu.ReplayBrowser.Completed");
 
         if (loaderImage != null)
             loaderImage.Loading = loading;
@@ -151,7 +151,7 @@ internal sealed class MainMenuUIState : UIState
     private string GetStatusText()
     {
         int seconds = Math.Max(1, (int)Math.Ceiling((DateTime.UtcNow - statusLoadingStarted).TotalSeconds));
-        return $"Refreshing...{seconds}";
+        return Loc.Get("MainMenu.ReplayBrowser.RefreshingSeconds", seconds);
     }
 
     private static UIAutoScaleTextTextPanel<string> CreateActionButton(string text, Action onClick)
