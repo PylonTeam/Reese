@@ -55,6 +55,11 @@ internal sealed class SpectatorModeSystem : ModSystem
         return count;
     }
 
+    private static bool IsAdmin(Player player)
+    {
+        return player?.active == true && (DragonLensIntegration.IsPlayerDragonLensAdmin(player) || ErkySSCIntegration.IsPlayerErkySSCAdmin(player));
+    }
+
     private static ServerConfig.GhostSpectatingConfig GhostSpectatingConfig => ModContent.GetInstance<ServerConfig>()?.ghostSpectatingConfig;
 
     internal static bool IsGhostSpectatingEnabled => GhostSpectatingConfig?.IsGhostSpectatingEnabled == true;
@@ -230,7 +235,7 @@ internal sealed class SpectatorModeSystem : ModSystem
         }
 
         Player senderPlayer = sender >= 0 && sender < Main.maxPlayers ? Main.player[sender] : null;
-        bool isAdmin = senderPlayer?.active == true && DragonLensIntegration.IsPlayerDragonLensAdmin(senderPlayer);
+        bool isAdmin = IsAdmin(senderPlayer);
 
         if (isAdmin)
             return true;
@@ -273,7 +278,7 @@ internal sealed class SpectatorModeSystem : ModSystem
         if (caller.CommandType == CommandType.Server)
             return true;
 
-        if (caller.Player?.active == true && (Main.netMode == NetmodeID.SinglePlayer || DragonLensIntegration.IsPlayerDragonLensAdmin(caller.Player)))
+        if (caller.Player?.active == true && (Main.netMode == NetmodeID.SinglePlayer || IsAdmin(caller.Player)))
             return true;
 
         errorMessage = "Only admins can use /ghost.";
