@@ -32,6 +32,19 @@ internal static class SpectatorMode
         return player?.active == true && player.ghost;
     }
 
+    /// <summary>
+    /// Ghost check for world simulation (spawning, despawning), safe to call on a dedicated server.
+    /// <para/>
+    /// <see cref="Player.ghost"/> is set client-side and only reaches the server inside
+    /// MessageID.PlayerControls, which is sent on input change, so it lags behind a mode switch and stays
+    /// stale while a ghost holds still. <see cref="SpectatorModeSystem.Modes"/> is server-authoritative,
+    /// so it is the one that is trusted here; the flag is kept as an OR so vanilla hardcore ghosts count too.
+    /// </summary>
+    public static bool IsSpectatingForWorldLogic(Player player)
+    {
+        return player?.active == true && (player.ghost || SpectatorModeSystem.IsInSpectateMode(player));
+    }
+
     public static bool ShouldDrawGhost(Player player)
     {
         if (player?.active != true || !player.ghost)
