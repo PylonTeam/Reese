@@ -209,23 +209,9 @@ internal static class ReplayActions
         return name.Trim();
     }
 
-    public static void Favorite(string path, Action<ReplayFileFlags> onChanged = null)
+    public static void Favorite(string path)
     {
+        // FIXME: Favorite to file?
         SoundEngine.PlaySound(SoundID.MenuTick);
-
-        try
-        {
-            if (!ReplayFlags.TryToggleFavorite(path, out ReplayFileFlags flags))
-            {
-                Log.Warn($"Failed to toggle replay favorite '{path}'");
-                return;
-            }
-
-            onChanged?.Invoke(flags);
-        }
-        catch (Exception e)
-        {
-            Log.Error($"Failed to toggle replay favorite '{path}': {e}");
-        }
     }
 }
