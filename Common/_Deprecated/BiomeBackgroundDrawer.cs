@@ -4,7 +4,7 @@
 //using Terraria.GameContent;
 //using Terraria.ID;
 
-//namespace Reese.Common.Replayer.ReplayHud.Shared.Drawers;
+//namespace Reese.Common.Replay.ReplayHud.Shared.Drawers;
 
 //internal class BiomeBackgroundDrawer
 //{

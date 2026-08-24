@@ -1,9 +1,9 @@
-using Reese.Common.Replayer.ReplayHud;
-using Reese.Common.Replayer.ReplayHud.Shared.Drawers;
+using Reese.Common.Replay.ReplayHud;
+using Reese.Common.Replay.ReplayHud.Shared.Drawers;
 using ReLogic.Content;
 using Terraria.GameContent;
 using Terraria.Localization;
-using static Reese.Common.Replayer.ReplayHud.Shared.Drawers.BiomeHelper;
+using static Reese.Common.Replay.ReplayHud.Shared.Drawers.BiomeHelper;
 
 namespace Reese.Core.Stats;
 

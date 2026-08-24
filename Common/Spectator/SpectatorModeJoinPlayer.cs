@@ -1,5 +1,5 @@
 using Reese.Common.Replayer;
-using Reese.Common.Replayer.ReplayHud.Ghost;
+using Reese.Common.Replay.ReplayHud.Ghost;
 
 namespace Reese.Common.Spectator;
 

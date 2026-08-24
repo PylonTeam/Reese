@@ -59,6 +59,10 @@ Recorder: {
 	}
 }
 
+StopRecordCommand: {
+    Reason: Server issued a recording stop
+}
+
 Replayer.ReplayWelcomeMessage:
 	'''
 	Welcome to your Reese replay! Now playing: [c/FFFFFF:{0}]

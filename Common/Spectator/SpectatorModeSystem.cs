@@ -1,5 +1,5 @@
-﻿using Reese.Common.Replayer.ReplayHud.Ghost;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
+﻿using Reese.Common.Replay.ReplayHud.Ghost;
+using Reese.Common.Replay.ReplayHud.ReplaySpectate;
 using Reese.Core.Compat;
 using Reese.Core.Configs;
 using System.Collections.Generic;
@@ -17,7 +17,7 @@ public enum SpectateMode : byte
 }
 
 /// <summary>
-/// Handles the spectator mode system, including setting the player to be a spectator or 
+/// Handles the spectator mode system, including setting the player to be a spectator or
 /// </summary>
 [Autoload(Side = ModSide.Both)]
 internal sealed class SpectatorModeSystem : ModSystem
@@ -131,7 +131,7 @@ internal sealed class SpectatorModeSystem : ModSystem
         if (playerId is < 0 or >= Main.maxPlayers)
             return;
 
-        if (!IsGhostSpectatingEnabled && !global::Reese.Common.Replayer.ReplayPlayback.IsReplayPlayback)
+        if (!IsGhostSpectatingEnabled && !global::Reese.Common.Replay.ReplayPlayback.IsReplayPlayback)
             mode = SpectateMode.Player;
 
         SpectateMode oldMode = GetMode(playerId);
@@ -159,7 +159,7 @@ internal sealed class SpectatorModeSystem : ModSystem
         if (mode == SpectateMode.Spectator)
             Main.playerInventory = false;
         else
-        // TODO: iS THIS ACCURATE?!
+            // TODO: iS THIS ACCURATE?!
             SpectatorTargetSystem.ClearTarget();
     }
 
@@ -287,7 +287,7 @@ internal sealed class SpectatorModeSystem : ModSystem
 
     public override void PreUpdatePlayers()
     {
-        if (!IsGhostSpectatingEnabled && !global::Reese.Common.Replayer.ReplayPlayback.IsReplayPlayback)
+        if (!IsGhostSpectatingEnabled && !global::Reese.Common.Replay.ReplayPlayback.IsReplayPlayback)
         {
             Modes.Clear();
             pendingJoinChoices.Clear();

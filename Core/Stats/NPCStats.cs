@@ -1,4 +1,4 @@
-using Reese.Common.Replayer.ReplayHud;
+using Reese.Common.Replay.ReplayHud;
 using ReLogic.Content;
 using System;
 using Terraria.GameContent;

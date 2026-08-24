@@ -18,7 +18,7 @@ public sealed class SpectatorJoinUISystem : ModSystem
         {
             return SpectatorModeSystem.IsGhostSpectatingEnabled &&
                    SpectatorModeSystem.ShowSpectatorJoinPanel &&
-                   !global::Reese.Common.Replayer.ReplayPlayback.IsReplayPlayback;
+                   !global::Reese.Common.Replay.ReplayPlayback.IsReplayPlayback;
         }
     }
 

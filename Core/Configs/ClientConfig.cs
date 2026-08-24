@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
-using Reese.Common.Replayer.ReplayHud;
-using Reese.Common.Replayer.ReplayHud.Ghost;
+using Reese.Common.Replay.ReplayHud;
+using Reese.Common.Replay.ReplayHud.Ghost;
 using System.ComponentModel;
 using Terraria.ModLoader.Config;
 
@@ -34,7 +34,7 @@ public class ClientConfig : ModConfig
     [Slider]
     [DrawTicks]
     [Increment(8)]
-    [DefaultValue(DefaultSeekMaxMillisecondsPerFrame)] 
+    [DefaultValue(DefaultSeekMaxMillisecondsPerFrame)]
     public int SeekMaxMillisecondsPerFrame = DefaultSeekMaxMillisecondsPerFrame;
 
     [Header("Debug")]

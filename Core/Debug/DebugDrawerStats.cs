@@ -1,7 +1,8 @@
-﻿using Reese.Common.Recorder;
+﻿using Reese.Common.Record;
+using Reese.Common.Replay;
 using Reese.Common.Replayer;
-using Reese.Common.Replayer.ReplayHud;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
+using Reese.Common.Replay.ReplayHud;
+using Reese.Common.Replay.ReplayHud.ReplaySpectate;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -99,10 +100,10 @@ internal static class DebugDrawerStats
     {
         List<string> rows = [];
 
-        string currentTime = TimeSpan.FromSeconds(ReplayPlayback.CurrentTick/ 60.0).ToString(@"mm\:ss");
+        string currentTime = TimeSpan.FromSeconds(ReplayPlayback.CurrentTick / 60.0).ToString(@"mm\:ss");
         string totalTime = TimeSpan.FromSeconds(ReplayPlayback.DurationTicks / 60.0).ToString(@"mm\:ss");
         float progressPct = ReplayPlayback.DurationTicks > 0 ? (ReplayPlayback.CurrentTick / (float)ReplayPlayback.DurationTicks) * 100f : 0f;
-        float timeScale = ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale;
+        float timeScale = ModContent.GetInstance<PlaybackTimeScale>().TimeScale;
 
         rows.Add($"Playback active: {ReplayPlayback.IsReplayPlayback}");
         if (ReplayPlayback.IsReplayPlayback)
@@ -283,11 +284,6 @@ internal static class DebugDrawerStats
         //string world = string.IsNullOrWhiteSpace(metadata.WorldName) ? "?" : metadata.WorldName;
 
         //return $"player={player}, world={world}, duration={metadata.DurationTicks} ticks";
-    }
-
-    private static string GetReplayerTickText()
-    {
-        return ReplayPlayback.IsReplayPlayback ? ModContent.GetInstance<Replayer>()?.Ticks.ToString() ?? "<n/a>" : "0";
     }
 
     private static string GetConnectionText()
