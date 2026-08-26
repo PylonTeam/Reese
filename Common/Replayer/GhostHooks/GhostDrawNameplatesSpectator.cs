@@ -1,6 +1,5 @@
 ﻿using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using ReLogic.Graphics;
-using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Terraria.GameContent;
@@ -22,41 +21,12 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
     private static readonly MethodInfo getDistanceMethod = typeof(NewMultiplayerClosePlayersOverlay)
     .GetMethod("GetDistance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
-    /// <summary>
-    /// ErkySSC hooks the same method and neither hook calls orig, so installing both means one of
-    /// them silently never runs. When ErkySSC is present it owns the renderer and we register a
-    /// gate instead — that way its "Everyone" setting still applies and we only override for
-    /// ghosts, spectators and replays. PostSetupContent so mod load order does not matter.
-    /// </summary>
-    public override void PostSetupContent()
-    {
-        if (ModLoader.TryGetMod("ErkySSC", out Mod erkySSC) &&
-            erkySSC.Call("RegisterNameplateGate", "Reese", (Func<Player, Player, bool?>)NameplateGate) is true)
-            return;
-
+    public override void Load() =>
         On_NewMultiplayerClosePlayersOverlay.Draw += DrawNamesAfterNewOverlay;
-    }
 
     public override void Unload()
     {
         On_NewMultiplayerClosePlayersOverlay.Draw -= DrawNamesAfterNewOverlay;
-    }
-
-    /// <summary>
-    /// true = force the nameplate on, false = force it off, null = let ErkySSC's config decide.
-    /// </summary>
-    private static bool? NameplateGate(Player localPlayer, Player otherPlayer)
-    {
-        if (otherPlayer?.active != true)
-            return null;
-
-        bool isSpectator = SpectatorMode.IsSpectator(otherPlayer);
-
-        // Outside of ghosts, spectating and replays we have no opinion.
-        if (!isSpectator && !SpectatorMode.CanSpectate && !ReplayPlayback.IsReplayPlayback)
-            return null;
-
-        return ReplayDrawGate.ShouldDrawNameplate(otherPlayer, isSpectator);
     }
 
     private static bool TryGetDistance(int screenWidth, int screenHeight, Vector2 screenPosition, Player localPlayer, DynamicSpriteFont font, Player otherPlayer, string name, out Vector2 namePlatePos, out float namePlateDist, out Vector2 measurement)
