@@ -191,8 +191,12 @@ public class Playback : ModSystem
         {
             ResetTimeoutTimer();
 
-            // FIXME: no! check connection state?
-            if (Replay.IsBaselining)
+            if (Closed || Replay.Terminated)
+                return false;
+
+            // before we reach state 6 (player spawned), we always want data,
+            // so sign on data and the first baseline is consumed properly.
+            if (Netplay.Connection.State < 6)
                 return true;
 
             if (Ticker.Tick >= Replay.Tick)
