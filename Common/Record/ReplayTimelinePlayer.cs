@@ -1,5 +1,5 @@
 using Reese.Common.Replayer;
-using Reese.Common.Replay.ReplayEvents;
+using Reese.Common.Replay.Events;
 using Terraria.DataStructures;
 using Terraria.ID;
 
@@ -13,10 +13,10 @@ internal sealed class ReplayTimelinePlayer : ModPlayer
             return;
 
         Recorder rec = ModContent.GetInstance<Recorder>();
-        if (!(rec.IsRecording && Player.whoAmI == rec.WhoAmI))
+        if (!rec.IsRecording || Player.whoAmI == rec.WhoAmI)
             return;
 
-        ReplayTimelineRecorder.RecordPlayerJoined(Player, rec.Ticks);
+        TimelineRecorder.RecordPlayerJoined(Player, rec.Tick);
     }
 
     public override void PlayerDisconnect()
@@ -25,10 +25,10 @@ internal sealed class ReplayTimelinePlayer : ModPlayer
             return;
 
         Recorder rec = ModContent.GetInstance<Recorder>();
-        if (!(rec.IsRecording && Player.whoAmI == rec.WhoAmI))
+        if (!rec.IsRecording || Player.whoAmI == rec.WhoAmI)
             return;
 
-        ReplayTimelineRecorder.RecordPlayerLeft(Player, rec.Ticks);
+        TimelineRecorder.RecordPlayerLeft(Player, rec.Tick);
     }
 
     public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
@@ -37,9 +37,9 @@ internal sealed class ReplayTimelinePlayer : ModPlayer
             return;
 
         Recorder rec = ModContent.GetInstance<Recorder>();
-        if (!(rec.IsRecording && Player.whoAmI == rec.WhoAmI))
+        if (!rec.IsRecording || Player.whoAmI == rec.WhoAmI)
             return;
 
-        ReplayTimelineRecorder.RecordPlayerDeath(Player, damageSource, rec.Ticks);
+        TimelineRecorder.RecordPlayerDeath(Player, damageSource, rec.Tick);
     }
 }

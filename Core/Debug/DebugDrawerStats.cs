@@ -1,8 +1,8 @@
 ﻿using Reese.Common.Record;
 using Reese.Common.Replay;
 using Reese.Common.Replayer;
-using Reese.Common.Replay.ReplayHud;
-using Reese.Common.Replay.ReplayHud.ReplaySpectate;
+using Reese.Common.Replay.Hud;
+using Reese.Common.Replay.Hud.ReplaySpectate;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -44,7 +44,8 @@ internal static class DebugDrawerStats
         string msgName = MessageIDCache.GetName(RecorderStatus.LastPacketMessageId);
 
         rows.Add($"Recording: {RecorderStatus.IsRecording}");
-        rows.Add($"Filename: {RecorderStatus.ReplayName}.reese");
+        // FIXME: this is not true
+        rows.Add($"Filename: {RecorderStatus.Title}.reese");
         rows.Add($"Ticks: {RecorderStatus.Tick}");
         rows.Add($"Length: {elapsed}");
         rows.Add($"Size:  {kb:F0} KB");
@@ -99,53 +100,22 @@ internal static class DebugDrawerStats
     private static void AddReplayerStats(List<DebugDrawer.DebugStatGroup> groups)
     {
         List<string> rows = [];
-
-        string currentTime = TimeSpan.FromSeconds(ReplayPlayback.CurrentTick / 60.0).ToString(@"mm\:ss");
-        string totalTime = TimeSpan.FromSeconds(ReplayPlayback.DurationTicks / 60.0).ToString(@"mm\:ss");
-        float progressPct = ReplayPlayback.DurationTicks > 0 ? (ReplayPlayback.CurrentTick / (float)ReplayPlayback.DurationTicks) * 100f : 0f;
-        float timeScale = ModContent.GetInstance<PlaybackTimeScale>().TimeScale;
-
-        rows.Add($"Playback active: {ReplayPlayback.IsReplayPlayback}");
-        if (ReplayPlayback.IsReplayPlayback)
+        if (Playback.IsPlayingReplay(out var replay) && Playback.Socket != null)
         {
+            var tick = Playback.Socket.Ticker.Tick;
+            var duration = replay.MetaInfo.Duration;
+
+            string currentTime = TimeSpan.FromSeconds(tick / 60.0).ToString(@"mm\:ss");
+            string totalTime = TimeSpan.FromSeconds(duration / 60.0).ToString(@"mm\:ss");
+            float progressPct = duration > 0 ? (tick / (float)duration) * 100f : 0f;
+            float timeScale = ModContent.GetInstance<PlaybackTimeScale>().TimeScale;
+
             rows.Add($"File: {GetFileNameOrDash(ReplayPlayback.CurrentPath)}");
             rows.Add($"Playback: {currentTime} / {totalTime} ({progressPct:F1}%)");
-            rows.Add($"Tick: {ReplayPlayback.CurrentTick} / {ReplayPlayback.DurationTicks}");
+            rows.Add($"Tick: {tick} / {duration}");
             rows.Add($"Speed: {timeScale:F2}x");
+            rows.Add($"Record Player: {replay.MetaInfo.WhoAmI}");
         }
-
-        //rows.Add($"Active: {DebugReplayerDiagnostics.IsActive}");
-        //rows.Add($"Socket active: {Replayer.IsPlaybackSocketActive}");
-        //rows.Add($"File: {GetFileNameOrNone(ReplaySession.CurrentPath)}");
-        //rows.Add($"Age: {FormatTimeSpan(DebugReplayerDiagnostics.SessionAge)}");
-
-        //rows.Add($"Tick: {DebugReplayerDiagnostics.CurrentTick} / {DebugReplayerDiagnostics.DurationTicks} ({DebugReplayerDiagnostics.Progress * 100f:0.##}%)");
-        //rows.Add($"Time: {FormatTicks(DebugReplayerDiagnostics.CurrentTick)} / {FormatTicks(DebugReplayerDiagnostics.DurationTicks)}");
-        //rows.Add($"Ticks/sec: {DebugReplayerDiagnostics.TicksPerSecond:0.##}");
-
-        //rows.Add($"Waiting: {DebugReplayerDiagnostics.WaitingForTick}");
-        //rows.Add($"Waiting for tick: {DebugReplayerDiagnostics.WaitingForReplayTick}");
-        //rows.Add($"Reached EOF: {DebugReplayerDiagnostics.ReachedEof}");
-
-        //rows.Add($"Receive calls: {DebugReplayerDiagnostics.ReceiveCalls}");
-        //rows.Add($"Zero-byte receives: {DebugReplayerDiagnostics.ZeroByteReceives}");
-        //rows.Add($"Incoming packets: {DebugReplayerDiagnostics.IncomingPackets}");
-        //rows.Add($"Incoming bytes: {DebugReplayerDiagnostics.IncomingPacketBytes}");
-        //rows.Add($"Incoming malformed: {DebugReplayerDiagnostics.IncomingMalformedPacketData}");
-        //rows.Add($"Top incoming IDs: {DebugReplayerDiagnostics.GetTopIncomingMessages()}");
-
-        //rows.Add($"Ignored outgoing packets: {DebugReplayerDiagnostics.IgnoredOutgoingPackets}");
-        //rows.Add($"Ignored outgoing malformed: {DebugReplayerDiagnostics.IgnoredOutgoingMalformedPacketData}");
-        //rows.Add($"Last ignored outgoing: {DebugReplayerDiagnostics.LastIgnoredOutgoingSummary}");
-        //rows.Add($"Top ignored outgoing IDs: {DebugReplayerDiagnostics.GetTopIgnoredOutgoingMessages()}");
-
-        //rows.Add($"Seek count: {DebugReplayerDiagnostics.SeekCount}");
-        //rows.Add($"Last seek target: {DebugReplayerDiagnostics.LastSeekTargetTick}");
-        //rows.Add($"Reset-to-start count: {DebugReplayerDiagnostics.ResetToStartCount}");
-
-        //rows.Add($"Last event: {DebugReplayerDiagnostics.LastEvent}");
-        //rows.Add($"Last warning: {DebugReplayerDiagnostics.LastWarning}");
-        //rows.Add($"Last error: {DebugReplayerDiagnostics.LastError}");
 
         groups.Add(new DebugDrawer.DebugStatGroup("Debug Replayer Stats", new Color(120, 220, 255), () => DebugDrawer.ShowDebugReplayerStats, [.. rows]));
     }
@@ -156,7 +126,6 @@ internal static class DebugDrawerStats
 
         rows.Add($"Netmode: {Main.netMode} ({NetmodeID.Search.GetName(Main.netMode)})");
         rows.Add($"Player Index: {Main.myPlayer}");
-        //rows.Add($"myPlayer is record client: {Main.myPlayer == ReplaySession.RecordClientIndex}");
         //rows.Add($"Netplay disconnect: {Netplay.Disconnect}");
         //rows.Add($"Connection: {GetConnectionText()}");
         //rows.Add($"Connection socket: {GetSocketText()}");

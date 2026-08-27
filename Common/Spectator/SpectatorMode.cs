@@ -1,3 +1,4 @@
+using Reese.Common.Replay;
 using Reese.Common.Replayer;
 using Reese.Core.Configs;
 
@@ -5,13 +6,13 @@ namespace Reese.Common.Spectator;
 
 internal static class SpectatorMode
 {
-    public static bool IsReplay => ReplayPlayback.IsReplayPlayback;
-    public static bool IsLocalReplayClient => ReplayPlayback.IsPlayerReplayClient(Main.LocalPlayer);
+    public static bool IsReplay => Playback.IsPlaying;
+    public static bool IsLocalPlayerPlayback => IsPlaybackPlayer(Main.LocalPlayer);
     public static bool IsLocalGhost => IsGhost(Main.LocalPlayer);
     public static bool IsLocalLiveGhost => IsLocalGhost && !IsReplay;
     public static bool CanUseReplayHud => IsReplay;
     public static bool CanUseGhostHud => IsGhostSpectatingEnabled && IsLocalLiveGhost;
-    public static bool CanSpectate => IsLocalReplayClient || IsGhostSpectatingEnabled && IsLocalGhost;
+    public static bool CanSpectate => IsLocalPlayerPlayback || IsGhostSpectatingEnabled && IsLocalGhost;
     private static ServerConfig.GhostSpectatingConfig GhostSpectatingConfig => ModContent.GetInstance<ServerConfig>()?.ghostSpectatingConfig;
     public static bool IsGhostSpectatingEnabled => GhostSpectatingConfig?.IsGhostSpectatingEnabled == true;
     public static bool CanDrawOtherGhosts => IsGhostSpectatingEnabled && GhostSpectatingConfig?.DrawGhosts == true;
@@ -19,12 +20,12 @@ internal static class SpectatorMode
 
     public static bool IsSpectator(Player player)
     {
-        return IsGhost(player) || ReplayPlayback.IsPlayerReplayClient(player);
+        return IsGhost(player) || IsPlaybackPlayer(player);
     }
 
-    public static bool IsReplayClient(Player player)
+    public static bool IsPlaybackPlayer(Player player)
     {
-        return ReplayPlayback.IsPlayerReplayClient(player);
+        return Playback.IsPlayingReplay(out var replay) && replay.MetaInfo.WhoAmI == player.whoAmI;
     }
 
     public static bool IsGhost(Player player)

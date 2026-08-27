@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Reese.Common.Replay;
 using Terraria.ID;
 using Terraria.UI;
 
@@ -18,7 +19,7 @@ public sealed class SpectatorJoinUISystem : ModSystem
         {
             return SpectatorModeSystem.IsGhostSpectatingEnabled &&
                    SpectatorModeSystem.ShowSpectatorJoinPanel &&
-                   !global::Reese.Common.Replay.ReplayPlayback.IsReplayPlayback;
+                   !Playback.IsPlaying;
         }
     }
 

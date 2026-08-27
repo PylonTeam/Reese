@@ -1,6 +1,8 @@
 using Reese.Common.MainMenu.UI;
+using Reese.Common.Replay;
 using Reese.Common.Replayer;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Terraria.GameContent;
@@ -9,6 +11,8 @@ using Terraria.Localization;
 using Terraria.ModLoader.UI;
 using Terraria.UI;
 using Terraria.UI.Chat;
+
+// FIXME: NO ONE disposes of replays or keeps the one we are watching alive kinda? gotta thing about ownership
 
 namespace Reese.Common.MainMenu;
 
@@ -34,8 +38,8 @@ internal sealed class ReplayBrowser : UIElement
         browserPanel = new ReplayBrowserPanel();
         browserPanel.Width.Set(0f, 1f);
         browserPanel.Height.Set(ReplayLayout.PanelHeight, 0f);
-        browserPanel.OnRefreshStarted += () => OnRefreshStarted?.Invoke();
-        browserPanel.OnRefreshFinished += () => OnRefreshFinished?.Invoke();
+        browserPanel.OnRefreshStarted = () => OnRefreshStarted?.Invoke();
+        browserPanel.OnRefreshFinished = () => OnRefreshFinished?.Invoke();
         Append(browserPanel);
         browserPanel.Build();
 
@@ -65,11 +69,10 @@ internal sealed class ReplayBrowserPanel : UIElement
     private SortColumn sortColumn = SortColumn.None;
     private bool sortAscending;
 
-    public event Action OnRefreshStarted;
-    public event Action OnRefreshFinished;
+    public Action OnRefreshStarted;
+    public Action OnRefreshFinished;
 
-    // Cache entries
-    private ReplayMetadata[] cachedEntries = [];
+    public ReplayFile[] Entries { get; set; }
     private int refreshGeneration;
 
     public void Build()
@@ -285,18 +288,10 @@ internal sealed class ReplayBrowserPanel : UIElement
         list.Clear();
         list.Recalculate();
 
-        string dir = ReplayPaths.GetFolder();
-        ReplayMetadata[] warmEntries = ReplayCatalogService.Shared.GetCachedEntries(dir);
-        if (warmEntries.Length > 0)
-        {
-            cachedEntries = warmEntries;
-            ApplyCurrentFilterCore();
-        }
-
         if (showLoading)
             OnRefreshStarted?.Invoke();
 
-        Task.Run(() => ReplayCatalogService.Shared.Load(dir)).ContinueWith(task =>
+        Task.Run(() => Playback.EnumerateReplays(ReplayPaths.GetFolder(), true)).ContinueWith(task =>
         {
             Main.QueueMainThreadAction(() =>
             {
@@ -306,24 +301,15 @@ internal sealed class ReplayBrowserPanel : UIElement
                 if (task.IsFaulted)
                 {
                     Log.Error("Failed to read replay folder: " + task.Exception);
-                    cachedEntries = [];
                     AddMessage(Loc.Get("MainMenu.ReplayBrowser.FailedToReadFolder"));
                     list.Recalculate();
                     OnRefreshFinished?.Invoke();
                     return;
                 }
 
-                ReplayCatalogLoadResult result = task.Result;
-                cachedEntries = result.Entries;
-
-                var applyWatch = System.Diagnostics.Stopwatch.StartNew();
-                int visibleCount = ApplyCurrentFilterCore();
-                applyWatch.Stop();
-                Log.Info(
-                    $"Replay catalog load finished: entries={cachedEntries.Length}/{result.FileCount}, " +
-                    $"cacheHits={result.CacheHitCount}, loaded={result.LoadedCount}, loadMs={result.ElapsedMilliseconds}, " +
-                    $"applyVisible={visibleCount}, applyMs={applyWatch.ElapsedMilliseconds}\n------------------");
-
+                Log.Info($"OK got {task.Result.Count} replays");
+                Entries = [.. task.Result];
+                ApplyCurrentFilterCore();
                 OnRefreshFinished?.Invoke();
             });
         });
@@ -341,14 +327,13 @@ internal sealed class ReplayBrowserPanel : UIElement
 
         list.Clear();
 
-        bool hasAnyReplays = cachedEntries.Length > 0;
+        bool hasAnyReplays = Entries.Length > 0;
         string query = searchBox?.currentString ?? string.Empty;
-        ReplayMetadata[] entries = cachedEntries;
 
         if (!string.IsNullOrWhiteSpace(query))
-            entries = entries.Where(x => x.ReplayName.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
+            Entries = Entries.Where(x => x.MetaInfo.Title.Contains(query, StringComparison.OrdinalIgnoreCase)).ToArray();
 
-        if (entries.Length == 0)
+        if (Entries.Length == 0)
         {
             if (hasAnyReplays)
                 AddMessage(Loc.Get("MainMenu.ReplayBrowser.NoReplaysFound"), Loc.Get("MainMenu.ReplayBrowser.NoReplaysFoundSearch"));
@@ -359,75 +344,28 @@ internal sealed class ReplayBrowserPanel : UIElement
             return 0;
         }
 
-        ReplayMetadata[] sortedEntries = SortEntries(entries);
-        foreach (ReplayMetadata entry in sortedEntries)
-            list.Add(new ReplayListItem(entry, () => Refresh(showLoading: false), HandleFavoriteToggled));
+        SortEntries();
+        foreach (var entry in Entries)
+            list.Add(new ReplayListItem(entry, HandleFavoriteToggled));
 
         list.Recalculate();
-        return sortedEntries.Length;
+        return Entries.Length;
     }
 
-    private void HandleFavoriteToggled(string fullPath, ReplayFileFlags flags)
+    private void HandleFavoriteToggled()
     {
-        UpdateCachedEntryFlags(fullPath, flags);
-
-        ReplayMetadata[] serviceEntries = ReplayCatalogService.Shared.GetCurrentEntries();
-        if (serviceEntries.Length > 0)
-            cachedEntries = serviceEntries;
-
         ApplyCurrentFilterCore();
     }
 
-    private void UpdateCachedEntryFlags(string fullPath, ReplayFileFlags flags)
+    private void SortEntries()
     {
-        for (int i = 0; i < cachedEntries.Length; i++)
-        {
-            if (!string.Equals(cachedEntries[i].FullPath, fullPath, StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            cachedEntries[i] = cachedEntries[i].WithFlags(flags);
-            break;
-        }
+        // FIXME: sort!
     }
 
-    private ReplayMetadata[] SortEntries(ReplayMetadata[] entries)
+    private static int GetModCount(ReplayFile replay)
     {
-        IOrderedEnumerable<ReplayMetadata> sorted = entries.OrderByDescending(x => x.IsFavorite);
-
-        sorted = sortColumn switch
-        {
-            SortColumn.Name => sortAscending
-                ? sorted.ThenBy(x => x.ReplayName).ThenByDescending(x => x.DateCreated)
-                : sorted.ThenByDescending(x => x.ReplayName).ThenByDescending(x => x.DateCreated),
-
-            SortColumn.Length => sortAscending
-                ? sorted.ThenBy(x => x.DurationTicks).ThenByDescending(x => x.DateCreated)
-                : sorted.ThenByDescending(x => x.DurationTicks).ThenByDescending(x => x.DateCreated),
-
-            SortColumn.Mods => sortAscending
-                ? sorted.ThenBy(GetModCount).ThenByDescending(x => x.DateCreated)
-                : sorted.ThenByDescending(GetModCount).ThenByDescending(x => x.DateCreated),
-
-            SortColumn.Size => sortAscending
-                ? sorted.ThenBy(x => x.SizeBytes).ThenByDescending(x => x.DateCreated)
-                : sorted.ThenByDescending(x => x.SizeBytes).ThenByDescending(x => x.DateCreated),
-
-            SortColumn.Date => sortAscending
-                ? sorted.ThenBy(x => x.DateCreated).ThenBy(x => x.ReplayName)
-                : sorted.ThenByDescending(x => x.DateCreated).ThenBy(x => x.ReplayName),
-
-            _ => sorted.ThenByDescending(x => x.DateCreated).ThenBy(x => x.ReplayName)
-        };
-
-        return sorted.ToArray();
-    }
-
-    private static int GetModCount(ReplayMetadata metadata)
-    {
-        return metadata.ModNames?
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .Count() ?? 0;
+        // FIXME: Mod count?
+        return 0;
     }
 
     private void AddMessage(string line1, string line2 = null)

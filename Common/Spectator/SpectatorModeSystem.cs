@@ -1,5 +1,5 @@
-﻿using Reese.Common.Replay.ReplayHud.Ghost;
-using Reese.Common.Replay.ReplayHud.ReplaySpectate;
+﻿using Reese.Common.Replay.Hud.Ghost;
+using Reese.Common.Replay.Hud.ReplaySpectate;
 using Reese.Core.Compat;
 using Reese.Core.Configs;
 using System.Collections.Generic;
@@ -131,7 +131,7 @@ internal sealed class SpectatorModeSystem : ModSystem
         if (playerId is < 0 or >= Main.maxPlayers)
             return;
 
-        if (!IsGhostSpectatingEnabled && !global::Reese.Common.Replay.ReplayPlayback.IsReplayPlayback)
+        if (!IsGhostSpectatingEnabled && !global::Reese.Common.Replay.Playback.IsPlaying)
             mode = SpectateMode.Player;
 
         SpectateMode oldMode = GetMode(playerId);
@@ -287,7 +287,7 @@ internal sealed class SpectatorModeSystem : ModSystem
 
     public override void PreUpdatePlayers()
     {
-        if (!IsGhostSpectatingEnabled && !global::Reese.Common.Replay.ReplayPlayback.IsReplayPlayback)
+        if (!IsGhostSpectatingEnabled && !global::Reese.Common.Replay.Playback.IsPlaying)
         {
             Modes.Clear();
             pendingJoinChoices.Clear();

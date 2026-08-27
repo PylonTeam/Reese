@@ -1,3 +1,4 @@
+#if LOL
 using Reese.Common.MainMenu;
 using Reese.Core.Configs;
 using System;
@@ -60,7 +61,7 @@ internal static class ReplayModSetManager
         {
             Log.Warn($"Replay {Path.GetFileName(replayPath)} has no embedded .tmod bundle; Reese cannot auto-prepare exact replay mods.");
 
-            bool hasNameMismatch = HasNameMismatchWithoutBundle(ReplayMetadata.FromFile(replayPath));
+            bool hasNameMismatch = HasNameMismatchWithoutBundle();
             if (hasNameMismatch)
             {
                 Log.Warn($"Replay {Path.GetFileName(replayPath)} has a mod mismatch but does not contain bundled .tmod files; playing with the current loaded mods.");
@@ -452,11 +453,9 @@ internal static class ReplayModSetManager
         return true;
     }
 
-    private static bool HasNameMismatchWithoutBundle(ReplayMetadata metadata)
+    private static bool HasNameMismatchWithoutBundle()
     {
-        string[] replayMods = NormalizeModNames(metadata?.ModNames);
-        string[] currentMods = NormalizeModNames(ModLoader.Mods.Select(x => x?.Name).ToArray());
-        return replayMods.Length > 0 && !replayMods.SequenceEqual(currentMods, StringComparer.OrdinalIgnoreCase);
+        return false;
     }
 
     private static string[] NormalizeModNames(IEnumerable<string> modNames)
@@ -672,3 +671,4 @@ internal static class ReplayModSetManager
         }
     }
 }
+#endif

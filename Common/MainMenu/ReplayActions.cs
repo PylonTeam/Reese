@@ -1,3 +1,4 @@
+using Reese.Common.Replay;
 using Reese.Common.Replayer;
 using System;
 using System.IO;
@@ -13,124 +14,29 @@ namespace Reese.Common.MainMenu;
 /// </summary>
 internal static class ReplayActions
 {
-    public static void EnterReplay(string replayPath)
+    public static void EnterReplay(ReplayFile replay)
     {
-        Log.Info($"EnterReplay requested for {Path.GetFileName(replayPath)}.");
+        Main.LoadPlayers();
 
-        var modPreparation = ReplayModSetManager.PrepareReplayModsOrContinue(replayPath);
-        if (!modPreparation.ShouldContinue)
+        var player = Main.PlayerList.FirstOrDefault();
+        if (player == null)
         {
-            Log.Info("Replay playback is waiting for bundled mod preparation/reload.");
+            Log.Chat("Could not enter replay: no player found.");
+            ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
             return;
         }
 
-        EnterReplayPrepared(replayPath, modPreparation.ForcedModMismatchReason);
-    }
-
-    internal static void EnterReplayPrepared(string replayPath, string forcedModMismatchReason = null)
-    {
-        Log.Info($"Starting replay playback with prepared mods: {Path.GetFileName(replayPath)}.");
-        SoundEngine.PlaySound(SoundID.MenuOpen);
-        Main.QueueMainThreadAction(() =>
-        {
-            string fileName = Path.GetFileName(replayPath);
-
-            // Owns the lifetime of this launch attempt
-            ReplayLaunchSession session = ModContent.GetInstance<MainMenuSystem>().BeginReplayLaunch(forcedModMismatchReason);
-            ReplayPlayback.IsLaunchCancelled = () => session.IsCancelled;
-
-            Log.Info($"Loading {fileName}...");
-            Main.LoadPlayers();
-
-            var player = Main.PlayerList.FirstOrDefault();
-            if (player == null)
-            {
-                Log.Chat("Could not enter replay: no player found.");
-                ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
-                return;
-            }
-
-            Main.SelectPlayer(player);
-            Log.Info("Selected player: " + player.Name + " for replay");
-
-            if (!File.Exists(replayPath))
-            {
-                Log.Error("Error: No replay file found at: " + replayPath);
-                ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
-                return;
-            }
-
-            Log.Info($"Entering menuMode 14...");
-            Main.menuMode = 14; // status text only loading screen is 10. maybe 14 is better to allow for cancellation?
-
-            Task.Run(() =>
-            {
-                try
-                {
-                    Main.statusText = Loc.Get("MainMenu.ReplayStartup.Reading", fileName); // file scan + baseline index takes a few seconds.
-                    ReplayPlayback.BeginPlayback(replayPath);
-                }
-                catch (Exception e)
-                {
-                    Main.QueueMainThreadAction(() =>
-                    {
-                        if (session.IsCancelled)
-                        {
-                            ReplayPlayback.End("replay launch cancelled before connection");
-                            return;
-                        }
-                        Log.Error("Failed to start replay: " + e);
-                        Main.statusText = Loc.Get("MainMenu.ReplayStartup.FailedToStart");
-                        ReplayPlayback.End("playback launch failed");
-                        ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
-                    });
-                    return;
-                }
-
-                Main.QueueMainThreadAction(() =>
-                {
-                    if (session.IsCancelled)
-                    {
-                        ReplayPlayback.End("replay launch cancelled before connection");
-                        return;
-                    }
-
-                    try
-                    {
-                        if (session.IsCancelled)
-                        {
-                            ReplayPlayback.End("replay launch cancelled before connection");
-                            ReplayPlayback.IsLaunchCancelled = null;
-                            return;
-                        }
-
-                        // Connect to magic ip
-                        Main.statusText = Loc.Get("MainMenu.ReplayStartup." + (string.IsNullOrWhiteSpace(forcedModMismatchReason) ? "Connecting" : "ConnectingWithCurrentMods"));
-                        ReplayFlags.MarkWatched(replayPath);
-                        Netplay.SetRemoteIP("10.2.3.4");
-                        Main.autoPass = true;
-                        Netplay.StartTcpClient();
-                        Main.menuMode = 10;
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error("Failed to start replay: " + e);
-                        Main.statusText = Loc.Get("MainMenu.ReplayStartup.FailedToStart");
-                        ReplayPlayback.End("playback launch failed");
-                        ModContent.GetInstance<MainMenuSystem>().CancelReplayLaunch();
-                    }
-                });
-            }, session.Token);
-        });
+        Main.SelectPlayer(player);
+        Playback.Start(replay);
     }
 
     public static void Delete(string path, Action onDeleted = null)
     {
-        if (ReplayFlags.IsFavorite(path))
-        {
-            SoundEngine.PlaySound(SoundID.MenuTick);
-            return;
-        }
+        // if (ReplayFlags.IsFavorite(path))
+        // {
+        //     SoundEngine.PlaySound(SoundID.MenuTick);
+        //     return;
+        // }
 
         SoundEngine.PlaySound(SoundID.MenuOpen);
 
@@ -141,7 +47,7 @@ internal static class ReplayActions
                 if (File.Exists(path))
                     File.Delete(path);
 
-                ReplayFlags.Delete(path);
+                // ReplayFlags.Delete(path);
                 onDeleted?.Invoke();
             }
             catch (Exception e)
@@ -177,7 +83,7 @@ internal static class ReplayActions
             string destination = GetAvailableReplayPath(directory, newName);
             File.Move(path, destination);
 
-            ReplayFlags.Move(path, destination);
+            // ReplayFlags.Move(path, destination);
 
             onRenamed?.Invoke();
         }
@@ -209,9 +115,9 @@ internal static class ReplayActions
         return name.Trim();
     }
 
-    public static void Favorite(string path)
+    public static void Favorite()
     {
-        // FIXME: Favorite to file?
+        // TODO: Favorite to file
         SoundEngine.PlaySound(SoundID.MenuTick);
     }
 }

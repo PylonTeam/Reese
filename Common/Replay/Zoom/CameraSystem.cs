@@ -1,4 +1,4 @@
-﻿using Reese.Common.Replay.ReplayHud;
+﻿using Reese.Common.Replay.Hud;
 using Reese.Common.Spectator;
 using Terraria.Graphics;
 

@@ -1,6 +1,6 @@
 ﻿using Microsoft.Xna.Framework.Input;
-using Reese.Common.Replay.ReplayHud.ReplaySpectate;
-using Reese.Common.Replay.ReplayHud.ReplaySpectate.TeammateOverlay;
+using Reese.Common.Replay.Hud.ReplaySpectate;
+using Reese.Common.Replay.Hud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Spectator;
 
 namespace Reese.Common.Replay.GhostHooks;

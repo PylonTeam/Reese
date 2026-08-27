@@ -26,7 +26,7 @@ internal sealed class ReplayListItem : UIPanel
 
     private readonly ActionLabel actionLabel;
 
-    public ReplayListItem(ReplayMetadata metadata, Action onEntryChanged, Action<string, ReplayFileFlags> onFavoriteToggled)
+    public ReplayListItem(ReplayFile replay, Action onFavoriteToggled)
     {
         ReplayLayout.Update();
 
@@ -37,15 +37,16 @@ internal sealed class ReplayListItem : UIPanel
         BackgroundColor = new Color(63, 82, 151) * 0.95f;
         BorderColor = new Color(89, 116, 213) * 0.95f;
 
-        bool isNew = metadata.IsNew;
-        bool isWatchedBefore = metadata.HasWatched;
-        bool isFavorite = metadata.IsFavorite;
+        // FIXME: correct data new for new and seen and fav
+        bool isNew = false;
+        bool isWatchedBefore = false;
+        bool isFavorite = false;
 
-        Append(new Preview(metadata, ReplayLayout.ReplayItemHeight));
+        Append(new Preview(replay, ReplayLayout.ReplayItemHeight));
 
-        string replayUnavailableReason = GetReplayUnavailableReason(metadata);
+        string replayUnavailableReason = null;
 
-        Append(new NameText(metadata.ReplayName, TextColor(replayUnavailableReason != null), replayUnavailableReason)
+        Append(new NameText(replay.MetaInfo.Title, TextColor(replayUnavailableReason != null), replayUnavailableReason)
         {
             Left = { Pixels = ReplayLayout.PreviewColumnWidth + ReplayLayout.StatColumnPadding + 4f },
             Top = { Pixels = 10f },
@@ -53,28 +54,30 @@ internal sealed class ReplayListItem : UIPanel
             Height = { Pixels = 22f }
         });
 
-        AddStat(ReplayStats.WorldName(metadata.WorldName), ReplayLayout.PreviewColumnWidth + ReplayLayout.StatColumnPadding,
-            ReplayLayout.NameColumnWidth - ReplayLayout.PreviewColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.WorldName == "Unknown"), true, false, 1.25f);
+        AddStat(ReplayStats.WorldName(replay.MetaInfo.WorldName), ReplayLayout.PreviewColumnWidth + ReplayLayout.StatColumnPadding,
+            ReplayLayout.NameColumnWidth - ReplayLayout.PreviewColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(replay.MetaInfo.WorldName == "Unknown"), true, false, 1.25f);
 
-        AddStat(ReplayStats.Created(metadata.DateCreated), ReplayLayout.DateLeft + ReplayLayout.StatColumnPadding,
-            ReplayLayout.DateColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.DateCreated == DateTime.MinValue));
+        AddStat(ReplayStats.Created(replay.MetaInfo.Start), ReplayLayout.DateLeft + ReplayLayout.StatColumnPadding,
+            ReplayLayout.DateColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(replay.MetaInfo.Start == DateTime.MinValue));
 
-        AddStat(ReplayStats.Length(metadata.DurationTicks), ReplayLayout.LengthLeft + ReplayLayout.StatColumnPadding,
-            ReplayLayout.LengthColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.DurationTicks == 0));
+        AddStat(ReplayStats.Length((uint)replay.MetaInfo.Duration), ReplayLayout.LengthLeft + ReplayLayout.StatColumnPadding,
+            ReplayLayout.LengthColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(replay.MetaInfo.Duration == 0));
 
-        AddStat(ReplayStats.Mods(metadata.ModNames), ReplayLayout.ModsLeft + ReplayLayout.StatColumnPadding,
-            ReplayLayout.ModsColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.ModNames is null));
+        // FIXME: add back mods and add to stats here
+        // AddStat(ReplayStats.Mods(metadata.ModNames), ReplayLayout.ModsLeft + ReplayLayout.StatColumnPadding,
+        //     ReplayLayout.ModsColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.ModNames is null));
 
-        AddStat(ReplayStats.Size(metadata.SizeBytes), ReplayLayout.SizeLeft + ReplayLayout.StatColumnPadding,
-            ReplayLayout.SizeColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.SizeBytes <= 0), fitTextScaleToWidth: true);
+        // AddStat(ReplayStats.Size(metadata.SizeBytes), ReplayLayout.SizeLeft + ReplayLayout.StatColumnPadding,
+        //     ReplayLayout.SizeColumnWidth - ReplayLayout.StatColumnPadding * 2f, TextColor(metadata.SizeBytes <= 0), fitTextScaleToWidth: true);
 
         Asset<Texture2D> favoriteTexture = Main.Assets.Request<Texture2D>(isFavorite ? "Images/UI/ButtonFavoriteActive" : "Images/UI/ButtonFavoriteInactive");
 
         ButtonAction[] actions =
         [
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), Language.GetTextValue("UI.Play"), () => ReplayActions.EnterReplay(metadata.FullPath)),
-            new(favoriteTexture, Language.GetTextValue(isFavorite ? "UI.Unfavorite" : "UI.Favorite"), () => ReplayActions.Favorite(metadata.FullPath, flags => onFavoriteToggled?.Invoke(metadata.FullPath, flags))),
-            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), Language.GetTextValue("UI.Rename"), () => ReplayActions.Rename(metadata.FullPath, onEntryChanged))
+            new(Main.Assets.Request<Texture2D>("Images/UI/ButtonPlay"), Language.GetTextValue("UI.Play"), () => ReplayActions.EnterReplay(replay)),
+            // FIXME: lost these actions
+            // new(favoriteTexture, Language.GetTextValue(isFavorite ? "UI.Unfavorite" : "UI.Favorite"), ReplayActions.Favorite),
+            // new(Main.Assets.Request<Texture2D>("Images/UI/ButtonRename"), Language.GetTextValue("UI.Rename"), () => ReplayActions.Rename(metadata.FullPath, onEntryChanged))
         ];
 
         actionLabel = AddLabel(10f + actions.Length * ReplayLayout.ActionButtonSize + Math.Max(0, actions.Length - 1) * ReplayLayout.ActionButtonGap + ReplayLayout.ActionLabelGap);
@@ -106,21 +109,21 @@ internal sealed class ReplayListItem : UIPanel
             });
         }
 
-        ButtonAction deleteAction = isFavorite
-            ? new ButtonAction(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), Language.GetTextValue("UI.CannotDeleteFavorited"), null)
-            : new ButtonAction(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), Language.GetTextValue("UI.Delete"), () => ReplayActions.Delete(metadata.FullPath, onEntryChanged));
+        // ButtonAction deleteAction = isFavorite
+        //     ? new ButtonAction(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), Language.GetTextValue("UI.CannotDeleteFavorited"), null)
+        //     : new ButtonAction(Main.Assets.Request<Texture2D>("Images/UI/ButtonDelete"), Language.GetTextValue("UI.Delete"), () => ReplayActions.Delete(metadata.FullPath, onEntryChanged));
 
-        UIImageButton deleteButton = Button(deleteAction, rightLabel, deleteLeft, buttonTop, ReplayLayout.ActionButtonSize);
-        Append(deleteButton);
+        // UIImageButton deleteButton = Button(deleteAction, rightLabel, deleteLeft, buttonTop, ReplayLayout.ActionButtonSize);
+        // Append(deleteButton);
 
-        UIImageButton[] allButtons = buttons.Concat([deleteButton]).ToArray();
+        UIImageButton[] allButtons = buttons; // buttons.Concat([deleteButton]).ToArray();
 
         OnLeftDoubleClick += (evt, _) =>
         {
             if (allButtons.Any(button => button.ContainsPoint(evt.MousePosition)))
                 return;
 
-            ReplayActions.EnterReplay(metadata.FullPath);
+            ReplayActions.EnterReplay(replay);
         };
     }
 
@@ -237,9 +240,9 @@ internal sealed class ReplayListItem : UIPanel
     {
         private readonly Asset<Texture2D> texture;
 
-        public Preview(ReplayMetadata metadata, float size)
+        public Preview(ReplayFile replay, float size)
         {
-            texture = GetWorldIcon(metadata);
+            texture = GetWorldIcon(replay);
             Width.Set(size, 0f);
             Height.Set(size, 0f);
             Left.Set(6f, 0f);
@@ -262,32 +265,10 @@ internal sealed class ReplayListItem : UIPanel
             spriteBatch.Draw(texture, new Rectangle(area.X + (area.Width - width) / 2, area.Y + (area.Height - height) / 2, width, height), Color.White);
         }
 
-        private static Asset<Texture2D> GetWorldIcon(ReplayMetadata metadata)
+        private static Asset<Texture2D> GetWorldIcon(ReplayFile replay)
         {
-            var world = Main.WorldList?.FirstOrDefault(x => x != null && string.Equals(x.Name, metadata.WorldName, StringComparison.OrdinalIgnoreCase));
-
-            if (world == null)
-                return Main.Assets.Request<Texture2D>("Images/UI/IconCorruption");
-
-            if (world.DrunkWorld && world.RemixWorld)
-                return Main.Assets.Request<Texture2D>("Images/UI/IconEverything");
-
-            if (world.DrunkWorld)
-                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "CorruptionCrimson");
-
-            if (world.ForTheWorthy)
-                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "FTW");
-
-            if (world.Anniversary)
-                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "Anniversary");
-
-            if (world.DontStarve)
-                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "DontStarve");
-
-            if (world.RemixWorld)
-                return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + "Remix");
-
-            return Main.Assets.Request<Texture2D>("Images/UI/Icon" + (world.IsHardMode ? "Hallow" : "") + (world.HasCorruption ? "Corruption" : "Crimson"));
+            // FIXME: how should this work?
+            return Main.Assets.Request<Texture2D>("Images/UI/IconCorruption");
         }
     }
 
@@ -410,52 +391,9 @@ internal sealed class ReplayListItem : UIPanel
     }
 
     #region Unavailable replay reason
-    private static string GetReplayUnavailableReason(ReplayMetadata metadata)
+    private static string GetReplayUnavailableReason(ReplayFile replay)
     {
-        if (metadata.DurationTicks == 0)
-            return Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.InvalidMetadata");
-
-        string[] replayMods = NormalizeReplayMods(metadata.ModNames);
-        string[] enabledMods = GetEnabledModNames();
-
-        if (replayMods.SequenceEqual(enabledMods, StringComparer.OrdinalIgnoreCase))
-            return null;
-
-        string[] missingMods = replayMods
-            .Where(x => !enabledMods.Contains(x, StringComparer.OrdinalIgnoreCase))
-            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        string[] extraMods = enabledMods
-            .Where(x => !replayMods.Contains(x, StringComparer.OrdinalIgnoreCase))
-            .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-
-        List<string> lines =
-        [
-            Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.ModMismatchHeader"),
-            Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.ModMismatchDescription")
-        ];
-
-        if (missingMods.Length > 0)
-        {
-            lines.Add("");
-            lines.Add(Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.MissingMods", missingMods.Length));
-
-            foreach (string modName in missingMods)
-                lines.Add(Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.MissingModEntry", modName));
-        }
-
-        if (extraMods.Length > 0)
-        {
-            lines.Add("");
-            lines.Add(Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.ExtraMods", extraMods.Length));
-
-            foreach (string modName in extraMods)
-                lines.Add(Loc.Get("MainMenu.ReplayBrowser.ReplayUnavailable.ExtraModEntry", modName));
-        }
-
-        return string.Join("\n", lines);
+        return null;
     }
 
     private static HashSet<string> IgnoredModNames = new(StringComparer.OrdinalIgnoreCase)

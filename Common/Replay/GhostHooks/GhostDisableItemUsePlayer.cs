@@ -6,7 +6,7 @@ internal class GhostDisableItemUsePlayer : ModPlayer
 {
     public override bool CanUseItem(Item item)
     {
-        return !Player.ghost && !SpectatorMode.IsReplayClient(Player);
+        return !Player.ghost && !SpectatorMode.IsPlaybackPlayer(Player);
     }
 
     public override void PreUpdate()
@@ -14,7 +14,7 @@ internal class GhostDisableItemUsePlayer : ModPlayer
         if (Main.drawingPlayerChat || Main.ingameOptionsWindow || Main.gameMenu)
             return;
 
-        if (!Player.ghost && !SpectatorMode.IsReplayClient(Player))
+        if (!Player.ghost && !SpectatorMode.IsPlaybackPlayer(Player))
             return;
 
         Player.controlUseItem = false;

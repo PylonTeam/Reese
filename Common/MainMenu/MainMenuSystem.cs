@@ -416,7 +416,7 @@ public class MainMenuSystem : ModSystem
             Netplay.Connection.StatusText = string.Empty;
         }
 
-        ReplayPlayback.End(message);
+        // ReplayPlayback.End(message);
         CancelReplayLaunch();
 
         Main.statusText = message;

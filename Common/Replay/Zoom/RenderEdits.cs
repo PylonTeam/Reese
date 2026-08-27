@@ -1,7 +1,7 @@
 ﻿using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using Mono.Cecil;
-using Reese.Common.Replay.ReplayHud;
+using Reese.Common.Replay.Hud;
 using System;
 using System.Reflection;
 using Reese.Common.Spectator;

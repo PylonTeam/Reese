@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Reese.Content;
@@ -13,8 +14,8 @@ namespace Reese.Common.Replay;
 [Autoload(Side = ModSide.Client)]
 public class Playback : ModSystem
 {
-    private static PlaybackSocket Socket => Netplay.Connection.Socket as PlaybackSocket;
-    public bool IsPlaying => Socket is { Closed: false };
+    public static PlaybackSocket Socket => Netplay.Connection.Socket as PlaybackSocket;
+    public static bool IsPlaying => Socket is { Closed: false };
 
     public override void Unload()
     {
@@ -26,7 +27,7 @@ public class Playback : ModSystem
         }
     }
 
-    public void Play(ReplayFile replay)
+    public static void Start(ReplayFile replay)
     {
         var sock = new PlaybackSocket(ModContent.GetInstance<PlaybackTimeScale>(), replay);
         new Thread(PlaybackClientLoop)
@@ -36,8 +37,12 @@ public class Playback : ModSystem
         }.Start(sock);
     }
 
-    public void Stop()
+    // FIXME: BIG STINKY HERE - we rely on Netplay.Disconnect and IsPlaying socket closed status, but those two fight each other on different threads!!
+    public static void Stop()
     {
+        if (!IsPlaying)
+            return;
+
         Main.statusText = "Playback stopped";
         // if we want to go straight to title, we have to do a little more ourselves.
         SystemLoader.OnWorldUnload();
@@ -51,7 +56,7 @@ public class Playback : ModSystem
         Netplay.Disconnect = true;
     }
 
-    public bool IsPlayingReplay(out ReplayFile replay)
+    public static bool IsPlayingReplay(out ReplayFile replay)
     {
         if (IsPlaying)
         {
@@ -80,6 +85,41 @@ public class Playback : ModSystem
             // should have already been Disposed because the socket was Closed, but just in case.
             Socket?.Replay.Dispose();
         }
+    }
+
+    public static IList<ReplayFile> EnumerateReplays(string dir, bool footerNow)
+    {
+        var replays = new List<ReplayFile>();
+
+        foreach (var path in Directory.EnumerateFiles(dir, "*.reese", new EnumerationOptions() { IgnoreInaccessible = true }))
+        {
+            FileStream fs;
+            ReplayFile replay;
+
+            try
+            {
+                fs = File.OpenRead(path);
+            }
+            catch (Exception e)
+            {
+                Log.Warn($"unable to open enumerated replay {path}: {e}");
+                continue;
+            }
+
+            try
+            {
+                replay = ReplayFile.Read(fs, footerNow);
+            }
+            catch (Exception e)
+            {
+                Log.Warn($"failed to read enumerated replay {path}: {e}");
+                continue;
+            }
+
+            replays.Add(replay);
+        }
+
+        return replays;
     }
 
     public override bool HijackGetData(ref byte messageType, ref BinaryReader reader, int playerNumber)
@@ -113,6 +153,7 @@ public class Playback : ModSystem
 
         public bool Closed { get; private set; }
 
+        public ITicker Ticker => ticker;
         public ReplayFile Replay => replay;
 
         public void Close()
@@ -150,10 +191,11 @@ public class Playback : ModSystem
         {
             ResetTimeoutTimer();
 
+            // FIXME: no! check connection state?
             if (Replay.IsBaselining)
                 return true;
 
-            if (ticker.Ticks >= Replay.Tick)
+            if (Ticker.Tick >= Replay.Tick)
             {
                 if (Replay.IsDataBuffered)
                     return true;

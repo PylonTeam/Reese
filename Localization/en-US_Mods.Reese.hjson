@@ -57,10 +57,13 @@ Recorder: {
 		Inactive: Recording is not running. Last recording: "{0}" | Final Tick: {1}
 		NotInitialized: Recorder has not been initialized yet.
 	}
-}
 
-StopRecordCommand: {
-    Reason: Server issued a recording stop
+	Stop: {
+		Command: The server stopped the recording
+		Interop: A mod stopped the recording
+		NoPlayers: No active players are in the server
+		MaxLength: The maximum length has been reached
+	}
 }
 
 Replayer.ReplayWelcomeMessage:

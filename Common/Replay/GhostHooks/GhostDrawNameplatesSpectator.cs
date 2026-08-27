@@ -1,4 +1,4 @@
-﻿using Reese.Common.Replay.ReplayHud.ReplaySpectate;
+﻿using Reese.Common.Replay.Hud.ReplaySpectate;
 using ReLogic.Graphics;
 using System;
 using System.Collections.Generic;
@@ -53,7 +53,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
         bool isSpectator = SpectatorMode.IsSpectator(otherPlayer);
 
         // Outside of ghosts, spectating and replays we have no opinion.
-        if (!isSpectator && !SpectatorMode.CanSpectate && !ReplayPlayback.IsReplayPlayback)
+        if (!isSpectator && !SpectatorMode.CanSpectate && !Playback.IsPlaying)
             return null;
 
         return ReplayDrawGate.ShouldDrawNameplate(otherPlayer, isSpectator);

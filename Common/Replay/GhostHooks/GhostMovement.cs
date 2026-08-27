@@ -1,8 +1,8 @@
 using Microsoft.Xna.Framework.Input;
 using System;
 using Terraria.ID;
-using Reese.Common.Replay.ReplayHud;
-using Reese.Common.Replay.ReplayHud.ReplaySpectate;
+using Reese.Common.Replay.Hud;
+using Reese.Common.Replay.Hud.ReplaySpectate;
 
 namespace Reese.Common.Replay.GhostHooks;
 
@@ -33,7 +33,7 @@ internal class GhostMovement : ModSystem
         if (Main.dedServ || Main.gameMenu)
             return;
 
-        if (ModContent.GetInstance<ReplayTimeScaleSystem>().TimeScale > 0f)
+        if (ModContent.GetInstance<PlaybackTimeScale>().TimeScale > 0f)
             return;
 
         Player local = Main.LocalPlayer;

@@ -16,7 +16,7 @@ internal sealed class PlaybackTimeScale : ModSystem, ITicker
     public static readonly float[] SnapValues = [0f, 0.125f, 0.25f, 0.5f, 0.75f, 1f, 2f, 4f, 8f, 16f, 32f];
     private const int MaxSeekUpdatesPerFrame = 120;
 
-    public uint Ticks { get; private set; }
+    public uint Tick { get; private set; }
 
     private float _timeScale;
 
@@ -65,7 +65,7 @@ internal sealed class PlaybackTimeScale : ModSystem, ITicker
 
     public override void ClearWorld()
     {
-        Ticks = 0;
+        Tick = 0;
         TimeScale = 1.0f;
         FastForwardTicks = 0;
         ResetAccumulators();
@@ -215,7 +215,7 @@ internal sealed class PlaybackTimeScale : ModSystem, ITicker
 
     private void NotifyWorldTickAdvanced()
     {
-        Ticks++;
+        Tick++;
     }
 
     private void HookUpdateTime(On_Main.orig_UpdateTime orig)

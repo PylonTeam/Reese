@@ -5,6 +5,7 @@ using Reese.Common.Spectator;
 using Reese.Core.Net;
 using System;
 using System.IO;
+using Terraria.Localization;
 
 namespace Reese;
 
@@ -30,24 +31,39 @@ public class Reese : Mod
         if (args is null || args.Length == 0 || args[0] is not string command)
             return null;
 
-        string reason = "";
-
+        var rec = ModContent.GetInstance<Recorder>();
         switch (command)
         {
             case "StartRecording":
-                ModContent.GetInstance<Recorder>().StartRecording();
+                if (args.Length >= 2 && args[1] is Stream stream)
+                    rec.Start(stream);
+                else
+                    rec.Start();
+
                 return true;
 
             case "StopRecording":
-                reason = args.Length > 1 && args[1] is string customReason ? customReason : "Cross-mod call";
-                ModContent.GetInstance<Recorder>().StopRecording(reason);
-                return true;
+                {
+                    NetworkText reason = null;
+                    if (args.Length >= 2)
+                    {
+                        if (args[1] is string reasonStr)
+                            reason = NetworkText.FromLiteral(reasonStr);
+                        else if (args[1] is NetworkText reasonText)
+                            reason = reasonText;
+                    }
+
+                    reason ??= NetworkText.FromKey("Mods.Reese.Recorder.Stop.Interop");
+
+                    ModContent.GetInstance<Recorder>().Stop(reason);
+                    return true;
+                }
 
             case "OpenReplayBrowser":
                 return ModContent.GetInstance<MainMenuSystem>().OpenReplayBrowserFromExternal();
 
             case "RegisterRecordingFinishedCallback":
-                if (args.Length > 1 && args[1] is Action<string, string, string[], uint, string> registerCallback)
+                if (args.Length > 1 && args[1] is Action<string, string, string[], uint, NetworkText> registerCallback)
                 {
                     RecorderEvents.RegisterRecordingFinishedCallback(registerCallback);
                     return true;
@@ -57,7 +73,7 @@ public class Reese : Mod
                 return false;
 
             case "UnregisterRecordingFinishedCallback":
-                if (args.Length > 1 && args[1] is Action<string, string, string[], uint, string> unregisterCallback)
+                if (args.Length > 1 && args[1] is Action<string, string, string[], uint, NetworkText> unregisterCallback)
                 {
                     RecorderEvents.UnregisterRecordingFinishedCallback(unregisterCallback);
                     return true;
@@ -65,52 +81,6 @@ public class Reese : Mod
 
                 Log.Warn("UnregisterRecordingFinishedCallback expected Action<string, string, string[], uint, string>");
                 return false;
-
-            case "RegisterReplaySnapshotWriter":
-                if (args.Length > 1 && args[1] is Action<int, uint, bool> registerSnapshotWriter)
-                {
-                    ReplaySnapshotEvents.RegisterReplaySnapshotWriter(registerSnapshotWriter);
-                    return true;
-                }
-
-                Log.Warn("RegisterReplaySnapshotWriter expected Action<int, uint, bool>");
-                return false;
-
-            case "UnregisterReplaySnapshotWriter":
-                if (args.Length > 1 && args[1] is Action<int, uint, bool> unregisterSnapshotWriter)
-                {
-                    ReplaySnapshotEvents.UnregisterReplaySnapshotWriter(unregisterSnapshotWriter);
-                    return true;
-                }
-
-                Log.Warn("UnregisterReplaySnapshotWriter expected Action<int, uint, bool>");
-                return false;
-
-            case "RegisterReplayStateResetCallback":
-                if (args.Length > 1 && args[1] is Action<uint, string> registerReplayReset)
-                {
-                    ReplayPlaybackEvents.RegisterReplayStateResetCallback(registerReplayReset);
-                    return true;
-                }
-
-                Log.Warn("RegisterReplayStateResetCallback expected Action<uint, string>");
-                return false;
-
-            case "UnregisterReplayStateResetCallback":
-                if (args.Length > 1 && args[1] is Action<uint, string> unregisterReplayReset)
-                {
-                    ReplayPlaybackEvents.UnregisterReplayStateResetCallback(unregisterReplayReset);
-                    return true;
-                }
-
-                Log.Warn("UnregisterReplayStateResetCallback expected Action<uint, string>");
-                return false;
-
-            case "StopRecordingAndGetFilePath":
-                {
-                    reason = args.Length > 1 && args[1] is string customReason2 ? customReason2 : "Cross-mod call";
-                    return ModContent.GetInstance<Recorder>().StopRecordingAndGetFilePath(reason);
-                }
 
             case "AddReplayTimelineEvent":
                 return ReplayTimelineModCalls.AddReplayTimelineEvent(args);
@@ -121,8 +91,6 @@ public class Reese : Mod
     public override void Unload()
     {
         RecorderEvents.ClearSubscribers();
-        ReplaySnapshotEvents.ClearSubscribers();
-        ReplayPlaybackEvents.ClearSubscribers();
     }
 
     public override void HandlePacket(BinaryReader reader, int whoAmI)

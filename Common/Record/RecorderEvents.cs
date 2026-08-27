@@ -1,12 +1,13 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Terraria.Localization;
 
 namespace Reese.Common.Record;
 
 public sealed class RecordingFinishedEventArgs : EventArgs
 {
-    public RecordingFinishedEventArgs(string filePath, string worldName, string[] modNames, uint durationTicks, string reason)
+    public RecordingFinishedEventArgs(string filePath, string worldName, string[] modNames, uint durationTicks, NetworkText reason)
     {
         FilePath = filePath;
         FileName = Path.GetFileName(filePath);
@@ -21,16 +22,16 @@ public sealed class RecordingFinishedEventArgs : EventArgs
     public string WorldName { get; }
     public string[] ModNames { get; }
     public uint DurationTicks { get; }
-    public string Reason { get; }
+    public NetworkText Reason { get; }
 }
 
 public static class RecorderEvents
 {
-    private static readonly List<Action<string, string, string[], uint, string>> recordingFinishedCallbacks = [];
+    private static readonly List<Action<string, string, string[], uint, NetworkText>> recordingFinishedCallbacks = [];
 
     public static event Action<RecordingFinishedEventArgs> RecordingFinished;
 
-    public static void RegisterRecordingFinishedCallback(Action<string, string, string[], uint, string> callback)
+    public static void RegisterRecordingFinishedCallback(Action<string, string, string[], uint, NetworkText> callback)
     {
         if (callback is null || recordingFinishedCallbacks.Contains(callback))
             return;
@@ -38,7 +39,7 @@ public static class RecorderEvents
         recordingFinishedCallbacks.Add(callback);
     }
 
-    public static void UnregisterRecordingFinishedCallback(Action<string, string, string[], uint, string> callback)
+    public static void UnregisterRecordingFinishedCallback(Action<string, string, string[], uint, NetworkText> callback)
     {
         if (callback is null)
             return;
@@ -52,7 +53,7 @@ public static class RecorderEvents
         recordingFinishedCallbacks.Clear();
     }
 
-    internal static void RaiseRecordingFinished(string filePath, string worldName, string[] modNames, uint durationTicks, string reason)
+    internal static void RaiseRecordingFinished(string filePath, string worldName, string[] modNames, uint durationTicks, NetworkText reason)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             return;
@@ -86,7 +87,7 @@ public static class RecorderEvents
 
     private static void InvokeModCallCallbacks(RecordingFinishedEventArgs args)
     {
-        foreach (Action<string, string, string[], uint, string> callback in recordingFinishedCallbacks.ToArray())
+        foreach (Action<string, string, string[], uint, NetworkText> callback in recordingFinishedCallbacks.ToArray())
         {
             try
             {

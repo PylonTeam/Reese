@@ -1,5 +1,5 @@
 using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replay.ReplayHud.ReplaySpectate;
+using Reese.Common.Replay.Hud.ReplaySpectate;
 using Reese.Common.Spectator;
 using Reese.Core.Utilities;
 using Terraria.DataStructures;

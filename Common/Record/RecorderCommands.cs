@@ -18,7 +18,7 @@ public class RecordCommand : ModCommand
             return;
         }
 
-        rec.StartRecording();
+        rec.Start();
         caller.Reply("[Reese] Recording started successfully.");
     }
 }
@@ -39,7 +39,7 @@ public class StopRecordCommand : ModCommand
             return;
         }
 
-        rec.StopRecording(NetworkText.FromKey("Mods.Reese.StopRecordCommand.Reason"));
+        rec.Stop(NetworkText.FromKey("Mods.Reese.Recorder.Stop.Command"));
         caller.Reply("[Reese] Recording stopped.");
     }
 }

@@ -1,4 +1,6 @@
 ﻿using MonoMod.Cil;
+using Reese.Common.Replay.Events;
+using Reese.Common.Replayer;
 using Reese.Core.Configs;
 using Reese.Core.Stats;
 using System;
@@ -14,12 +16,14 @@ using Terraria.Net.Sockets;
 
 namespace Reese.Common.Record;
 
+// TODO: auto stop
+
 [Autoload(Side = ModSide.Server)]
 public class Recorder : ModSystem, ITicker
 {
     private RecordSocket recordSocket;
     public byte WhoAmI { get; private set; }
-    public uint Ticks { get; private set; }
+    public uint Tick { get; private set; }
     public bool IsRecording => recordSocket != null;
     private string currentReplayPath;
     private uint nextBaselineTick;
@@ -50,6 +54,16 @@ public class Recorder : ModSystem, ITicker
     public override void Unload()
     {
         IL_NetMessage.SendData -= EditNetMessageSendData;
+
+        // make sure we don't leave a ref to our socket lying around
+        foreach (var client in Netplay.Clients)
+        {
+            if (client.Socket is RecordSocket)
+            {
+                client.Socket.Close();
+                client.Socket = new TcpSocket();
+            }
+        }
     }
 
     private void PrepareNetplay(RemoteClient client, ReplayFile replay)
@@ -67,14 +81,16 @@ public class Recorder : ModSystem, ITicker
         client.IsActive = true;
     }
 
-    public ReplayFile StartRecording()
+    public ReplayFile Start()
     {
-        const string dir = "ReeseReplays";
-        var path = Path.Combine(Main.SavePath, dir);
+        if (IsRecording)
+            throw new InvalidOperationException("recording already in progress");
+
+        var dir = ReplayPaths.GetFolder();
 
         try
         {
-            Directory.CreateDirectory(path);
+            Directory.CreateDirectory(dir);
         }
         catch (Exception e)
         {
@@ -82,26 +98,27 @@ public class Recorder : ModSystem, ITicker
         }
 
         const string prefix = "Reese";
-        var num = GetNextReplayNumber(path, prefix);
+        var num = GetNextReplayNumber(dir, prefix);
 
-        currentReplayPath = Path.Combine(path, $"{prefix}_{num:0000}.reese");
+        currentReplayPath = Path.Combine(dir, $"{prefix}_{num:0000}.reese");
 
         var stream = File.OpenWrite(currentReplayPath);
-        return StartRecording(stream);
+        return Start(stream);
     }
 
-    public ReplayFile StartRecording(Stream stream)
+    public ReplayFile Start(Stream stream)
     {
         if (IsRecording)
             throw new InvalidOperationException("recording already in progress");
 
-        Ticks = 0;
+        var now = DateTime.UtcNow;
+        Tick = 0;
         baselineIntervalTicks = GetBaselineIntervalTicks();
         nextBaselineTick = baselineIntervalTicks;
         suppressAutoStartAfterMaxLength = false;
-        ReplayTimelineRecorder.Begin();
-        ReplayTimelineRecorder.RecordActivePlayersJoined(Ticks);
-        ModContent.GetInstance<ReplayTimelineTrackerSystem>().ResetForRecordingStart();
+        TimelineRecorder.Begin();
+        TimelineRecorder.RecordActivePlayersJoined(Tick);
+        ModContent.GetInstance<TimelineTrackerSystem>().ResetForRecordingStart();
         const int recordClientIndex = 254;
         var client = Netplay.Clients[recordClientIndex];
 
@@ -109,6 +126,12 @@ public class Recorder : ModSystem, ITicker
         Console.WriteLine(
             $"[Reese] Client {recordClientIndex} started recording to: \"{Path.GetFileName(currentReplayPath)}\"");
         PrepareNetplay(client, replay);
+
+        replay.MetaInfo.WhoAmI = (byte)client.Id;
+        replay.MetaInfo.Title = "A Terraria World";
+        replay.MetaInfo.Start = now;
+        replay.MetaInfo.WorldName = Main.worldName;
+
         recordSocket.BeginBaselineCapture();
         SendSignOn(client);
         SendReplayWorldSnapshot(client, true);
@@ -247,17 +270,17 @@ public class Recorder : ModSystem, ITicker
         // ReplaySnapshotEvents.RaiseReplaySnapshotWriting(client.Id, Ticks, initial);
     }
 
-    public void StopRecording(NetworkText reason)
+    public void Stop(NetworkText reason)
     {
         if (!IsRecording)
             return;
 
         NetMessage.SendData(MessageID.Kick, WhoAmI, text: reason);
 
-        ReplayTimelineEvent[] timelineEvents = ReplayTimelineRecorder.Finish();
-        ModContent.GetInstance<ReplayTimelineTrackerSystem>().EndRecording();
+        TimelineEvent[] timelineEvents = TimelineRecorder.Finish();
+        ModContent.GetInstance<TimelineTrackerSystem>().EndRecording();
 
-        RecorderStatus.Stop(Ticks);
+        RecorderStatus.Stop(Tick);
         RecorderStatus.SyncToClients(force: true);
 
         string savedReplayPath = currentReplayPath;
@@ -290,18 +313,16 @@ public class Recorder : ModSystem, ITicker
         if (!string.IsNullOrWhiteSpace(savedReplayPath))
         {
             string message =
-                $"[Reese] Recording stopped at tick {Ticks}. Reason: {reason}. Saved to {Path.GetFileNameWithoutExtension(savedReplayPath)}";
+                $"[Reese] Recording stopped at tick {Tick}. Reason: {reason}. Saved to {Path.GetFileNameWithoutExtension(savedReplayPath)}";
             Log.Info(message);
             Console.WriteLine(message);
 
             if (savedReplayFinished)
-                RecorderEvents.RaiseRecordingFinished(savedReplayPath, worldName, modNames, Ticks, reason);
+                RecorderEvents.RaiseRecordingFinished(savedReplayPath, worldName, modNames, Tick, reason);
         }
 
         recordSocket = null;
         WhoAmI = 0;
-
-        return savedReplayFinished ? savedReplayPath : "";
     }
 
     // FIXME: This is a shitty edit I think?
@@ -334,43 +355,42 @@ public class Recorder : ModSystem, ITicker
                 suppressAutoStartAfterMaxLength = false;
 
                 if (IsRecording)
-                    StopRecordingInner("No players in server");
+                    Stop(NetworkText.FromKey("Mods.Reese.Recorder.Stop.NoPlayers"));
             }
             else if (!IsRecording && autoStartRecording && CanAutoStartRecording())
             {
-                StartRecording();
+                Start();
             }
         }
 
         if (IsRecording)
         {
             // Advance tick!
-            Ticks++;
-            RecorderStatus.UpdateTick(Ticks);
+            Tick++;
+            RecorderStatus.UpdateTick(Tick);
             RecorderStatus.SyncToClients();
 
             if (ShouldAutoStopRecording(out int maxRecordingLengthMinutes))
             {
                 suppressAutoStartAfterMaxLength = !ShouldAutoStartRecordingAfterMaxLength();
-                StopRecordingInner(
-                    $"Recording reached the configured maximum length of {maxRecordingLengthMinutes} minute(s)");
+                Stop(NetworkText.FromKey("Mods.Reese.Recorder.Stop.MaxLength"));
                 return;
             }
 
             UpdateBaselineSchedule();
 
-            if (baselineIntervalTicks > 0 && Ticks >= nextBaselineTick)
+            if (baselineIntervalTicks > 0 && Tick >= nextBaselineTick)
                 WriteBaselineCheckpoint();
 
             // Logging at 1 tick, 5 seconds, 10 seconds, and every 30 minutes thereafter
-            if (Ticks == 1 || Ticks == 300 || Ticks == 600 || Ticks % (30 * 60 * 60) == 0)
+            if (Tick == 1 || Tick == 300 || Tick == 600 || Tick % (30 * 60 * 60) == 0)
             {
-                string timeString = TimeSpan.FromSeconds(Ticks / 60.0).ToString(@"hh\:mm\:ss");
+                string timeString = TimeSpan.FromSeconds(Tick / 60.0).ToString(@"hh\:mm\:ss");
                 string fileName = $"{Path.GetFileNameWithoutExtension(currentReplayPath)}";
                 string message =
                     $"[Reese] Reese is currently recording! Filename: {fileName} | Length: {timeString} | Packets: {RecorderStatus.TotalPacketsSent} | Size: {RecorderStatus.TotalBytesSent / 1024.0:F0} KB";
 
-                if (Ticks == 600)
+                if (Tick == 600)
                 {
                     message +=
                         "\n[Reese] The recording has passed 10 seconds! Future logs will now be sent once every 30 minutes. Use /recordstatus to view current recording status info (length, packets, size).";
@@ -384,12 +404,12 @@ public class Recorder : ModSystem, ITicker
 
     private void WriteBaselineCheckpoint()
     {
-        nextBaselineTick = Ticks + baselineIntervalTicks;
+        nextBaselineTick = Tick + baselineIntervalTicks;
 
         if (!IsRecording)
             return;
 
-        uint baselineTick = Ticks;
+        uint baselineTick = Tick;
         bool completed = false;
         int byteSize = 0;
 
@@ -421,7 +441,7 @@ public class Recorder : ModSystem, ITicker
             return;
 
         baselineIntervalTicks = configuredBaselineIntervalTicks;
-        nextBaselineTick = baselineIntervalTicks > 0 ? Ticks + baselineIntervalTicks : 0;
+        nextBaselineTick = baselineIntervalTicks > 0 ? Tick + baselineIntervalTicks : 0;
     }
 
     private static uint GetBaselineIntervalTicks()
@@ -441,7 +461,7 @@ public class Recorder : ModSystem, ITicker
             return false;
 
         ulong maxRecordingTicks = (ulong)maxRecordingLengthMinutes * TicksPerMinute;
-        return Ticks >= maxRecordingTicks;
+        return Tick >= maxRecordingTicks;
     }
 
     private static int GetMaxRecordingLengthMinutes()
@@ -474,7 +494,7 @@ public class Recorder : ModSystem, ITicker
     public override void OnWorldUnload()
     {
         if (Main.dedServ)
-            StopRecording(NetworkText.FromLiteral("shutting down"));
+            Stop(NetworkText.FromLiteral("shutting down"));
     }
 
     public static int GetNextReplayNumber(string dir, string prefix)
@@ -505,35 +525,35 @@ public class RecordRemoteAddress : RemoteAddress
 public class RecordSocket(ITicker ticker, RemoteClient client, ReplayFile replay) : ISocket
 {
     private static readonly RecordRemoteAddress RemoteAddress = new();
-    private MemoryStream baselineCaptureStream;
+    private MemoryStream baselineCapture;
 
     public ReplayFile Replay => replay;
 
     public void BeginBaselineCapture()
     {
-        if (baselineCaptureStream != null)
+        if (baselineCapture != null)
             throw new InvalidOperationException("Baseline capture is already active.");
 
-        baselineCaptureStream = new MemoryStream();
+        baselineCapture = new MemoryStream();
     }
 
     public int EndBaselineCapture()
     {
-        if (baselineCaptureStream == null)
+        if (baselineCapture == null)
             return 0;
 
-        var data = baselineCaptureStream.ToArray();
-        baselineCaptureStream.Dispose();
-        baselineCaptureStream = null;
+        var data = baselineCapture.ToArray();
+        baselineCapture.Dispose();
+        baselineCapture = null;
 
-        Replay.WriteBaseline(data, ticker.Ticks);
+        Replay.WriteBaseline(data, ticker.Tick);
         return data.Length;
     }
 
     public void CancelBaselineCapture()
     {
-        baselineCaptureStream?.Dispose();
-        baselineCaptureStream = null;
+        baselineCapture?.Dispose();
+        baselineCapture = null;
     }
 
     public void Close()
@@ -560,15 +580,14 @@ public class RecordSocket(ITicker ticker, RemoteClient client, ReplayFile replay
         if (Replay.Terminated)
             throw new InvalidOperationException("cannot record to a terminated replay");
 
-        if (baselineCaptureStream != null)
+        if (baselineCapture != null)
         {
-            Log.Debug($"capture {size} bytes for baseline");
-            baselineCaptureStream.Write(data, offset, size);
+            baselineCapture.Write(data, offset, size);
         }
         else
         {
-            RecorderStatus.TrackPacket(data, offset, size, ticker.Ticks);
-            Replay.WriteData(data[offset..(offset + size)], (int)ticker.Ticks);
+            RecorderStatus.TrackPacket(data, offset, size, ticker.Tick);
+            Replay.WriteData(data[offset..(offset + size)], (int)ticker.Tick);
         }
 
         callback?.Invoke(state);

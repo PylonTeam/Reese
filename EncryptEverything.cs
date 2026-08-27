@@ -1,4 +1,5 @@
-﻿using Reese.Common.Replayer;
+﻿#if LOL
+using Reese.Common.Replayer;
 using Reese.Core.Localization;
 using System;
 using System.Net;
@@ -250,7 +251,7 @@ public class EncryptEverything : ModSystem
     {
         orig(address);
 
-        if (ReplayPlayback.IsReplayPlayback)
+        if (Playback.IsPlaying)
         {
             Log.Debug("Replay playback connection: skipping SSL socket replacement.");
             return;
@@ -294,3 +295,4 @@ public class EncryptEverything : ModSystem
         typeof(Netplay).GetMethod("StartListening", BindingFlags.NonPublic | BindingFlags.Static).Invoke(null, []);
     }
 }
+#endif

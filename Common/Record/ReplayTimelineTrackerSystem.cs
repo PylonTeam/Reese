@@ -1,11 +1,11 @@
-using Reese.Common.Replay.ReplayEvents;
+using Reese.Common.Replay.Events;
 using System.Collections.Generic;
 using Terraria.ID;
 
 namespace Reese.Common.Record;
 
 [Autoload(Side = ModSide.Server)]
-internal sealed class ReplayTimelineTrackerSystem : ModSystem
+internal sealed class TimelineTrackerSystem : ModSystem
 {
     private readonly HashSet<string> activeBosses = [];
     private bool hasRecordingSnapshot;
@@ -43,7 +43,7 @@ internal sealed class ReplayTimelineTrackerSystem : ModSystem
             ResetForRecordingStart();
 
         RefreshActiveBosses();
-        TrackInvasions(recorder.Ticks);
+        TrackInvasions(recorder.Tick);
     }
 
     public void RecordBossSummoned(NPC npc)
@@ -52,7 +52,7 @@ internal sealed class ReplayTimelineTrackerSystem : ModSystem
             return;
 
         if (activeBosses.Add(boss.Key))
-            ReplayTimelineRecorder.Add(boss.CreateSummonedEvent(recorder.Ticks));
+            TimelineRecorder.Add(boss.CreateSummonedEvent(recorder.Tick));
     }
 
     public void RecordBossDefeated(NPC npc)
@@ -64,7 +64,7 @@ internal sealed class ReplayTimelineTrackerSystem : ModSystem
             return;
 
         activeBosses.Remove(boss.Key);
-        ReplayTimelineRecorder.Add(boss.CreateDefeatedEvent(recorder.Ticks));
+        TimelineRecorder.Add(boss.CreateDefeatedEvent(recorder.Tick));
     }
 
     private void SnapshotActiveBosses()
@@ -111,7 +111,7 @@ internal sealed class ReplayTimelineTrackerSystem : ModSystem
         int currentInvasionType = Main.invasionType;
 
         if (currentInvasionType != InvasionID.None && currentInvasionType != previousInvasionType)
-            ReplayTimelineRecorder.Add(ReplayInvasionDefinitions.CreateEvent(tick, currentInvasionType));
+            TimelineRecorder.Add(ReplayInvasionDefinitions.CreateEvent(tick, currentInvasionType));
 
         previousInvasionType = currentInvasionType;
     }

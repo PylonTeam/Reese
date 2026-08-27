@@ -15,11 +15,11 @@ public class ReeseNpc : GlobalNPC
 
     public override void OnSpawn(NPC npc, IEntitySource source)
     {
-        ModContent.GetInstance<ReplayTimelineTrackerSystem>()?.RecordBossSummoned(npc);
+        ModContent.GetInstance<TimelineTrackerSystem>()?.RecordBossSummoned(npc);
     }
 
     public override void OnKill(NPC npc)
     {
-        ModContent.GetInstance<ReplayTimelineTrackerSystem>()?.RecordBossDefeated(npc);
+        ModContent.GetInstance<TimelineTrackerSystem>()?.RecordBossDefeated(npc);
     }
 }

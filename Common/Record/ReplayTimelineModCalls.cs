@@ -1,4 +1,4 @@
-using Reese.Common.Replay.ReplayEvents;
+using Reese.Common.Replay.Events;
 using System;
 
 namespace Reese.Common.Record;
@@ -11,7 +11,7 @@ internal static class ReplayTimelineModCalls
     {
         if (!TryReadRequiredString(args, 1, "key", out string key) ||
             !TryReadRequiredString(args, 2, "text", out string text) ||
-            !TryReadIconKind(args, 3, out ReplayEventIconKind iconKind) ||
+            !TryReadIconKind(args, 3, out TimelineEventIconKind iconKind) ||
             !TryReadInt(args, 4, out int iconId))
             return false;
 
@@ -19,9 +19,9 @@ internal static class ReplayTimelineModCalls
         if (recorder == null || !recorder.IsRecording)
             return false;
 
-        ReplayTimelineRecorder.Add(new ReplayTimelineEvent(
-            recorder.Ticks,
-            ReplayEventCategory.Custom,
+        TimelineRecorder.Add(new TimelineEvent(
+            recorder.Tick,
+            TimelineEventCategory.Custom,
             key,
             text,
             iconKind,
@@ -51,15 +51,15 @@ internal static class ReplayTimelineModCalls
         return true;
     }
 
-    private static bool TryReadIconKind(object[] args, int index, out ReplayEventIconKind iconKind)
+    private static bool TryReadIconKind(object[] args, int index, out TimelineEventIconKind iconKind)
     {
-        iconKind = ReplayEventIconKind.None;
+        iconKind = TimelineEventIconKind.None;
 
         if (args.Length <= index || args[index] == null)
             return true;
 
         object value = args[index];
-        if (value is ReplayEventIconKind typedIconKind)
+        if (value is TimelineEventIconKind typedIconKind)
         {
             iconKind = typedIconKind;
             return IsValidIconKind(iconKind);
@@ -78,7 +78,7 @@ internal static class ReplayTimelineModCalls
 
         if (TryConvertInt(value, out int iconKindValue))
         {
-            iconKind = (ReplayEventIconKind)iconKindValue;
+            iconKind = (TimelineEventIconKind)iconKindValue;
             return IsValidIconKind(iconKind);
         }
 
@@ -128,7 +128,7 @@ internal static class ReplayTimelineModCalls
         }
     }
 
-    private static bool IsValidIconKind(ReplayEventIconKind iconKind)
+    private static bool IsValidIconKind(TimelineEventIconKind iconKind)
     {
         if (Enum.IsDefined(iconKind))
             return true;

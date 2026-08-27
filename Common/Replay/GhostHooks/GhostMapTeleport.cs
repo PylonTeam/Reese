@@ -1,5 +1,5 @@
-﻿using Reese.Common.Replay.ReplayHud;
-using Reese.Common.Replay.ReplayHud.ReplaySpectate;
+﻿using Reese.Common.Replay.Hud;
+using Reese.Common.Replay.Hud.ReplaySpectate;
 using Reese.Common.Spectator;
 using Terraria.GameContent;
 

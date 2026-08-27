@@ -6,7 +6,7 @@ namespace Reese.Core.Configs;
 
 public class ServerConfig : ModConfig
 {
-    public const int DefaultBaselineIntervalSeconds = 30;
+    public const int DefaultBaselineIntervalSeconds = 60 * 15;
     public const int MaxBaselineIntervalSeconds = 60 * 5;
 
     public override ConfigScope Mode => ConfigScope.ServerSide;
@@ -58,7 +58,7 @@ public class ServerConfig : ModConfig
         [RequiresField(nameof(EnableMaxLengthRecording))]
         [BackgroundColor(250, 60, 60, 150)]
         [DefaultValue(60)]
-        [Range(min: 10, max: 60*10)]
+        [Range(min: 10, max: 60 * 10)]
         public int MaxRecordingLengthMinutes = 60;
 
         [RequiresField(nameof(EnableMaxLengthRecording))]

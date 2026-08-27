@@ -1,7 +1,7 @@
 namespace Reese.Common;
 
 /// <summary>
-/// Common interface for 
+/// Common interface for
 /// <see cref="Replayer.Replayer"/>
 /// and
 /// <see cref="Recorder.Recorder"/>
@@ -9,5 +9,5 @@ namespace Reese.Common;
 /// </summary>
 public interface ITicker
 {
-    uint Ticks { get; }
+    uint Tick { get; }
 }

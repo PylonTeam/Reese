@@ -24,7 +24,7 @@ internal static class RecorderStatus
 
     public static bool HasStatus { get; private set; }
     public static bool IsRecording { get; private set; }
-    public static string ReplayName { get; private set; } = string.Empty;
+    public static string Title { get; private set; } = string.Empty;
     public static uint Tick { get; private set; }
     public static long TotalPacketsSent { get; private set; }
     public static long TotalBytesSent { get; private set; }
@@ -36,7 +36,7 @@ internal static class RecorderStatus
     {
         HasStatus = true;
         IsRecording = true;
-        ReplayName = string.IsNullOrWhiteSpace(replayPath) ? string.Empty : Path.GetFileNameWithoutExtension(replayPath);
+        Title = string.IsNullOrWhiteSpace(replayPath) ? string.Empty : Path.GetFileNameWithoutExtension(replayPath);
         Tick = 0;
         TotalPacketsSent = 0;
         TotalBytesSent = 0;
@@ -94,25 +94,26 @@ internal static class RecorderStatus
 
         _nextSyncTick = Tick + SyncRateTicks;
 
-        ModPacket packet = ModContent.GetInstance<Reese>().GetPacket();
-        packet.Write((byte)ReesePacketType.RecorderStatus);
-        packet.Write(HasStatus);
-        packet.Write(IsRecording);
-        packet.Write(ReplayName ?? string.Empty);
-        packet.Write(Tick);
-        packet.Write(TotalPacketsSent);
-        packet.Write(TotalBytesSent);
-        packet.Write(LastPacketTick);
-        packet.Write(LastPacketBytes);
-        packet.Write(LastPacketMessageId);
-        packet.Send(-1, ReplayPlayback.RecordClientIndex);
+        // TODO: do we need any of this?
+        // ModPacket packet = ModContent.GetInstance<Reese>().GetPacket();
+        // packet.Write((byte)ReesePacketType.RecorderStatus);
+        // packet.Write(HasStatus);
+        // packet.Write(IsRecording);
+        // packet.Write(Title ?? string.Empty);
+        // packet.Write(Tick);
+        // packet.Write(TotalPacketsSent);
+        // packet.Write(TotalBytesSent);
+        // packet.Write(LastPacketTick);
+        // packet.Write(LastPacketBytes);
+        // packet.Write(LastPacketMessageId);
+        // packet.Send(-1, ReplayPlayback.RecordClientIndex);
     }
 
     public static void Receive(BinaryReader reader)
     {
         HasStatus = reader.ReadBoolean();
         IsRecording = reader.ReadBoolean();
-        ReplayName = reader.ReadString();
+        Title = reader.ReadString();
         Tick = reader.ReadUInt32();
         TotalPacketsSent = reader.ReadInt64();
         TotalBytesSent = reader.ReadInt64();
@@ -141,12 +142,12 @@ internal static class RecorderStatus
             return Loc.Get("Recorder.Status.NotInitialized");
 
         if (!IsRecording)
-            return Loc.Get("Recorder.Status.Inactive", ReplayName, Tick);
+            return Loc.Get("Recorder.Status.Inactive", Title, Tick);
 
         string timeString = TimeSpan.FromSeconds(Tick / 60.0).ToString(@"hh\:mm\:ss");
         double sizeKb = TotalBytesSent / 1024.0;
 
-        return Loc.Get("Recorder.Status.Active", ReplayName, timeString, TotalPacketsSent, sizeKb.ToString("F0"));
+        return Loc.Get("Recorder.Status.Active", Title, timeString, TotalPacketsSent, sizeKb.ToString("F0"));
     }
 
     /// <summary>

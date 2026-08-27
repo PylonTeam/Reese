@@ -1,5 +1,6 @@
 using Reese.Common.Replayer;
-using Reese.Common.Replay.ReplayHud.Ghost;
+using Reese.Common.Replay.Hud.Ghost;
+using Reese.Common.Replay;
 
 namespace Reese.Common.Spectator;
 
@@ -26,7 +27,7 @@ public class SpectatorModeJoinPlayer : ModPlayer
     {
         base.OnEnterWorld();
 
-        if (ReplayPlayback.IsReplayPlayback)
+        if (Playback.IsPlaying)
             return;
 
         if (!SpectatorModeSystem.IsGhostSpectatingEnabled)
