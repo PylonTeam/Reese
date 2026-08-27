@@ -69,6 +69,7 @@ Recorder: {
 Replayer.ReplayWelcomeMessage:
 	'''
 	Welcome to your Reese replay! Now playing: [c/FFFFFF:{0}]
+	This recording took place on: [c/FFFFFF:{1}]
 	Quick guide:
 	Top HUD: spectate players/NPCs
 	Bottom HUD: playback controls

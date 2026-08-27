@@ -1,44 +1,26 @@
 using Reese.Content;
 using Reese.Core.Configs;
-using Reese.Core.Localization;
-using Reese.Common.Replay.Hud.ReplaySpectate;
 using System;
-using System.IO;
 using Terraria.Chat;
-using Terraria.ID;
-using Reese.Common.Replayer;
 
 namespace Reese.Common.Replay;
 
-[Autoload(Side = ModSide.Both)]
+[Autoload(Side = ModSide.Client)]
 internal sealed class PlaybackEnterWorldPlayer : ModPlayer
 {
     public override void OnEnterWorld()
     {
-#if DEBUG
-        //string debug = $"OnEnterWorld: IsReplayPlayback={Playback.IsPlaying}, RecordClientIndex={ReplayPlayback.RecordClientIndex}, myPlayer={Main.myPlayer}, localActive={Main.LocalPlayer?.active}, ghost={Main.LocalPlayer?.ghost}, PendingReplayPath={Replayer.PendingReplayPathPublic}";
-        //ChatHelper.SendChatMessageToClient(NetworkText.FromLiteral($"{debug}"), Main.OurFavoriteColor, Player.whoAmI);
-#endif
-
-        if (!Playback.IsPlaying)
+        if (!ModContent.GetInstance<ClientConfig>().ShowWelcomeMessageOnEnterWorld)
             return;
 
-        ReplayPlayback.MarkEnteredReplayWorld();
-
-        string fileName = string.IsNullOrWhiteSpace(ReplayPlayback.CurrentPath)
-            ? "Unknown replay"
-            : Path.GetFileName(ReplayPlayback.CurrentPath);
-
-        Log.Chat("Replay started: " + fileName);
-
-        if (!ModContent.GetInstance<ClientConfig>().ShowWelcomeMessageOnEnterWorld)
+        if (!Playback.IsPlayingReplay(out var replay))
             return;
 
         Color reeseColor = Color.CornflowerBlue;
 
         string smallCameraItemTag = $"[i:{ModContent.ItemType<SmallCameraItem>()}]";
         string bigCameraItemTag = $"[i:{ModContent.ItemType<CameraItem>()}]";
-        string[] lines = Loc.Get("Replayer.ReplayWelcomeMessage", fileName)
+        string[] lines = Loc.Get("Replayer.ReplayWelcomeMessage", replay.MetaInfo.Title, replay.MetaInfo.WorldName)
             .Replace("\r\n", "\n")
             .Split('\n');
         int lastLine = Array.FindLastIndex(lines, line => !string.IsNullOrWhiteSpace(line));

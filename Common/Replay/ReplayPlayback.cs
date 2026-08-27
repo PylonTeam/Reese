@@ -14,7 +14,6 @@ namespace Reese.Common.Replayer;
 /// </summary>
 public static class ReplayPlayback
 {
-    public static bool HasEnteredReplayWorld { get; private set; }
     public static string CurrentPath { get; private set; }
     public static IReadOnlyList<TimelineEvent> TimelineEvents { get; private set; } = Array.Empty<TimelineEvent>();
     private static int launchGeneration;
@@ -57,22 +56,12 @@ public static class ReplayPlayback
     public static void BeginPlayback(string path)
     {
         CurrentPath = path;
-        HasEnteredReplayWorld = false;
         SpectatorTargetSystem.ResetForReplayStart();
         // Metadata = ReplayMetadata.FromFile(path);
         // DurationTicks = Metadata?.DurationTicks ?? 0;
         // TimelineEvents = Metadata?.Events ?? Array.Empty<ReplayTimelineEvent>();
         // ModContent.GetInstance<ReplayTimeScaleSystem>().SetTimeScale(1f);
         Log.Info($"Replay playback started: {path}");
-    }
-
-    public static void MarkEnteredReplayWorld()
-    {
-        if (!Playback.IsPlaying || HasEnteredReplayWorld)
-            return;
-
-        HasEnteredReplayWorld = true;
-        ModContent.GetInstance<MainMenuSystem>()?.CompleteReplayLaunch();
     }
 
     // Trigger rebuild when folder changes
