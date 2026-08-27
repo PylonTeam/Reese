@@ -167,12 +167,5 @@ internal sealed class InfoHud : UIElement
         titleText?.SetText(GetReplayTitle());
     }
 
-    private static string GetReplayTitle()
-    {
-        if (Playback.IsPlayingReplay(out var replay))
-            return replay.MetaInfo.Title;
-
-        return "";
-    }
-
+    private static string GetReplayTitle() => Playback.IsPlayingReplay(out ReplayFile replay) ? replay.MetaInfo.Title : "";
 }

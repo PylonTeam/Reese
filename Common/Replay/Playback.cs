@@ -58,13 +58,25 @@ public class Playback : ModSystem
 
     public static bool IsPlayingReplay(out ReplayFile replay)
     {
-        if (IsPlaying)
+        if (IsPlayingReplay(out PlaybackSocket sock))
         {
-            replay = Socket.Replay;
+            replay = sock.Replay;
             return true;
         }
 
         replay = null;
+        return false;
+    }
+
+    public static bool IsPlayingReplay(out PlaybackSocket sock)
+    {
+        if (IsPlaying)
+        {
+            sock = Socket;
+            return true;
+        }
+
+        sock = null;
         return false;
     }
 
@@ -137,96 +149,96 @@ public class Playback : ModSystem
 
         return false;
     }
+}
 
-    private class PlaybackRemoteAddress : RemoteAddress
+public class PlaybackRemoteAddress : RemoteAddress
+{
+    public override string GetIdentifier() => "ReesePlayback";
+    public override string GetFriendlyName() => "Reese Playback";
+    public override bool IsLocalHost() => true;
+
+    public override string ToString() => GetFriendlyName();
+}
+
+public class PlaybackSocket(ITicker ticker, ReplayFile replay) : ISocket
+{
+    private static readonly PlaybackRemoteAddress RemoteAddress = new();
+
+    public bool Closed { get; private set; }
+
+    public ITicker Ticker => ticker;
+    public ReplayFile Replay => replay;
+
+    public void Close()
     {
-        public override string GetIdentifier() => "ReesePlayback";
-        public override string GetFriendlyName() => "Reese Playback";
-        public override bool IsLocalHost() => true;
+        if (Closed)
+            return;
 
-        public override string ToString() => GetFriendlyName();
+        Log.Info("Closing replay socket");
+        Replay.Dispose();
+        Closed = true;
     }
 
-    public class PlaybackSocket(ITicker ticker, ReplayFile replay) : ISocket
+    public bool IsConnected() => !Closed;
+
+    public void Connect(RemoteAddress address)
     {
-        private static readonly PlaybackRemoteAddress RemoteAddress = new();
+        Log.Info($"Replay connect to {address}");
+    }
 
-        public bool Closed { get; private set; }
+    public void AsyncSend(byte[] data, int offset, int size, SocketSendCallback callback, object state)
+    {
+        // Outgoing client packets (Hello, etc.) are discarded � we're in replay mode.
+        // But we must invoke the callback or the client loop hangs waiting for confirmation.
+        callback?.Invoke(state);
+    }
 
-        public ITicker Ticker => ticker;
-        public ReplayFile Replay => replay;
+    public void AsyncReceive(byte[] data, int offset, int size, SocketReceiveCallback callback, object state)
+    {
+        ResetTimeoutTimer();
+        var numberOfBytesRead = Replay.ReadData(data.AsSpan()[offset..(offset + size)]);
+        callback(state, numberOfBytesRead);
+    }
 
-        public void Close()
+    public bool IsDataAvailable()
+    {
+        ResetTimeoutTimer();
+
+        if (Closed || Replay.Terminated)
+            return false;
+
+        // before we reach state 6 (player spawned), we always want data,
+        // so sign on data and the first baseline is consumed properly.
+        if (Netplay.Connection.State < 6)
+            return true;
+
+        if (Ticker.Tick >= Replay.Tick)
         {
-            if (Closed)
-                return;
-
-            Log.Info("Closing replay socket");
-            Replay.Dispose();
-            Closed = true;
-        }
-
-        public bool IsConnected() => !Closed;
-
-        public void Connect(RemoteAddress address)
-        {
-            Log.Info($"Replay connect to {address}");
-        }
-
-        public void AsyncSend(byte[] data, int offset, int size, SocketSendCallback callback, object state)
-        {
-            // Outgoing client packets (Hello, etc.) are discarded � we're in replay mode.
-            // But we must invoke the callback or the client loop hangs waiting for confirmation.
-            callback?.Invoke(state);
-        }
-
-        public void AsyncReceive(byte[] data, int offset, int size, SocketReceiveCallback callback, object state)
-        {
-            ResetTimeoutTimer();
-            var numberOfBytesRead = Replay.ReadData(data.AsSpan()[offset..(offset + size)]);
-            callback(state, numberOfBytesRead);
-        }
-
-        public bool IsDataAvailable()
-        {
-            ResetTimeoutTimer();
-
-            if (Closed || Replay.Terminated)
-                return false;
-
-            // before we reach state 6 (player spawned), we always want data,
-            // so sign on data and the first baseline is consumed properly.
-            if (Netplay.Connection.State < 6)
+            if (Replay.IsDataBuffered)
                 return true;
 
-            if (Ticker.Tick >= Replay.Tick)
-            {
-                if (Replay.IsDataBuffered)
-                    return true;
-
-                if (Replay.Terminated)
-                    return false;
-            }
-
-            return false;
+            if (Replay.Terminated)
+                return false;
         }
 
-        public void SendQueuedPackets()
-        {
-            ResetTimeoutTimer();
-        }
-
-        public static void ResetTimeoutTimer()
-        {
-            if (Netplay.Connection != null)
-                Netplay.Connection.TimeOutTimer = 0;
-        }
-
-        public bool StartListening(SocketConnectionAccepted callback) =>
-            throw new InvalidOperationException("The replaying socket cannot listen");
-
-        public void StopListening() => throw new InvalidOperationException("The replaying socket cannot listen");
-
-        public RemoteAddress GetRemoteAddress() => RemoteAddress;
+        return false;
     }
+
+    public void SendQueuedPackets()
+    {
+        ResetTimeoutTimer();
+    }
+
+    public static void ResetTimeoutTimer()
+    {
+        if (Netplay.Connection != null)
+            Netplay.Connection.TimeOutTimer = 0;
+    }
+
+    public bool StartListening(SocketConnectionAccepted callback) =>
+        throw new InvalidOperationException("The replaying socket cannot listen");
+
+    public void StopListening() => throw new InvalidOperationException("The replaying socket cannot listen");
+
+    public RemoteAddress GetRemoteAddress() => RemoteAddress;
 }

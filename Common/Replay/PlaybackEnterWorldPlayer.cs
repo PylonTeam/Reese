@@ -13,7 +13,7 @@ internal sealed class PlaybackEnterWorldPlayer : ModPlayer
         if (!ModContent.GetInstance<ClientConfig>().ShowWelcomeMessageOnEnterWorld)
             return;
 
-        if (!Playback.IsPlayingReplay(out var replay))
+        if (!Playback.IsPlayingReplay(out ReplayFile replay))
             return;
 
         Color reeseColor = Color.CornflowerBlue;

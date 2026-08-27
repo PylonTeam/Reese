@@ -1,8 +1,5 @@
-using Reese.Common.Replay;
-using Reese.Common.Replay.Hud.ReplaySpectate;
 using Reese.Common.Replay.Hud.Shared.UI;
 using Reese.Common.Replayer;
-using Reese.Core.Configs;
 using System;
 using Terraria.GameContent;
 using Terraria.GameContent.UI.Elements;
@@ -50,8 +47,7 @@ public sealed class PlaybackHud : DraggablePanel
         eventMarkerLayer = new ReplayEventMarkerLayer();
         positionSlider.OnDrag += ratio =>
         {
-            var sock = Playback.Socket;
-            if (sock != null)
+            if (Playback.IsPlayingReplay(out PlaybackSocket sock))
             {
                 uint targetTick = RatioToTick(ratio);
                 if (targetTick < sock.Ticker.Tick)
@@ -256,9 +252,10 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void SeekBackward30()
     {
-        if (Playback.Socket != null)
+        var sock = Playback.Socket;
+        if (sock != null)
         {
-            var tick = Playback.Socket.Ticker.Tick;
+            var tick = sock.Ticker.Tick;
             uint ticks = (uint)(30 * 60);
             uint target = tick > ticks ? tick - ticks : 0u;
             ReplayPlayback.SeekToTick(target);
@@ -268,9 +265,10 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void SeekForward30()
     {
-        if (Playback.Socket != null)
+        var sock = Playback.Socket;
+        if (sock != null)
         {
-            var tick = Playback.Socket.Ticker.Tick;
+            var tick = sock.Ticker.Tick;
             uint target = tick + (uint)(30 * 60);
             ReplayPlayback.SeekToTick(target);
             RefreshVisualState();
@@ -280,9 +278,10 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void RefreshVisualState()
     {
-        if (Playback.Socket != null)
+        var sock = Playback.Socket;
+        if (sock != null)
         {
-            var tick = Playback.Socket.Ticker.Tick;
+            var tick = sock.Ticker.Tick;
 
             uint durationTicks = GetDurationTicks();
             uint currentTick = Math.Min(tick, durationTicks);
@@ -335,9 +334,10 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void RefreshPositionSlider()
     {
-        if (Playback.Socket != null)
+        var sock = Playback.Socket;
+        if (sock != null)
         {
-            var tick = Playback.Socket.Ticker.Tick;
+            var tick = sock.Ticker.Tick;
 
             uint durationTicks = GetDurationTicks();
             uint currentTick = Math.Min(tick, durationTicks);
@@ -355,10 +355,7 @@ public sealed class PlaybackHud : DraggablePanel
         positionLabel.SetTextIfChanged(Loc.Get("ReplayHud.Playback.Time", FormatTime(displayTick), FormatTime(durationTicks)));
     }
 
-    private static uint GetDurationTicks()
-    {
-        return Playback.IsPlayingReplay(out var replay) ? (uint)replay.MetaInfo.Duration : 0;
-    }
+    private static uint GetDurationTicks() => Playback.IsPlayingReplay(out ReplayFile replay) ? (uint)replay.MetaInfo.Duration : 0;
 
     private uint RatioToTick(float ratio)
     {

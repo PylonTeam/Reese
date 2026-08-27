@@ -2,14 +2,11 @@
 using Reese.Common.Replay;
 using Reese.Common.Replayer;
 using Reese.Common.Replay.Hud;
-using Reese.Common.Replay.Hud.ReplaySpectate;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using Terraria.ID;
-using Terraria.ModLoader;
 
 namespace Reese.Core.Debug;
 
@@ -100,10 +97,10 @@ internal static class DebugDrawerStats
     private static void AddReplayerStats(List<DebugDrawer.DebugStatGroup> groups)
     {
         List<string> rows = [];
-        if (Playback.IsPlayingReplay(out var replay) && Playback.Socket != null)
+        if (Playback.IsPlayingReplay(out PlaybackSocket sock))
         {
-            var tick = Playback.Socket.Ticker.Tick;
-            var duration = replay.MetaInfo.Duration;
+            var tick = sock.Ticker.Tick;
+            var duration = sock.Replay.MetaInfo.Duration;
 
             string currentTime = TimeSpan.FromSeconds(tick / 60.0).ToString(@"mm\:ss");
             string totalTime = TimeSpan.FromSeconds(duration / 60.0).ToString(@"mm\:ss");
@@ -114,7 +111,7 @@ internal static class DebugDrawerStats
             rows.Add($"Playback: {currentTime} / {totalTime} ({progressPct:F1}%)");
             rows.Add($"Tick: {tick} / {duration}");
             rows.Add($"Speed: {timeScale:F2}x");
-            rows.Add($"Record Player: {replay.MetaInfo.WhoAmI}");
+            rows.Add($"Record Player: {sock.Replay.MetaInfo.WhoAmI}");
         }
 
         groups.Add(new DebugDrawer.DebugStatGroup("Debug Replayer Stats", new Color(120, 220, 255), () => DebugDrawer.ShowDebugReplayerStats, [.. rows]));

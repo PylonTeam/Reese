@@ -26,7 +26,7 @@ internal sealed class ReplayEventMarkerLayer : UIElement
         if (ReplayPlayback.TimelineEvents.Count == 0)
             return;
 
-        if (!Playback.IsPlayingReplay(out var replay))
+        if (!Playback.IsPlayingReplay(out ReplayFile replay))
             return;
 
         uint durationTicks = Math.Max(1u, (uint)replay.MetaInfo.Duration);

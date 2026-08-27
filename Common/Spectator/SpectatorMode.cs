@@ -23,10 +23,7 @@ internal static class SpectatorMode
         return IsGhost(player) || IsPlaybackPlayer(player);
     }
 
-    public static bool IsPlaybackPlayer(Player player)
-    {
-        return Playback.IsPlayingReplay(out var replay) && replay.MetaInfo.WhoAmI == player.whoAmI;
-    }
+    public static bool IsPlaybackPlayer(Player player) => Playback.IsPlayingReplay(out ReplayFile replay) && replay.MetaInfo.WhoAmI == player.whoAmI;
 
     public static bool IsGhost(Player player)
     {

@@ -25,6 +25,7 @@ public class Recorder : ModSystem, ITicker
     public byte WhoAmI { get; private set; }
     public uint Tick { get; private set; }
     public bool IsRecording => recordSocket != null;
+
     private string currentReplayPath;
     private uint nextBaselineTick;
     private uint baselineIntervalTicks;
@@ -525,6 +526,7 @@ public class RecordRemoteAddress : RemoteAddress
 public class RecordSocket(ITicker ticker, RemoteClient client, ReplayFile replay) : ISocket
 {
     private static readonly RecordRemoteAddress RemoteAddress = new();
+
     private MemoryStream baselineCapture;
 
     public ReplayFile Replay => replay;

@@ -63,33 +63,17 @@ internal sealed class ReplayInfoTab : TabPage
             return "no";
         }
 
-        private static string GetRecordedText()
-        {
-            if (Playback.IsPlayingReplay(out var replay)) replay.MetaInfo.Start.ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture);
-
-            return "-";
-        }
+        private static string GetRecordedText() => Playback.IsPlayingReplay(out ReplayFile replay) ? replay.MetaInfo.Start.ToString("d MMM yyyy HH:mm", CultureInfo.InvariantCulture) : "-";
 
         private static string GetLengthText()
         {
             uint durationTicks = GetDurationTicks();
-            return durationTicks == 0 ? "-" : FormatDuration(durationTicks, GetTickRate());
+            return durationTicks == 0 ? "-" : FormatDuration(durationTicks, 60);
         }
 
-        private static string GetWorldText()
-        {
-            return Playback.IsPlayingReplay(out var replay) ? replay.MetaInfo.WorldName : "-";
-        }
+        private static string GetWorldText() => Playback.IsPlayingReplay(out ReplayFile replay) ? replay.MetaInfo.WorldName : "-";
 
-        private static uint GetDurationTicks()
-        {
-            return Playback.IsPlayingReplay(out var replay) ? (uint)replay.MetaInfo.Duration : 0;
-        }
-
-        private static int GetTickRate()
-        {
-            return 60;
-        }
+        private static uint GetDurationTicks() => Playback.IsPlayingReplay(out ReplayFile replay) ? (uint)replay.MetaInfo.Duration : 0;
 
         private static string FormatDuration(uint ticks, int tickRate)
         {
