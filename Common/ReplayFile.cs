@@ -83,8 +83,16 @@ public class ReplayFile : IDisposable
     public static ReplayFile Write(Stream stream)
     {
         var bw = new BinaryWriter(stream, Encoding.UTF8);
-        bw.Write(IdentifierAscii);
-        bw.Write(Version);
+
+        try
+        {
+            bw.Write(IdentifierAscii);
+            bw.Write(Version);
+        }
+        catch (Exception e)
+        {
+            throw new Exception("failed to write replay prologue", e);
+        }
 
         var replay = new ReplayFile
         {

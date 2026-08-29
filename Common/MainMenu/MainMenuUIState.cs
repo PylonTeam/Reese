@@ -86,8 +86,6 @@ internal sealed class MainMenuUIState : UIState
         replayBrowser.OnRefreshStarted += () => SetCurrentAsyncState(AsyncProviderState.Loading);
         replayBrowser.OnRefreshFinished += () => SetCurrentAsyncState(AsyncProviderState.Completed);
 
-        SetCurrentAsyncState(AsyncProviderState.Completed);
-
         Append(replayBrowser);
         Append(footer);
         Append(loaderImage);

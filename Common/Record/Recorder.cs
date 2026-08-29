@@ -150,7 +150,7 @@ public class Recorder : ModSystem, ITicker
         return replay;
     }
 
-    private static void SendSignOn(RemoteClient client)
+    public static void SendSignOn(RemoteClient client)
     {
         // Client says hello
         // Server sets State to 1 and syncs mods
@@ -167,7 +167,7 @@ public class Recorder : ModSystem, ITicker
         Main.SyncAnInvasion(client.Id);
     }
 
-    private static void SendReplayWorldSnapshot(RemoteClient client, bool signingOn = false)
+    public static void SendReplayWorldSnapshot(RemoteClient client, bool signingOn = false)
     {
         // Client waits for world clear and state bullshit, eventually sends SpawnTileData.
         // Server sends WorldData (again yes), calculates portal bullshit(???), StatusTextSize (who cares),

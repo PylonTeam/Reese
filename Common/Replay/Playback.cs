@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using Reese.Common.Replayer;
 using Reese.Content;
 using Terraria.Audio;
 using Terraria.ID;
@@ -99,11 +100,11 @@ public class Playback : ModSystem
         }
     }
 
-    public static IList<ReplayFile> EnumerateReplays(string dir, bool footerNow)
+    public static IList<ReplayFile> EnumerateReplays(bool footerNow = true)
     {
         var replays = new List<ReplayFile>();
 
-        foreach (var path in Directory.EnumerateFiles(dir, "*.reese", new EnumerationOptions() { IgnoreInaccessible = true }))
+        foreach (var path in Directory.EnumerateFiles(ReplayPaths.GetFolder(), "*.reese", new EnumerationOptions { IgnoreInaccessible = true }))
         {
             FileStream fs;
             ReplayFile replay;
@@ -114,7 +115,7 @@ public class Playback : ModSystem
             }
             catch (Exception e)
             {
-                Log.Warn($"unable to open enumerated replay {path}: {e}");
+                Log.Warn($"failed to open enumerated replay {path}: {e}");
                 continue;
             }
 

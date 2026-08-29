@@ -291,7 +291,7 @@ internal sealed class ReplayBrowserPanel : UIElement
         if (showLoading)
             OnRefreshStarted?.Invoke();
 
-        Task.Run(() => Playback.EnumerateReplays(ReplayPaths.GetFolder(), true)).ContinueWith(task =>
+        Task.Run(() => Playback.EnumerateReplays()).ContinueWith(task =>
         {
             Main.QueueMainThreadAction(() =>
             {
