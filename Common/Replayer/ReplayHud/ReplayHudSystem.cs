@@ -95,7 +95,10 @@ public sealed class ReplayHudSystem : ModSystem
         int mouseTextIndex = layers.FindIndex(l => l.Name == "Vanilla: Mouse Text");
         int logicIndex = layers.FindIndex(l => l.Name == "Vanilla: Interface Logic 1");
         int deathTextIndex = layers.FindIndex(l => l.Name == "Vanilla: Death Text");
-        int replayHudIndex = GetReplayHudInsertIndex(mouseTextIndex, logicIndex, deathTextIndex, configUiOpen);
+        int overlayIndex = layers.FindIndex(l => l.Name == ReplaySpectate.TeammateOverlay.TeammateOverlaySystem.LayerName);
+        int replayHudIndex = overlayIndex != -1
+            ? overlayIndex
+            : GetReplayHudInsertIndex(mouseTextIndex, logicIndex, deathTextIndex, configUiOpen);
 
         if (replayHudIndex == -1)
             return;

@@ -1,6 +1,4 @@
-using Microsoft.Xna.Framework.Graphics;
 using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
-using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Spectator;
 using Terraria.UI;
 
@@ -44,20 +42,7 @@ public sealed class GhostHudState : UIState
     {
         UpdateVisibleHuds();
 
-        if (SpectatorMode.CanSpectate)
-            TeammateHudOverlay.Update();
-        else
-            TeammateHudOverlay.Clear();
-
         base.Update(gameTime);
-    }
-
-    public override void Draw(SpriteBatch spriteBatch)
-    {
-        base.Draw(spriteBatch);
-
-        if (SpectatorMode.CanSpectate)
-            TeammateHudOverlay.Draw(spriteBatch);
     }
 
     private void UpdateVisibleHuds()
@@ -95,8 +80,6 @@ public sealed class GhostHudState : UIState
 
         spectateHud = null;
         ghostHud = null;
-
-        TeammateHudOverlay.Clear();
     }
 
     public void CloseSpectateHud()

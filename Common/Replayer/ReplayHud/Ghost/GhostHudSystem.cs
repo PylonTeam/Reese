@@ -1,4 +1,5 @@
 using Microsoft.Xna.Framework.Input;
+using Reese.Common.Replayer.ReplayHud.ReplaySpectate.TeammateOverlay;
 using Reese.Common.Spectator;
 using System.Collections.Generic;
 using Terraria.UI;
@@ -71,7 +72,10 @@ public sealed class GhostHudSystem : ModSystem
         int mouseTextIndex = layers.FindIndex(l => l.Name == "Vanilla: Mouse Text");
         int logicIndex = layers.FindIndex(l => l.Name == "Vanilla: Interface Logic 1");
         int deathTextIndex = layers.FindIndex(l => l.Name == "Vanilla: Death Text");
-        int ghostHudIndex = GetGhostHudInsertIndex(mouseTextIndex, logicIndex, deathTextIndex, configUiOpen);
+        int overlayIndex = layers.FindIndex(l => l.Name == TeammateOverlaySystem.LayerName);
+        int ghostHudIndex = overlayIndex != -1
+            ? overlayIndex
+            : GetGhostHudInsertIndex(mouseTextIndex, logicIndex, deathTextIndex, configUiOpen);
 
         if (ghostHudIndex == -1)
             return;
