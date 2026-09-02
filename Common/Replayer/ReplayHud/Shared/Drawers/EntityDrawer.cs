@@ -11,6 +11,8 @@ namespace Reese.Common.Replayer.ReplayHud.Shared.Drawers;
 
 public static class EntityDrawer
 {
+    private static readonly Rectangle DefaultPlayerFrame = new(0, 0, 40, 56);
+
     private static readonly RasterizerState ClippedCullNone = new()
     {
         CullMode = CullMode.None,
@@ -95,27 +97,20 @@ public static class EntityDrawer
 
     public static void DrawPlayerPreview(SpriteBatch sb, Player player, Rectangle area)
     {
-        if (area.Width <= 0 || area.Height <= 0)
+        if (player?.active != true || area.Width <= 0 || area.Height <= 0)
             return;
 
-        Player drawPlayer = CreateFullDrawPlayer(player);
-
-        //float scale = Math.Min(area.Width / (drawPlayer.width + 4f), area.Height / drawPlayer.height);
         float scale = GetPlayerScale();
 
-        Vector2 drawSize = new(drawPlayer.width * scale, drawPlayer.height * scale);
+        Vector2 drawSize = new(player.width * scale, player.height * scale);
         Vector2 drawPos = new(
             (int)MathF.Round(area.Center.X - drawSize.X * 0.5f),
-            (int)MathF.Round(area.Center.Y - drawSize.Y * 0.5f + drawPlayer.gfxOffY * scale));
+            (int)MathF.Round(area.Center.Y - drawSize.Y * 0.5f + player.gfxOffY * scale));
 
         drawPos.Y += GetPlayerScaleVerticalOffset();
 
-        //DebugDrawer.DrawRectangle(area);
-
-        if (drawPlayer.statLife <= 0)
-        {
+        if (player.statLife <= 0)
             DrawRespawnTime(sb, player, area);
-        }
 
         DrawFullPlayer(sb, player, drawPos, scale);
     }
@@ -186,7 +181,14 @@ public static class EntityDrawer
 
     public static void DrawFullPlayer(SpriteBatch sb, Player player, Vector2 position, float scale = 1f)
     {
-        Player drawPlayer = CreateFullDrawPlayer(player);
+        if (player?.active != true)
+            return;
+
+        // Resolved before any override is applied, because it reads the player's real ghost/dead state.
+        bool drawAsGhost = (player.ghost || player.dead)
+            && GhostDrawSystem.ShouldDrawGhost(player)
+            && player.statLife > 0;
+
         Rectangle oldScissor = sb.GraphicsDevice.ScissorRectangle;
         RasterizerState oldRasterizer = sb.GraphicsDevice.RasterizerState;
 
@@ -194,47 +196,36 @@ public static class EntityDrawer
         sb.GraphicsDevice.ScissorRectangle = oldScissor;
         sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.PointClamp, DepthStencilState.None, ClippedCullNone, null, Main.UIScaleMatrix);
 
+        PlayerDrawState state = PlayerDrawState.Capture(player);
         FullBrightPlayerDrawer.ForceFullBrightOnce = true;
-        //PlayerOutlines.ForcePreviewOutline = true;
 
         try
         {
-            // debug
-            //if (Main.GameUpdateCount % 60 == 0)
-                //Log.Chat($"{drawPlayer.name}: ({drawPlayer.whoAmI}) ghost={drawPlayer.ghost}, dead={drawPlayer.dead}, life={drawPlayer.statLife}");
-
-            bool isDead = drawPlayer.dead || drawPlayer.statLife <= 0;
-            bool drawAsGhost = drawPlayer.ghost && !isDead;
-
             if (drawAsGhost)
             {
                 position.X += 2f;
                 position.Y += 8f;
-                DrawGhost(Main.Camera, drawPlayer, position + Main.screenPosition, scale);
+                DrawGhost(Main.Camera, player, position + Main.screenPosition, scale);
             }
-            else
+            else if (player.statLife > 0)
             {
-                drawPlayer.ghost = false;
-                drawPlayer.dead = false;
+                player.ghost = false;
+                player.dead = false;
+                player.socialIgnoreLight = true;
+                player.isDisplayDollOrInanimate = false;
 
-                //if (drawPlayer.statLife <= 0)
-                    //drawPlayer.statLife = 1;
-
-                if (drawPlayer.statLife > 0)
-                {
-                    Main.PlayerRenderer.DrawPlayer(Main.Camera, drawPlayer, position + Main.screenPosition, 0f, Vector2.Zero, 0f, scale);
-                }
+                Main.PlayerRenderer.DrawPlayer(Main.Camera, player, position + Main.screenPosition, 0f, Vector2.Zero, 0f, scale);
             }
         }
         finally
         {
             FullBrightPlayerDrawer.ForceFullBrightOnce = false;
-            //PlayerOutlines.ForcePreviewOutline = false;
-        }
+            state.Restore(player);
 
-        sb.End();
-        sb.GraphicsDevice.ScissorRectangle = oldScissor;
-        sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.AnisotropicClamp, DepthStencilState.None, oldRasterizer, null, Main.UIScaleMatrix);
+            sb.End();
+            sb.GraphicsDevice.ScissorRectangle = oldScissor;
+            sb.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.AnisotropicClamp, DepthStencilState.None, oldRasterizer, null, Main.UIScaleMatrix);
+        }
     }
 
     public static void DrawPlayerHead(SpriteBatch sb, Player player, Vector2 position, float scale = 1f)
@@ -242,150 +233,102 @@ public static class EntityDrawer
         if (player?.active != true)
             return;
 
-        Player drawPlayer = CreateHeadDrawPlayer(player);
-
+        PlayerDrawState state = PlayerDrawState.Capture(player);
         FullBrightPlayerDrawer.ForceFullBrightOnce = true;
 
         try
         {
-            Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, drawPlayer, position, scale: scale, borderColor: Main.teamColor[drawPlayer.team]);
-            //Main.PlayerRenderer.DrawPlayerHead(Main.Camera, drawPlayer, position, scale: scale);
+            ApplyHeadDrawOverrides(player);
+            Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, player, position, scale: scale, borderColor: Main.teamColor[player.team]);
         }
         finally
         {
             FullBrightPlayerDrawer.ForceFullBrightOnce = false;
+            state.Restore(player);
         }
     }
 
-    private static Player CreateFullDrawPlayer(Player player)
+    private static void ApplyHeadDrawOverrides(Player player)
     {
-        Player drawPlayer = player.SerializedClone();
-        CopyPlayerDrawAppearance(player, drawPlayer);
-        drawPlayer.position = player.position;
-        drawPlayer.velocity = player.velocity;
-        drawPlayer.direction = player.direction;
-        drawPlayer.gravDir = player.gravDir;
-        drawPlayer.fullRotation = player.fullRotation;
-        drawPlayer.fullRotationOrigin = player.fullRotationOrigin;
-        drawPlayer.selectedItem = player.selectedItem;
-        drawPlayer.itemAnimation = player.itemAnimation;
-        drawPlayer.itemAnimationMax = player.itemAnimationMax;
-        drawPlayer.itemRotation = player.itemRotation;
-        drawPlayer.heldProj = player.heldProj;
-        drawPlayer.bodyFrame = player.bodyFrame;
-        drawPlayer.legFrame = player.legFrame;
-        drawPlayer.headFrame = player.headFrame;
-        drawPlayer.wingFrame = player.wingFrame;
-        drawPlayer.wings = player.wings;
-        drawPlayer.gfxOffY = player.gfxOffY;
-        drawPlayer.dead = false;
-        drawPlayer.ghost = (player.ghost || player.dead) && GhostDrawSystem.ShouldDrawGhost(player);
+        player.dead = false;
+        player.ghost = false;
+        player.headRotation = 0f;
+        player.socialIgnoreLight = true;
+        player.isDisplayDollOrInanimate = false;
+        player.statLife = Math.Max(1, player.statLife);
+        player.statLifeMax = Math.Max(1, player.statLifeMax);
 
-        if (drawPlayer.ghost)
+        if (player.direction == 0)
+            player.direction = 1;
+
+        if (player.gravDir == 0f)
+            player.gravDir = 1f;
+
+        if (player.bodyFrame.Width <= 0 || player.bodyFrame.Height <= 0)
+            player.bodyFrame = DefaultPlayerFrame;
+
+        if (player.legFrame.Width <= 0 || player.legFrame.Height <= 0)
+            player.legFrame = DefaultPlayerFrame;
+
+        if (player.headFrame.Width <= 0 || player.headFrame.Height <= 0)
+            player.headFrame = DefaultPlayerFrame;
+    }
+
+    /// <summary>
+    /// The fields <see cref="DrawFullPlayer"/> and <see cref="DrawPlayerHead"/> override, captured so the
+    /// overrides can be applied straight to the live player and put back once the draw is done.
+    /// <para/>
+    /// This used to clone the player per draw with SerializedClone, which is a full save-file round trip
+    /// (inventory, equips, every mod's ModPlayer data) and cost milliseconds per frame with a full lobby.
+    /// </summary>
+    private readonly struct PlayerDrawState
+    {
+        private readonly bool ghost;
+        private readonly bool dead;
+        private readonly bool socialIgnoreLight;
+        private readonly bool isDisplayDollOrInanimate;
+        private readonly int direction;
+        private readonly int statLife;
+        private readonly int statLifeMax;
+        private readonly float gravDir;
+        private readonly float headRotation;
+        private readonly Rectangle bodyFrame;
+        private readonly Rectangle legFrame;
+        private readonly Rectangle headFrame;
+
+        private PlayerDrawState(Player player)
         {
-            drawPlayer.ghostFade = 1f;
-            drawPlayer.ghostDir = 1;
+            ghost = player.ghost;
+            dead = player.dead;
+            socialIgnoreLight = player.socialIgnoreLight;
+            isDisplayDollOrInanimate = player.isDisplayDollOrInanimate;
+            direction = player.direction;
+            statLife = player.statLife;
+            statLifeMax = player.statLifeMax;
+            gravDir = player.gravDir;
+            headRotation = player.headRotation;
+            bodyFrame = player.bodyFrame;
+            legFrame = player.legFrame;
+            headFrame = player.headFrame;
         }
 
-        drawPlayer.socialIgnoreLight = true;
-        drawPlayer.isDisplayDollOrInanimate = false;
+        public static PlayerDrawState Capture(Player player) => new(player);
 
-        return drawPlayer;
-    }
-
-    private static Player CreateHeadDrawPlayer(Player player)
-    {
-        Player drawPlayer = player.SerializedClone();
-        CopyPlayerDrawAppearance(player, drawPlayer);
-        drawPlayer.active = true;
-        drawPlayer.whoAmI = player.whoAmI is >= 0 and < Main.maxPlayers ? player.whoAmI : 0;
-        drawPlayer.position = player.position;
-        drawPlayer.direction = player.direction == 0 ? 1 : player.direction;
-        drawPlayer.gravDir = player.gravDir == 0f ? 1f : player.gravDir;
-        drawPlayer.headRotation = 0f;
-        drawPlayer.dead = false;
-        drawPlayer.ghost = false;
-        drawPlayer.statLife = Math.Max(1, drawPlayer.statLife);
-        drawPlayer.statLifeMax = Math.Max(1, drawPlayer.statLifeMax);
-        drawPlayer.socialIgnoreLight = true;
-        drawPlayer.isDisplayDollOrInanimate = false;
-
-        if (drawPlayer.bodyFrame.Width <= 0 || drawPlayer.bodyFrame.Height <= 0)
-            drawPlayer.bodyFrame = new Rectangle(0, 0, 40, 56);
-
-        if (drawPlayer.legFrame.Width <= 0 || drawPlayer.legFrame.Height <= 0)
-            drawPlayer.legFrame = new Rectangle(0, 0, 40, 56);
-
-        if (drawPlayer.headFrame.Width <= 0 || drawPlayer.headFrame.Height <= 0)
-            drawPlayer.headFrame = new Rectangle(0, 0, 40, 56);
-
-        return drawPlayer;
-    }
-
-    private static void CopyPlayerDrawAppearance(Player from, Player to)
-    {
-        to.head = from.head;
-        to.body = from.body;
-        to.legs = from.legs;
-
-        to.cHead = from.cHead;
-        to.cBody = from.cBody;
-        to.cLegs = from.cLegs;
-        to.cHandOn = from.cHandOn;
-        to.cHandOff = from.cHandOff;
-        to.cBack = from.cBack;
-        to.cFront = from.cFront;
-        to.cShoe = from.cShoe;
-        to.cWaist = from.cWaist;
-        to.cShield = from.cShield;
-        to.cNeck = from.cNeck;
-        to.cFace = from.cFace;
-        to.cFaceHead = from.cFaceHead;
-        to.cFaceFlower = from.cFaceFlower;
-        to.cBalloon = from.cBalloon;
-        to.cBalloonFront = from.cBalloonFront;
-        to.cWings = from.cWings;
-        to.cCarpet = from.cCarpet;
-        to.cFloatingTube = from.cFloatingTube;
-        to.cBackpack = from.cBackpack;
-        to.cTail = from.cTail;
-        to.cShieldFallback = from.cShieldFallback;
-        to.cPortableStool = from.cPortableStool;
-        to.cUnicornHorn = from.cUnicornHorn;
-        to.cAngelHalo = from.cAngelHalo;
-        to.cBeard = from.cBeard;
-        to.cFlameWaker = from.cFlameWaker;
-        to.skinDyePacked = from.skinDyePacked;
-
-        to.face = from.face;
-        to.faceHead = from.faceHead;
-        to.faceFlower = from.faceFlower;
-        to.neck = from.neck;
-        to.front = from.front;
-        to.back = from.back;
-        to.waist = from.waist;
-        to.shield = from.shield;
-        to.shoe = from.shoe;
-        to.balloon = from.balloon;
-        to.beard = from.beard;
-
-        to.handon = from.handon;
-        to.handoff = from.handoff;
-
-        to.wings = from.wings;
-        to.wingsLogic = from.wingsLogic;
-        to.wingFrame = from.wingFrame;
-        to.wingFrameCounter = from.wingFrameCounter;
-
-        to.carpet = from.carpet;
-        to.carpetFrame = from.carpetFrame;
-
-        to.shieldRaised = from.shieldRaised;
-        to.shieldParryTimeLeft = from.shieldParryTimeLeft;
-        to.hasUnicornHorn = from.hasUnicornHorn;
-        to.hasAngelHalo = from.hasAngelHalo;
-        to.invis = from.invis;
-        to.headcovered = from.headcovered;
+        public void Restore(Player player)
+        {
+            player.ghost = ghost;
+            player.dead = dead;
+            player.socialIgnoreLight = socialIgnoreLight;
+            player.isDisplayDollOrInanimate = isDisplayDollOrInanimate;
+            player.direction = direction;
+            player.statLife = statLife;
+            player.statLifeMax = statLifeMax;
+            player.gravDir = gravDir;
+            player.headRotation = headRotation;
+            player.bodyFrame = bodyFrame;
+            player.legFrame = legFrame;
+            player.headFrame = headFrame;
+        }
     }
 
     private static void DrawGhost(Camera camera, Player drawPlayer, Vector2 position, float scale)

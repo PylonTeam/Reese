@@ -17,6 +17,16 @@ internal class GhostFullbright : ModSystem
         set => strength = value ? 1 : 0;
     }
 
+    /// <summary>
+    /// <see cref="HackLight"/> runs once per tile of the lighting pass, so the spectator check is
+    /// resolved once per tick here instead of walking the config chain tens of thousands of times.
+    /// </summary>
+    private static bool active;
+
+    public override void PostUpdateEverything() => active = Enabled && SpectatorMode.CanSpectate;
+
+    public override void OnWorldUnload() => active = false;
+
     public override void Load()
     {
         On_TileLightScanner.GetTileLight += HackLight;
@@ -34,7 +44,7 @@ internal class GhostFullbright : ModSystem
     {
         orig(self, x, y, out outputColor);
 
-        if (!Enabled || !SpectatorMode.CanSpectate)
+        if (!active)
             return;
 
         // Clamp to 1 from below so dark tiles become fully lit,
