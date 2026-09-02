@@ -34,7 +34,6 @@ public class ReplayFile : IDisposable
     public MetaBlockFooterTimeline MetaTimeline;
 
     public long Tick { get; private set; }
-    public bool IsBaselining => _bh.Flags.HasFlag(BlockFlag.Baseline);
     public bool IsDataBuffered => _dataBuffer != null && _dataBuffer.Position != _dataBuffer.Length;
     public bool Terminated { get; private set; }
 
@@ -43,11 +42,11 @@ public class ReplayFile : IDisposable
         BinaryReader br = new(stream, Encoding.UTF8);
         byte ver;
 
-        if (!br.ReadBytes(IdentifierAscii.Length).SequenceEqual(IdentifierAscii))
-            throw new InvalidDataException("not a Reese replay");
-
         try
         {
+            if (!br.ReadBytes(IdentifierAscii.Length).SequenceEqual(IdentifierAscii))
+                throw new InvalidDataException("not a Reese replay");
+
             ver = br.ReadByte();
         }
         catch (Exception e)
