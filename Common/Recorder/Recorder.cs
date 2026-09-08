@@ -36,6 +36,7 @@ public class Recorder : ModSystem, ITicker
     public bool IsRecording => isRecording;
     private bool isRecording;
     private string currentReplayPath;
+    private RecordSocket currentRecordSocket;
     private uint nextBaselineTick;
     private uint baselineIntervalTicks;
     private bool suppressAutoStartAfterMaxLength;
@@ -90,8 +91,51 @@ public class Recorder : ModSystem, ITicker
 
     public void StartRecording()
     {
-        StartRecordingInner();
+        TryStartRecording();
     }
+
+    public bool TryStartRecording()
+    {
+        try
+        {
+            if (isRecording)
+                EnsureRecordingSocket();
+            else
+                StartRecordingInner();
+
+            return isRecording;
+        }
+        catch (Exception e)
+        {
+            FailRecording($"Could not start recording: {e}");
+            return false;
+        }
+    }
+
+    // Admission may ask during startup, before IsRecording becomes true. Only this
+    // recorder's exact in-process socket is trusted, never a slot or address alone.
+    public bool IsRecordingClient(int slot, ISocket socket)
+    {
+        RecordSocket ownedSocket = currentRecordSocket;
+        return slot == ReplayPlayback.RecordClientIndex && ownedSocket != null &&
+            ReferenceEquals(socket, ownedSocket) &&
+            ReferenceEquals(Netplay.Clients[slot]?.Socket, ownedSocket) &&
+            ownedSocket.IsConnected();
+    }
+
+    private bool HasHealthyRecordingSocket()
+    {
+        RemoteClient client = Netplay.Clients[ReplayPlayback.RecordClientIndex];
+        return IsRecordingClient(ReplayPlayback.RecordClientIndex, currentRecordSocket) &&
+            client.IsActive && !client.PendingTermination && !client.PendingTerminationApproved;
+    }
+
+    private void EnsureRecordingSocket()
+    {
+        if (!HasHealthyRecordingSocket())
+            throw new InvalidOperationException("The recording socket was closed, replaced, or marked for termination.");
+    }
+
     private void StartRecordingInner()
     {
         if (isRecording)
@@ -124,6 +168,7 @@ public class Recorder : ModSystem, ITicker
         recordClient.Name = RecordClientName;
         // FIXME: File name too long? file path too long? do we care is that our problem??
         var recordSocket = new RecordSocket(this, recordClient, replayFile);
+        currentRecordSocket = recordSocket;
         recordClient.Socket = recordSocket;
 
         // RemoteClient.Update would set this because Socket.IsConnected() returned true, but we need this now, so
@@ -138,6 +183,7 @@ public class Recorder : ModSystem, ITicker
         // Server sends net IDs and PlayerInfo
         _modNetSendNetIds.Invoke(null, [recordClient.Id]);
         NetMessage.SendData(MessageID.PlayerInfo, recordClient.Id);
+        EnsureRecordingSocket();
         // Client eventually sends RequestWorldData
         // Server sets State to 2 and sends WorldData and syncs invasion
         recordClient.State = 2;
@@ -147,6 +193,7 @@ public class Recorder : ModSystem, ITicker
 
         // Flush now, so that it comes at update delta 0
         recordSocket.FlushTick();
+        EnsureRecordingSocket();
         isRecording = true;
         // After recording starts send tile data one more time to ensure it is synced
         // If any other data isn't synced when joining world follow this approach
@@ -162,6 +209,7 @@ public class Recorder : ModSystem, ITicker
 
     private void SendReplayWorldSnapshot(RemoteClient recordClient, bool initial, bool syncInvasion = true)
     {
+        EnsureRecordingSocket();
         // Client waits for world clear and state bullshit, eventually sends SpawnTileData.
         // Server sends WorldData (again yes), calculates portal bullshit(???), StatusTextSize (who cares),
         // set State to 3, TileSection for world spawn and maybe player spawn and maybe portal sections, SyncItem and
@@ -180,8 +228,8 @@ public class Recorder : ModSystem, ITicker
 
 
         int expectedSectionCount = Main.maxSectionsX * Main.maxSectionsY;
-        RecordSocket baselineRecordSocket = !initial ? recordClient.Socket as RecordSocket : null;
-        int tileSectionsBefore = baselineRecordSocket?.GetBaselineMessageCount(MessageID.TileSection) ?? 0;
+        RecordSocket snapshotSocket = currentRecordSocket;
+        int tileSectionsBefore = snapshotSocket.TileSectionsSent;
 
     
         // Netmessage internally doesn't send sections that it believes the RemoteClient already has loaded
@@ -194,14 +242,19 @@ public class Recorder : ModSystem, ITicker
         for (var x = 0; x < Main.maxSectionsX; x++)
         {
             for (var y = 0; y < Main.maxSectionsY; y++)
+            {
+                EnsureRecordingSocket();
                 NetMessage.SendSection(recordClient.Id, x, y);
+            }
         }
 
-        if (!initial && baselineRecordSocket != null)
-        {
-            int tileSectionsAfter = baselineRecordSocket.GetBaselineMessageCount(MessageID.TileSection);
-            Log.Info($"Baseline tile section loop emitted {tileSectionsAfter - tileSectionsBefore}/{expectedSectionCount} TileSection packets.");
-        }
+        EnsureRecordingSocket();
+
+        int tileSectionsSent = snapshotSocket.TileSectionsSent - tileSectionsBefore;
+        if (tileSectionsSent != expectedSectionCount)
+            throw new InvalidOperationException($"Replay snapshot captured {tileSectionsSent}/{expectedSectionCount} required tile sections.");
+
+        Log.Info($"Recorded {(initial ? "initial" : "baseline")} tile sections: {tileSectionsSent}/{expectedSectionCount}.");
 
         for (var i = 0; i < Main.maxItems; i++)
         {
@@ -243,6 +296,7 @@ public class Recorder : ModSystem, ITicker
 
         if (initial)
         {
+            EnsureRecordingSocket();
             NetMessage.SendData(MessageID.InitialSpawn, recordClient.Id);
             Main.BestiaryTracker.OnPlayerJoining(recordClient.Id);
             CreativePowerManager.Instance.SyncThingsToJoiningPlayer(recordClient.Id);
@@ -258,6 +312,7 @@ public class Recorder : ModSystem, ITicker
 
         SendReplayPlayerSnapshot(recordClient, initial);
         ReplaySnapshotEvents.RaiseReplaySnapshotWriting(recordClient.Id, Ticks, initial);
+        EnsureRecordingSocket();
     }
 
     private static int ClearFakeClientSentSections(RemoteClient recordClient)
@@ -318,6 +373,12 @@ public class Recorder : ModSystem, ITicker
         if (!isRecording)
             return "";
 
+        if (!HasHealthyRecordingSocket())
+        {
+            FailRecording($"Recording socket unavailable while stopping: {reason}");
+            return "";
+        }
+
         isRecording = false;
         pendingStartupTileResync = false;
         ReplayTimelineEvent[] timelineEvents = ReplayTimelineRecorder.Finish();
@@ -326,49 +387,82 @@ public class Recorder : ModSystem, ITicker
         RecorderStatus.Stop(Ticks);
         RecorderStatus.SyncToClients(force: true);
 
-        const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
         string savedReplayPath = currentReplayPath;
-        string worldName = ReplayStats.GetCurrentWorldName();
-        string[] modNames = ReplayStats.GetCurrentModNames();
-        ReplayModBundle modBundle = ShouldCaptureModsUsedInReplay()
-            ? ReplayModBundle.CaptureLoadedMods()
-            : null;
+        string worldName = "";
+        string[] modNames = [];
+        bool savedReplayFinished = false;
 
-        if (modBundle != null)
-            Log.Info($"Stopping recording with embedded replay mod bundle: {modBundle.Mods.Length} mods, {ReplayModFile.FormatBytes(modBundle.Mods.Sum(x => x.PayloadLength))}.");
-        else
-            Log.Info("Stopping recording without an embedded replay mod bundle because CaptureModsUsedInReplay is disabled.");
-
-        var recordClient = Netplay.Clients[RecordClientIndex];
-
-        if (recordClient?.Socket is RecordSocket recordSocket)
+        try
         {
-            recordSocket.Finish(Ticks, worldName, modNames, ReplayFileFlags.New, timelineEvents, modBundle);
-            recordSocket.Close();
+            worldName = ReplayStats.GetCurrentWorldName();
+            modNames = ReplayStats.GetCurrentModNames();
+            ReplayModBundle modBundle = ShouldCaptureModsUsedInReplay()
+                ? ReplayModBundle.CaptureLoadedMods()
+                : null;
+
+            if (modBundle != null)
+                Log.Info($"Stopping recording with embedded replay mod bundle: {modBundle.Mods.Length} mods, {ReplayModFile.FormatBytes(modBundle.Mods.Sum(x => x.PayloadLength))}.");
+            else
+                Log.Info("Stopping recording without an embedded replay mod bundle because CaptureModsUsedInReplay is disabled.");
+
+            EnsureRecordingSocket();
+            savedReplayFinished = currentRecordSocket.Finish(Ticks, worldName, modNames, ReplayFileFlags.New, timelineEvents, modBundle);
+        }
+        catch (Exception e)
+        {
+            Log.Error($"Failed to finish recording: {e}");
+        }
+        finally
+        {
+            ReleaseRecordingSocket();
+            currentReplayPath = null;
+            ReplayPlayback.NotifyFolderChanged();
         }
 
-        if (recordClient != null)
-        {
-            NetMessage.buffer[RecordClientIndex].broadcast = false;
-            recordClient.Reset();
-        }
-
-        ReplayPlayback.NotifyFolderChanged();
-        currentReplayPath = null;
-
-        bool savedReplayFinished = !string.IsNullOrWhiteSpace(savedReplayPath) && File.Exists(savedReplayPath);
-
-        if (!string.IsNullOrWhiteSpace(savedReplayPath))
+        if (savedReplayFinished && !string.IsNullOrWhiteSpace(savedReplayPath) && File.Exists(savedReplayPath))
         {
             string message = $"[Reese] Recording stopped at tick {Ticks}. Reason: {reason}. Saved to {Path.GetFileNameWithoutExtension(savedReplayPath)}";
             Log.Info(message);
             Console.WriteLine(message);
-
-            if (savedReplayFinished)
-                RecorderEvents.RaiseRecordingFinished(savedReplayPath, worldName, modNames, Ticks, reason);
+            RecorderEvents.RaiseRecordingFinished(savedReplayPath, worldName, modNames, Ticks, reason);
+            return savedReplayPath;
         }
 
-        return savedReplayFinished ? savedReplayPath : "";
+        Log.Error($"Recording was not completed and will not be reported as a replay: {savedReplayPath}");
+        return "";
+    }
+
+    private void FailRecording(string reason)
+    {
+        Log.Error($"Recording failed. {reason} Incomplete file: {currentReplayPath}");
+        isRecording = false;
+        pendingStartupTileResync = false;
+        ReplayTimelineRecorder.Cancel();
+        ModContent.GetInstance<ReplayTimelineTrackerSystem>().EndRecording();
+        RecorderStatus.Stop(Ticks);
+        RecorderStatus.SyncToClients(force: true);
+        ReleaseRecordingSocket();
+        currentReplayPath = null;
+        ReplayPlayback.NotifyFolderChanged();
+    }
+
+    private void ReleaseRecordingSocket()
+    {
+        RecordSocket socket = currentRecordSocket;
+        currentRecordSocket = null;
+        if (socket == null)
+            return;
+
+        try
+        {
+            socket.Close();
+        }
+        finally
+        {
+            RemoteClient client = Netplay.Clients[ReplayPlayback.RecordClientIndex];
+            if (ReferenceEquals(client?.Socket, socket))
+                client.Reset();
+        }
     }
 
     //private void OnNetplayInitializeServer(On_Netplay.orig_InitializeServer orig)
@@ -394,6 +488,12 @@ public class Recorder : ModSystem, ITicker
 
     public override void PostUpdateEverything()
     {
+        if (isRecording && !HasHealthyRecordingSocket())
+        {
+            FailRecording("The recording socket was closed, replaced, or marked for termination.");
+            return;
+        }
+
         // Automatically start and stop recording when there are players in the world
         if (Main.netMode == NetmodeID.Server)
         {
@@ -409,7 +509,7 @@ public class Recorder : ModSystem, ITicker
             }
             else if (!isRecording && autoStartRecording && CanAutoStartRecording())
             {
-                StartRecordingInner();
+                TryStartRecording();
             }
         }
 
@@ -430,13 +530,24 @@ public class Recorder : ModSystem, ITicker
             if (pendingStartupTileResync && Ticks >= StartupTileResyncTick)
             {
                 pendingStartupTileResync = false;
-                SendReplayStartupTileResync();
+                try
+                {
+                    SendReplayStartupTileResync();
+                }
+                catch (Exception e)
+                {
+                    FailRecording($"Startup tile resync failed: {e}");
+                    return;
+                }
             }
 
             UpdateBaselineSchedule();
 
             if (baselineIntervalTicks > 0 && Ticks >= nextBaselineTick)
                 WriteBaselineCheckpoint();
+
+            if (!isRecording)
+                return;
 
             // Logging at 1 tick, 5 seconds, 10 seconds, and every 30 minutes thereafter
             if (Ticks == 1 || Ticks == 300 || Ticks == 600 || Ticks % (30 * 60 * 60) == 0)
@@ -465,53 +576,47 @@ public class Recorder : ModSystem, ITicker
         const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
         RemoteClient recordClient = Netplay.Clients[RecordClientIndex];
 
-        if (recordClient?.Socket is not RecordSocket recordSocket)
-            return;
+        RecordSocket recordSocket = currentRecordSocket;
 
         uint baselineTick = Ticks;
         bool completed = false;
         int byteSize = 0;
 
         Log.Info($"Recording replay baseline at tick {baselineTick}...");
-        recordSocket.BeginBaselineCapture();
-
         try
         {
+            EnsureRecordingSocket();
+            recordSocket.BeginBaselineCapture();
             SendReplayWorldSnapshot(recordClient, initial: false);
+            byteSize = recordSocket.EndBaselineCapture(baselineTick);
             completed = true;
         }
         catch (Exception e)
         {
-            Log.Error($"Failed to record replay baseline at tick {baselineTick}: {e}");
+            FailRecording($"Failed to record replay baseline at tick {baselineTick}: {e}");
         }
         finally
         {
-            if (completed)
-                byteSize = recordSocket.EndBaselineCapture(baselineTick);
-            else
-                recordSocket.CancelBaselineCapture();
+            if (!completed)
+                recordSocket?.CancelBaselineCapture();
         }
 
         if (completed)
             Log.Info($"Recorded replay baseline at tick {baselineTick}: {byteSize} bytes, {recordSocket.BaselineCount} total baselines.");
     }
 
-    private static void SendReplayStartupTileResync()
+    private void SendReplayStartupTileResync()
     {
         const int RecordClientIndex = ReplayPlayback.RecordClientIndex;
         RemoteClient recordClient = Netplay.Clients[RecordClientIndex];
 
-        if (recordClient?.Socket is not RecordSocket recordSocket)
-        {
-            Log.Warn("Could not write startup tile resync because the record socket was unavailable.");
-            return;
-        }
-
+        EnsureRecordingSocket();
         SendReplayTileSectionsOnly(recordClient);
-        recordSocket.FlushTick();
+        currentRecordSocket.FlushTick();
+        EnsureRecordingSocket();
     }
 
-    private static void SendReplayTileSectionsOnly(RemoteClient recordClient)
+    private void SendReplayTileSectionsOnly(RemoteClient recordClient)
     {
         int expectedSectionCount = Main.maxSectionsX * Main.maxSectionsY;
 
@@ -526,8 +631,13 @@ public class Recorder : ModSystem, ITicker
         for (var x = 0; x < Main.maxSectionsX; x++)
         {
             for (var y = 0; y < Main.maxSectionsY; y++)
+            {
+                EnsureRecordingSocket();
                 NetMessage.SendSection(recordClient.Id, x, y);
+            }
         }
+
+        EnsureRecordingSocket();
     }
 
     private void UpdateBaselineSchedule()
@@ -618,8 +728,17 @@ public class Recorder : ModSystem, ITicker
         private readonly object writeLock = new();
         private bool isFinished;
         private bool isClosed;
+        private int tileSectionsSent;
         private MemoryStream baselineCaptureStream;
         private BaselinePacketDiagnostics baselinePacketDiagnostics;
+        public int TileSectionsSent
+        {
+            get
+            {
+                lock (writeLock)
+                    return tileSectionsSent;
+            }
+        }
         public int BaselineCount
         {
             get
@@ -652,8 +771,11 @@ public class Recorder : ModSystem, ITicker
 
             lock (writeLock)
             {
+                if (isFinished || isClosed)
+                    throw new InvalidOperationException("Cannot finish a baseline after recording has finished.");
+
                 if (baselineCaptureStream == null)
-                    return 0;
+                    throw new InvalidOperationException("Baseline capture is not active.");
 
                 bytes = baselineCaptureStream.ToArray();
                 baselineCaptureStream.Dispose();
@@ -681,12 +803,13 @@ public class Recorder : ModSystem, ITicker
                 return baselinePacketDiagnostics?.GetCount(messageId) ?? 0;
         }
 
-        public void Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None, IReadOnlyList<ReplayTimelineEvent> timelineEvents = null, ReplayModBundle modBundle = null)
+        public bool Finish(uint finalTick, string worldName, string[] modNames, ReplayFileFlags flags = ReplayFileFlags.None, IReadOnlyList<ReplayTimelineEvent> timelineEvents = null, ReplayModBundle modBundle = null)
         {
             lock (writeLock)
             {
-                if (isFinished || isClosed)
-                    return;
+                if (isFinished || isClosed || !ReferenceEquals(remoteClient.Socket, this) ||
+                    remoteClient.PendingTermination || remoteClient.PendingTerminationApproved)
+                    return false;
 
                 isFinished = true;
 
@@ -697,6 +820,7 @@ public class Recorder : ModSystem, ITicker
                 ClearBaselineCapture();
 
                 replayFile.Finish(finalTick, worldName, modNames, flags, timelineEvents, modBundle);
+                return true;
             }
         }
 
@@ -709,9 +833,12 @@ public class Recorder : ModSystem, ITicker
 
                 isClosed = true;
 
-                NetMessage.buffer[remoteClient.Id].broadcast = false;
-                remoteClient.IsActive = false;
-                remoteClient.State = 0;
+                if (ReferenceEquals(remoteClient.Socket, this))
+                {
+                    NetMessage.buffer[remoteClient.Id].broadcast = false;
+                    remoteClient.IsActive = false;
+                    remoteClient.State = 0;
+                }
                 ClearBaselineCapture();
 
                 Log.Info("Closing record socket");
@@ -744,6 +871,10 @@ public class Recorder : ModSystem, ITicker
                         RecorderStatus.TrackPacket(data, offset, size, ticker.Ticks);
                         replayFile.WritePacketData(data[offset..(offset + size)], ticker.Ticks);
                     }
+
+                    // NetMessage.SendSection sends one framed TileSection per socket write.
+                    if (size >= 3 && data[offset + 2] == MessageID.TileSection)
+                        tileSectionsSent++;
                 }
             }
 

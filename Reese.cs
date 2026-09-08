@@ -35,8 +35,12 @@ public class Reese : Mod
         switch (command)
         {
             case "StartRecording":
-                ModContent.GetInstance<Recorder>().StartRecording();
-                return true;
+                return Main.netMode == Terraria.ID.NetmodeID.Server && ModContent.GetInstance<Recorder>().TryStartRecording();
+
+            case "IsRecordingClient":
+                return Main.netMode == Terraria.ID.NetmodeID.Server && args.Length == 3 &&
+                    args[1] is int slot && args[2] is Terraria.Net.Sockets.ISocket socket &&
+                    ModContent.GetInstance<Recorder>().IsRecordingClient(slot, socket);
 
             case "StopRecording":
                 reason = args.Length > 1 && args[1] is string customReason ? customReason : "Cross-mod call";

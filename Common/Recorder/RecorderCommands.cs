@@ -16,8 +16,8 @@ public class RecordCommand : ModCommand
             return;
         }
 
-        ModContent.GetInstance<Recorder>().StartRecording();
-        caller.Reply("[Reese] Recording started successfully.");
+        bool started = ModContent.GetInstance<Recorder>().TryStartRecording();
+        caller.Reply(started ? "[Reese] Recording started successfully." : "[Reese] Recording failed to start. Check the server log.");
     }
 }
 
