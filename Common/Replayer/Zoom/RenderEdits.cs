@@ -1,7 +1,6 @@
 ﻿using Mono.Cecil.Cil;
 using MonoMod.Cil;
 using Mono.Cecil;
-using Reese.Common.Replayer.ReplayHud;
 using System;
 using System.Reflection;
 using Reese.Common.Spectator;
@@ -15,7 +14,8 @@ namespace Reese.Common.Replayer.Zoom;
 [Autoload(Side = ModSide.Client)]
 public sealed class RenderEdits : ModSystem
 {
-    private bool wasSpectating;
+    private static int allocatedExtraOffscreenRange;
+    private static bool reloadQueued;
 
     public override void Load()
     {
@@ -23,9 +23,7 @@ public sealed class RenderEdits : ModSystem
         IL_Main.InitTargets_int_int += PatchRenderTargets;
         IL_Main.DrawBlack += PatchWorldBlackout;
 
-        wasSpectating = SpectatorMode.CanSpectate;
-        if (wasSpectating)
-            ReloadRenderTargets();
+        allocatedExtraOffscreenRange = 0;
     }
 
     public override void Unload()
@@ -40,17 +38,23 @@ public sealed class RenderEdits : ModSystem
 
     public override void PostUpdateEverything()
     {
-        bool isSpectating = SpectatorMode.CanSpectate;
-        if (wasSpectating == isSpectating)
+        var presentation = Main.instance.GraphicsDevice.PresentationParameters;
+        int requiredExtra = GetExtraOffscreenRange(presentation.BackBufferWidth, presentation.BackBufferHeight);
+        if (allocatedExtraOffscreenRange == requiredExtra)
             return;
 
-        wasSpectating = isSpectating;
         ReloadRenderTargets();
+    }
+
+    public override void OnWorldUnload()
+    {
+        if (allocatedExtraOffscreenRange > 0)
+            ReloadRenderTargets();
     }
 
     private static Point GetScreenOverdrawOffset(On_Main.orig_GetScreenOverdrawOffset orig)
     {
-        return SpectatorMode.CanSpectate && ReplayClientSettings.ReplayZoom < 1f ? Point.Zero : orig();
+        return GetRenderTargetZoom() < 1f ? Point.Zero : orig();
     }
 
     private static void PatchRenderTargets(ILContext il)
@@ -60,12 +64,15 @@ public sealed class RenderEdits : ModSystem
             if (!c.TryGotoNext(MoveType.After, i => i.MatchStsfld<Main>("offScreenRange")))
                 throw new InvalidOperationException("Could not find Main.offScreenRange assignment.");
 
+            c.Emit(OpCodes.Ldarg_1);
+            c.Emit(OpCodes.Ldarg_2);
             c.EmitDelegate(GetRenderTargetMaxSize);
             c.Emit(OpCodes.Stsfld, MainField("_renderTargetMaxSize", BindingFlags.Static | BindingFlags.NonPublic));
 
             c.Emit(OpCodes.Ldc_I4, 192);
             c.Emit(OpCodes.Ldarg_1);
-            c.EmitDelegate(GetExtraOffscreenRange);
+            c.Emit(OpCodes.Ldarg_2);
+            c.EmitDelegate(AllocateExtraOffscreenRange);
             c.Emit(OpCodes.Add);
             c.Emit(OpCodes.Stsfld, MainField("offScreenRange", BindingFlags.Static | BindingFlags.Public));
         });
@@ -125,21 +132,29 @@ public sealed class RenderEdits : ModSystem
         return SpectatorMode.CanSpectate ? maxTiles : maxTiles - overdrawOffset;
     }
 
-    private static int GetExtraOffscreenRange(int dimension)
+    private static int GetExtraOffscreenRange(int width, int height)
     {
-        float zoom = GetRenderTargetZoom();
-        return (int)(dimension * (1f / zoom - 1f) * 0.5f);
+        return ZoomRenderSizing.GetExtraOffscreenRange(width, height, GetRenderTargetZoom());
     }
 
-    private static int GetRenderTargetMaxSize()
+    private static int AllocateExtraOffscreenRange(int width, int height)
     {
-        float zoom = GetRenderTargetZoom();
-        return (int)(Main.maxScreenW / zoom) + 400 * Main.maxScreenW / 1920;
+        allocatedExtraOffscreenRange = GetExtraOffscreenRange(width, height);
+        return allocatedExtraOffscreenRange;
+    }
+
+    private static int GetRenderTargetMaxSize(int width, int height)
+    {
+        int vanillaMaxSize = Main.maxScreenW + 400 * Main.maxScreenW / 1920;
+        int requiredSize = Math.Max(width, height) + 2 * (192 + GetExtraOffscreenRange(width, height));
+        return Math.Max(vanillaMaxSize, requiredSize);
     }
 
     private static float GetRenderTargetZoom()
     {
-        return SpectatorMode.CanSpectate ? Math.Min(1f, ReplayClientSettings.ReplayZoomMin) : 1f;
+        // Normal zoom needs normal targets, even while a ghost. Preallocating
+        // for the minimum slider value costs several GB of world targets at 4K.
+        return !Main.gameMenu && SpectatorMode.CanSpectate ? Math.Min(1f, CameraSystem.WorldZoom) : 1f;
     }
 
     private static FieldInfo MainField(string name, BindingFlags flags)
@@ -149,11 +164,13 @@ public sealed class RenderEdits : ModSystem
 
     private static void ReloadRenderTargets()
     {
-        if (Main.dedServ)
+        if (Main.dedServ || reloadQueued)
             return;
 
+        reloadQueued = true;
         Main.QueueMainThreadAction(() =>
         {
+            reloadQueued = false;
             MethodInfo initTargets = typeof(Main).GetMethod("InitTargets", BindingFlags.Instance | BindingFlags.NonPublic, null, [], null);
             FieldInfo busyField = MainField("_isResizingAndRemakingTargets", BindingFlags.Static | BindingFlags.NonPublic);
 
