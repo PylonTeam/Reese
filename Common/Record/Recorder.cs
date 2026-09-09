@@ -180,14 +180,13 @@ public class Recorder : ModSystem, ITicker
         {
             // NOTE: Not sending status text, who cares
             client.State = 3;
-
-            // should have been done already, but just in case.
-            client.ResetSections();
         }
         else
         {
             Main.SyncAnInvasion(client.Id);
         }
+
+        client.ResetSections();
 
         for (var x = 0; x < Main.maxSectionsX; x++)
         {
