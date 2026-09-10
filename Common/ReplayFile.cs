@@ -55,7 +55,8 @@ public class ReplayFile : IDisposable
         }
 
         if (ver > Version)
-            throw new InvalidOperationException($"Reese replay version too high: has {ver}, but we only know {Version}");
+            throw new InvalidOperationException(
+                $"Reese replay version too high: has {ver}, but we only know {Version}");
 
         var replay = new ReplayFile { _binaryRw = br };
         replay.ReadHeader();
@@ -99,7 +100,7 @@ public class ReplayFile : IDisposable
             _head = stream.Position
         };
 
-        replay.MetaBaselines.Positions = [];
+        replay.MetaBaselines.Cache = [];
 
         replay.WriteHeader([
                 new(MetaBlockIdentity.Info, 0),
@@ -303,7 +304,7 @@ public class ReplayFile : IDisposable
         new BlockHeader(BlockFlag.Baseline, data.Length, 0).Write(Writer);
         Writer.Write(data);
 
-        MetaBaselines.Positions.Add(p);
+        MetaBaselines.Cache.Add(new(p, Tick));
     }
 
     private void Flush(int delta, bool terminal = false)
@@ -328,6 +329,24 @@ public class ReplayFile : IDisposable
         }
     }
 
+    public void Goto(MetaBlockFooterBaselines.Entry bl)
+    {
+        if (Reader == null)
+            throw new InvalidOperationException("must be reading to seek");
+
+        if (_dataBuffer != null)
+        {
+            _dataBuffer.Dispose();
+            _dataBuffer = null;
+        }
+
+        Terminated = false;
+        _bh = default;
+        Tick = bl.Tick;
+        Reader.BaseStream.Position = bl.Position;
+        ReadBlock();
+    }
+
     public void Dispose()
     {
         if (Writer != null)
@@ -344,7 +363,6 @@ public class ReplayFile : IDisposable
             _binaryRw = null;
         }
     }
-
 
     public enum MetaBlockIdentity : byte
     {
@@ -391,22 +409,33 @@ public class ReplayFile : IDisposable
         }
     }
 
-    public record struct MetaBlockFooterBaselines(List<long> Positions)
+    public record struct MetaBlockFooterBaselines(List<MetaBlockFooterBaselines.Entry> Cache)
     {
+        public record struct Entry(long Position, long Tick);
+
         public void Read(BinaryReader br)
         {
             var count = br.Read7BitEncodedInt();
-            Positions = new List<long>(new long[count]);
+            Cache = new List<Entry>(new Entry[count]);
 
             for (var i = 0; i < count; i++)
-                Positions[i] = br.ReadInt64();
+            {
+                Entry ent = new();
+                ent.Position = br.Read7BitEncodedInt64();
+                ent.Tick = br.Read7BitEncodedInt64();
+
+                Cache[i] = ent;
+            }
         }
 
         public void Write(BinaryWriter bw)
         {
-            bw.Write7BitEncodedInt(Positions.Count);
-            foreach (var p in Positions)
-                bw.Write(p);
+            bw.Write7BitEncodedInt(Cache.Count);
+            foreach (var c in Cache)
+            {
+                bw.Write7BitEncodedInt64(c.Position);
+                bw.Write7BitEncodedInt64(c.Tick);
+            }
         }
     }
 

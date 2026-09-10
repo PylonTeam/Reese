@@ -50,17 +50,27 @@ public sealed class PlaybackHud : DraggablePanel
             if (Playback.IsPlayingReplay(out PlaybackSocket sock))
             {
                 uint targetTick = RatioToTick(ratio);
-                if (targetTick < sock.Ticker.Tick)
+                if (targetTick < sock.Tick)
                     RefreshPositionSlider();
                 else
                     RefreshTimeLabel(targetTick, GetDurationTicks());
             }
         };
+
         positionSlider.OnRelease += ratio =>
         {
             uint targetTick = RatioToTick(ratio);
 
-            ReplayPlayback.SeekToTick(targetTick);
+            if (Playback.IsPlaying)
+            {
+                if (Playback.IsPlayingReplay(out PlaybackSocket sock))
+                {
+                    if (targetTick >= sock.Tick)
+                        ModContent.GetInstance<PlaybackTimeScale>().FastForwardTicks = targetTick - sock.Tick;
+                    else
+                        Playback.Goto(targetTick);
+                }
+            }
 
             RefreshPositionSlider();
         };
@@ -240,39 +250,34 @@ public sealed class PlaybackHud : DraggablePanel
 
     private void GoToStart()
     {
-        ReplayPlayback.SeekToStart();
+        if (Playback.IsPlaying)
+            Playback.Goto(0);
+
         RefreshVisualState();
     }
 
     private void GoToEnd()
     {
-        ReplayPlayback.SeekToEnd();
+        if (Playback.IsPlayingReplay(out ReplayFile replay))
+            Playback.Goto((uint)replay.MetaInfo.Duration);
+
         RefreshVisualState();
     }
 
     private void SeekBackward30()
     {
-        var sock = Playback.Socket;
-        if (sock != null)
-        {
-            var tick = sock.Ticker.Tick;
-            uint ticks = (uint)(30 * 60);
-            uint target = tick > ticks ? tick - ticks : 0u;
-            ReplayPlayback.SeekToTick(target);
-            RefreshVisualState();
-        }
+        if (Playback.IsPlayingReplay(out PlaybackSocket sock))
+            Playback.Goto(Math.Max(sock.Tick - (30 * 60), 0));
+
+        RefreshVisualState();
     }
 
     private void SeekForward30()
     {
-        var sock = Playback.Socket;
-        if (sock != null)
-        {
-            var tick = sock.Ticker.Tick;
-            uint target = tick + (uint)(30 * 60);
-            ReplayPlayback.SeekToTick(target);
-            RefreshVisualState();
-        }
+        if (Playback.IsPlaying)
+            ModContent.GetInstance<PlaybackTimeScale>().FastForwardTicks = 30 * 60;
+
+        RefreshVisualState();
     }
     #endregion
 
@@ -281,7 +286,7 @@ public sealed class PlaybackHud : DraggablePanel
         var sock = Playback.Socket;
         if (sock != null)
         {
-            var tick = sock.Ticker.Tick;
+            var tick = sock.Tick;
 
             uint durationTicks = GetDurationTicks();
             uint currentTick = Math.Min(tick, durationTicks);
@@ -337,7 +342,7 @@ public sealed class PlaybackHud : DraggablePanel
         var sock = Playback.Socket;
         if (sock != null)
         {
-            var tick = sock.Ticker.Tick;
+            var tick = sock.Tick;
 
             uint durationTicks = GetDurationTicks();
             uint currentTick = Math.Min(tick, durationTicks);
@@ -375,7 +380,7 @@ public sealed class PlaybackHud : DraggablePanel
 
     private static string GetReplayStatus(uint currentTick, uint durationTicks, bool paused)
     {
-        if (ReplayPlayback.IsSeeking)
+        if (ModContent.GetInstance<PlaybackTimeScale>().FastForwardTicks > 0)
             return Loc.Get("ReplayHud.Playback.ReplayStatus.Seeking");
 
         if (durationTicks > 1 && currentTick >= durationTicks)

@@ -30,10 +30,10 @@ public class Playback : ModSystem
 
     public static void Start(ReplayFile replay)
     {
-        var sock = new PlaybackSocket(ModContent.GetInstance<PlaybackTimeScale>(), replay);
+        var sock = new PlaybackSocket(replay);
         new Thread(PlaybackClientLoop)
         {
-            Name = "Playback Client Thread",
+            Name = "Playback Thread",
             IsBackground = true
         }.Start(sock);
     }
@@ -81,12 +81,56 @@ public class Playback : ModSystem
         return false;
     }
 
+    public static void Goto(uint tick)
+    {
+        if (!IsPlayingReplay(out PlaybackSocket sock))
+            return;
+
+        var pts = ModContent.GetInstance<PlaybackTimeScale>();
+        var replay = sock.Replay;
+        lock (replay)
+        {
+            var cache = replay.MetaBaselines.Cache;
+            if (cache.Count == 0)
+                return;
+
+            // find the nearest baseline before the target tick.
+            ReplayFile.MetaBlockFooterBaselines.Entry bl = default;
+            foreach (var ent in replay.MetaBaselines.Cache)
+            {
+                if (ent.Tick <= tick)
+                    bl = ent;
+                else
+                    break;
+            }
+
+            replay.Goto(bl);
+
+            const int serverBufIdx = 256;
+            // we could have interrupted a packet transfer! make sure we ignore whatever is currently sitting in there.
+            // probably do not need the lock.
+            var netBuf = NetMessage.buffer[serverBufIdx];
+            lock (netBuf)
+            {
+                netBuf.totalData = 0;
+                netBuf.checkBytes = false;
+                netBuf.spamCount = 0;
+            }
+
+            sock.Tick = (uint)bl.Tick;
+            pts.FastForwardTicks = tick - (uint)bl.Tick;
+
+            // TODO: move this code
+            ReplayPlayback.ResetReplayState();
+        }
+    }
+
     private static void PlaybackClientLoop(object context)
     {
         var socket = (PlaybackSocket)context;
         Netplay.ClientLoopSetup(socket.GetRemoteAddress());
         Netplay.Connection.Socket = socket;
-        Main.statusText = "Replay starting";
+        Main.statusText = Loc.Get("MainMenu.ReplayStartup.Connecting");
         Main.menuMode = MenuID.MultiplayerJoining;
 
         try
@@ -96,7 +140,11 @@ public class Playback : ModSystem
         finally
         {
             // should have already been Disposed because the socket was Closed, but just in case.
-            Socket?.Replay.Dispose();
+            if (IsPlayingReplay(out ReplayFile replay))
+            {
+                lock (replay)
+                    replay.Dispose();
+            }
         }
     }
 
@@ -104,7 +152,8 @@ public class Playback : ModSystem
     {
         var replays = new List<ReplayFile>();
 
-        foreach (var path in Directory.EnumerateFiles(ReplayPaths.GetFolder(), "*.reese", new EnumerationOptions { IgnoreInaccessible = true }))
+        var opts = new EnumerationOptions { IgnoreInaccessible = true };
+        foreach (var path in Directory.EnumerateFiles(ReplayPaths.GetFolder(), "*.reese", opts))
         {
             FileStream fs;
             ReplayFile replay;
@@ -137,7 +186,7 @@ public class Playback : ModSystem
 
     public override bool HijackGetData(ref byte messageType, ref BinaryReader reader, int playerNumber)
     {
-        if (Socket == null)
+        if (!IsPlaying)
             return false;
 
         if (messageType == MessageID.Kick)
@@ -161,13 +210,13 @@ public class PlaybackRemoteAddress : RemoteAddress
     public override string ToString() => GetFriendlyName();
 }
 
-public class PlaybackSocket(ITicker ticker, ReplayFile replay) : ISocket
+public class PlaybackSocket(ReplayFile replay) : ISocket
 {
     private static readonly PlaybackRemoteAddress RemoteAddress = new();
 
+    public uint Tick { get; set; }
     public bool Closed { get; private set; }
 
-    public ITicker Ticker => ticker;
     public ReplayFile Replay => replay;
 
     public void Close()
@@ -175,8 +224,12 @@ public class PlaybackSocket(ITicker ticker, ReplayFile replay) : ISocket
         if (Closed)
             return;
 
-        Log.Info("Closing replay socket");
-        Replay.Dispose();
+        lock (Replay)
+        {
+            Log.Info("Closing replay socket");
+            Replay.Dispose();
+        }
+
         Closed = true;
     }
 
@@ -196,32 +249,44 @@ public class PlaybackSocket(ITicker ticker, ReplayFile replay) : ISocket
 
     public void AsyncReceive(byte[] data, int offset, int size, SocketReceiveCallback callback, object state)
     {
-        ResetTimeoutTimer();
-        var numberOfBytesRead = Replay.ReadData(data.AsSpan()[offset..(offset + size)]);
-        callback(state, numberOfBytesRead);
+        try
+        {
+            ResetTimeoutTimer();
+            var numberOfBytesRead = Replay.ReadData(data.AsSpan()[offset..(offset + size)]);
+            callback(state, numberOfBytesRead);
+        }
+        finally
+        {
+            Monitor.Exit(Replay);
+        }
     }
 
+    /// <remarks>on a return value of <see langword="true"/>, <see cref="AsyncReceive"/> MUST be invoked.</remarks>
     public bool IsDataAvailable()
     {
+        Monitor.Enter(Replay);
         ResetTimeoutTimer();
 
-        if (Closed || Replay.Terminated)
-            return false;
-
-        // before we reach state 6 (player spawned), we always want data,
-        // so sign on data and the first baseline is consumed properly.
-        if (Netplay.Connection.State < 6)
-            return true;
-
-        if (Ticker.Tick >= Replay.Tick)
+        if (Closed)
         {
-            if (Replay.IsDataBuffered)
-                return true;
-
-            if (Replay.Terminated)
-                return false;
+            Monitor.Exit(Replay);
+            return false;
         }
 
+        if (Replay.IsDataBuffered)
+        {
+            // before we reach state 6 (player spawned), we always want data,
+            // so sign on data and the first baseline is consumed properly.
+            if (Netplay.Connection.State < 6)
+                return true;
+
+            var value = Tick >= Replay.Tick;
+            if (!value) Monitor.Exit(Replay);
+
+            return value;
+        }
+
+        Monitor.Exit(Replay);
         return false;
     }
 

@@ -99,7 +99,7 @@ internal static class DebugDrawerStats
         List<string> rows = [];
         if (Playback.IsPlayingReplay(out PlaybackSocket sock))
         {
-            var tick = sock.Ticker.Tick;
+            var tick = sock.Tick;
             var duration = sock.Replay.MetaInfo.Duration;
 
             string currentTime = TimeSpan.FromSeconds(tick / 60.0).ToString(@"mm\:ss");
@@ -107,7 +107,7 @@ internal static class DebugDrawerStats
             float progressPct = duration > 0 ? (tick / (float)duration) * 100f : 0f;
             float timeScale = ModContent.GetInstance<PlaybackTimeScale>().TimeScale;
 
-            rows.Add($"File: {GetFileNameOrDash(ReplayPlayback.CurrentPath)}");
+            rows.Add($"File: idk");
             rows.Add($"Playback: {currentTime} / {totalTime} ({progressPct:F1}%)");
             rows.Add($"Tick: {tick} / {duration}");
             rows.Add($"Speed: {timeScale:F2}x");

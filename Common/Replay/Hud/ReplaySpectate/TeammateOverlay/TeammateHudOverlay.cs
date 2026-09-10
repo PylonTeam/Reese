@@ -92,9 +92,6 @@ internal static class TeammateHudOverlay
 
         if (player?.active != true)
         {
-            if (ReplayPlayback.IsSeeking)
-                return;
-
             Clear();
             return;
         }

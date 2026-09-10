@@ -7,7 +7,7 @@ namespace Reese.Core.Configs;
 public class ServerConfig : ModConfig
 {
     public const int DefaultBaselineIntervalSeconds = 60 * 15;
-    public const int MaxBaselineIntervalSeconds = 60 * 5;
+    public const int MaxBaselineIntervalSeconds = 60 * 60;
 
     public override ConfigScope Mode => ConfigScope.ServerSide;
 

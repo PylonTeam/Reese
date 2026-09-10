@@ -11,12 +11,10 @@ namespace Reese.Common.Replay;
 /// slow-down is implemented in the others with an accumulator where I update 0.25 / 0.5 times per tick and only update after a full 1.0 update has been saved up
 /// </summary>
 [Autoload(Side = ModSide.Client)]
-internal sealed class PlaybackTimeScale : ModSystem, ITicker
+internal sealed class PlaybackTimeScale : ModSystem
 {
     public static readonly float[] SnapValues = [0f, 0.125f, 0.25f, 0.5f, 0.75f, 1f, 2f, 4f, 8f, 16f, 32f];
     private const int MaxSeekUpdatesPerFrame = 120;
-
-    public uint Tick { get; private set; }
 
     private float _timeScale;
 
@@ -32,7 +30,6 @@ internal sealed class PlaybackTimeScale : ModSystem, ITicker
     }
 
     public uint FastForwardTicks { get; set; }
-    public bool Seek { get; set; }
 
     private double worldUpdateAccumulator;
     private double timeUpdateAccumulator;
@@ -65,7 +62,6 @@ internal sealed class PlaybackTimeScale : ModSystem, ITicker
 
     public override void ClearWorld()
     {
-        Tick = 0;
         TimeScale = 1.0f;
         FastForwardTicks = 0;
         ResetAccumulators();
@@ -129,34 +125,40 @@ internal sealed class PlaybackTimeScale : ModSystem, ITicker
         if (runningExtraUpdates || Main.gameMenu)
             return;
 
-        while (FastForwardTicks > 0)
+        if (FastForwardTicks > 0)
         {
-            ClientConfig config = ModContent.GetInstance<ClientConfig>();
-            float maxTimePerFrame = Math.Clamp(
-                config?.SeekMaxMillisecondsPerFrame ?? ClientConfig.DefaultSeekMaxMillisecondsPerFrame,
-                ClientConfig.MinSeekMaxMillisecondsPerFrame,
-                ClientConfig.MaxSeekMaxMillisecondsPerFrame
-            );
-
-            Stopwatch stopwatch = Stopwatch.StartNew();
-            runningExtraUpdates = true;
-
-            try
+            while (FastForwardTicks > 0)
             {
-                for (int i = 0; i < MaxSeekUpdatesPerFrame; i++)
-                {
-                    if (stopwatch.Elapsed.TotalMilliseconds >= maxTimePerFrame)
-                        break;
+                ClientConfig config = ModContent.GetInstance<ClientConfig>();
+                float maxTimePerFrame = Math.Clamp(
+                    config?.SeekMaxMillisecondsPerFrame ?? ClientConfig.DefaultSeekMaxMillisecondsPerFrame,
+                    ClientConfig.MinSeekMaxMillisecondsPerFrame,
+                    ClientConfig.MaxSeekMaxMillisecondsPerFrame
+                );
 
-                    orig(self, ref gameTime);
-                    NotifyWorldTickAdvanced();
-                    --FastForwardTicks;
+                Stopwatch stopwatch = Stopwatch.StartNew();
+                runningExtraUpdates = true;
+
+                var numUpdates = Math.Min(FastForwardTicks, MaxSeekUpdatesPerFrame);
+                try
+                {
+                    for (int i = 0; i < numUpdates; i++)
+                    {
+                        if (stopwatch.Elapsed.TotalMilliseconds >= maxTimePerFrame)
+                            break;
+
+                        orig(self, ref gameTime);
+                        NotifyWorldTickAdvanced();
+                        --FastForwardTicks;
+                    }
+                }
+                finally
+                {
+                    runningExtraUpdates = false;
                 }
             }
-            finally
-            {
-                runningExtraUpdates = false;
-            }
+
+            return;
         }
 
         if (TimeScale <= 1f)
@@ -215,7 +217,8 @@ internal sealed class PlaybackTimeScale : ModSystem, ITicker
 
     private void NotifyWorldTickAdvanced()
     {
-        Tick++;
+        if (Playback.IsPlayingReplay(out PlaybackSocket sock))
+            sock.Tick++;
     }
 
     private void HookUpdateTime(On_Main.orig_UpdateTime orig)
