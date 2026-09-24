@@ -15,8 +15,29 @@ namespace Reese.Common.Replay;
 [Autoload(Side = ModSide.Client)]
 public class Playback : ModSystem
 {
+    private const bool UseDeltaSectionsAfterSignOn = true;
     public static PlaybackSocket Socket => Netplay.Connection.Socket as PlaybackSocket;
     public static bool IsPlaying => Socket is { Closed: false };
+
+    public override void Load()
+    {
+        if (UseDeltaSectionsAfterSignOn)
+        {
+            On_NetMessage.DecompressTileBlock_Inner += (orig, reader, xStart, yStart, width, height) =>
+            {
+                // during playback after fully spawned, let's ignore tiles within sections we already have (perform deltas).
+                // if you do want any of these tiles to apply, make sure the section manager reflects that need
+                // and mark the sections as not loaded.
+                if (IsPlayingReplay(out ReplayFile replay)
+                    && Netplay.Connection.State == 10
+                    && replay.IsBaselining
+                    && Main.sectionManager.TilesLoaded(xStart, yStart, xStart + width, yStart + height))
+                    return;
+
+                orig(reader, xStart, yStart, width, height);
+            };
+        }
+    }
 
     public override void Unload()
     {
@@ -115,6 +136,18 @@ public class Playback : ModSystem
                 netBuf.totalData = 0;
                 netBuf.checkBytes = false;
                 netBuf.spamCount = 0;
+            }
+
+            if (UseDeltaSectionsAfterSignOn && Netplay.Connection.State == 10)
+            {
+                // make sure the client truly applies the sections that we anticipate from a baseline.
+                for (var i = 0; i < Main.sectionManager.data.Length; i++)
+                {
+                    var flags = Main.sectionManager.data[i];
+                    flags[WorldSections.BitIndex_SectionLoaded] = false;
+                    flags[WorldSections.BitIndex_SectionFramed] = false;
+                    Main.sectionManager.data[i] = flags;
+                }
             }
 
             sock.Tick = (uint)bl.Tick;

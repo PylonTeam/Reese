@@ -133,10 +133,16 @@ public class Recorder : ModSystem, ITicker
         replay.MetaInfo.Start = now;
         replay.MetaInfo.WorldName = Main.worldName;
 
-        recordSocket.BeginBaselineCapture();
-        SendSignOn(client);
-        SendReplayWorldSnapshot(client, true);
-        recordSocket.EndBaselineCapture();
+        try
+        {
+            recordSocket.BeginBaselineCapture();
+            SendSignOn(client);
+            SendReplayWorldSnapshot(client, true);
+        }
+        finally
+        {
+            recordSocket.EndBaselineCapture();
+        }
 
         RecorderStatus.Start(currentReplayPath);
         RecorderStatus.SyncToClients();
@@ -156,6 +162,7 @@ public class Recorder : ModSystem, ITicker
         // Server sets State to 1 and syncs mods
         client.State = 1;
         _modNetSyncMods.Invoke(null, [client.Id]);
+
         // Client syncs mods to indicate it's done and ready
         // Server sends net IDs and PlayerInfo
         _modNetSendNetIds.Invoke(null, [client.Id]);
