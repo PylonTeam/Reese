@@ -49,6 +49,14 @@ internal class GhostInventoryControlSystem : ModSystem
 
     private static void ToggleSpectatedPlayerInventory()
     {
+        // The inventory can remain open after the camera stops following its player.
+        // Closing it must not depend on still having a spectate target.
+        if (TeammateHudOverlay.IsAnyOpen)
+        {
+            TeammateHudOverlay.Clear();
+            return;
+        }
+
         Player target = SpectatorTargetSystem.GetPlayerTarget();
 
         if (target?.active == true)
