@@ -1,5 +1,8 @@
 ﻿using Reese.Common.Replayer.ReplayHud.ReplaySpectate;
 using ReLogic.Graphics;
+using Mono.Cecil.Cil;
+using MonoMod.Cil;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using Terraria.GameContent;
@@ -11,8 +14,7 @@ using Reese.Common.Spectator;
 namespace Reese.Common.Replayer.GhostHooks;
 
 /// <summary>
-/// Skip drawing ghost player nameplates 
-/// (which are only drawn when they are on same team, which usually never happens, but whatever).
+/// Applies ghost visibility settings to teammate nameplates and player hover names/HP.
 /// </summary>
 [Autoload(Side = ModSide.Client)]
 internal sealed class GhostDrawNameplatesSpectator : ModSystem
@@ -21,12 +23,40 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
     private static readonly MethodInfo getDistanceMethod = typeof(NewMultiplayerClosePlayersOverlay)
     .GetMethod("GetDistance", BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
-    public override void Load() =>
+    public override void Load()
+    {
         On_NewMultiplayerClosePlayersOverlay.Draw += DrawNamesAfterNewOverlay;
+        IL_Main.DrawMouseOver += FilterGhostHoverText;
+    }
 
     public override void Unload()
     {
         On_NewMultiplayerClosePlayersOverlay.Draw -= DrawNamesAfterNewOverlay;
+        IL_Main.DrawMouseOver -= FilterGhostHoverText;
+    }
+
+    private static void FilterGhostHoverText(ILContext il)
+    {
+        IL.Edit(il, c =>
+        {
+            int playerIndex = -1;
+            if (!c.TryGotoNext(MoveType.After,
+                i => i.MatchLdsfld<Main>(nameof(Main.player)),
+                i => i.MatchLdloc(out playerIndex),
+                i => i.MatchLdelemRef(),
+                i => i.MatchLdfld<Entity>(nameof(Entity.active))))
+            {
+                throw new InvalidOperationException("Could not find the player hover loop in Main.DrawMouseOver.");
+            }
+
+            // Filter this loop's active check without changing Player.active. Skipping the player
+            // also leaves mouseText unset, so NPCs/items underneath can still show their tooltips.
+            c.Emit(OpCodes.Ldsfld, typeof(Main).GetField(nameof(Main.player)));
+            c.Emit(OpCodes.Ldloc, c.Body.Variables[playerIndex]);
+            c.Emit(OpCodes.Ldelem_Ref);
+            c.EmitDelegate((bool active, Player player) =>
+                active && (!player.ghost || ReplayDrawGate.ShouldDrawNameplate(player, isSpectator: true)));
+        });
     }
 
     private static bool TryGetDistance(int screenWidth, int screenHeight, Vector2 screenPosition, Player localPlayer, DynamicSpriteFont font, Player otherPlayer, string name, out Vector2 namePlatePos, out float namePlateDist, out Vector2 measurement)
@@ -263,9 +293,6 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
             return false;
 
         if (otherPlayer.dead && !otherIsSpectator)
-            return false;
-
-        if (otherPlayer.ghost && !ReplayDrawGate.ShouldDrawNameplate(otherPlayer, otherIsSpectator))
             return false;
 
         if (otherIsSpectator)

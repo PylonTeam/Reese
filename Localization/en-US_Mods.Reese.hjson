@@ -362,12 +362,12 @@ Configs: {
 
 		DrawGhosts: {
 			Label: Draw Ghosts
-			Tooltip: Whether players can see other ghosts' sprites
+			Tooltip: Whether players can see other ghosts' sprites. Disabling this also hides their nameplates and hover names/HP.
 		}
 
 		DrawGhostsNameplates: {
 			Label: Draw Ghost Nameplates
-			Tooltip: Whether players can see other ghosts' nameplates
+			Tooltip: Whether players can see other ghosts' nameplates and hover names/HP. Requires Draw Ghosts.
 		}
 
 		ShowSpectatorJoinPanel: {

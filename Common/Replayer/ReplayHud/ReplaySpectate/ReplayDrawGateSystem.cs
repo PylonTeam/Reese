@@ -38,6 +38,10 @@ internal static class ReplayDrawGate
 
         if (player.ghost)
         {
+            // A hidden ghost must not be revealed by either a nameplate or hover text.
+            if (!ShouldDrawGhost(player))
+                return false;
+
             if (ReplayPlayback.IsReplayPlayback)
                 return ReplayClientSettings.IsNameplatesOn;
 

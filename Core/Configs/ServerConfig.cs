@@ -90,6 +90,7 @@ public class ServerConfig : ModConfig
         public bool DrawGhosts;
 
         [RequiresField(nameof(IsGhostSpectatingEnabled))]
+        [RequiresField(nameof(DrawGhosts))]
         [BackgroundColor(30, 150, 150)]
         [DefaultValue(false)]
         public bool DrawGhostsNameplates;
