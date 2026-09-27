@@ -28,8 +28,8 @@ internal sealed class GhostDrawMapHeads : ModSystem
 
     private static void HideGhostPlayersVanillaHeads(On_MapHeadRenderer.orig_DrawPlayerHead orig, MapHeadRenderer self, Camera camera, Player drawPlayer, Vector2 position, float alpha, float scale, Color borderColor)
     {
-        // Only take the vanilla head away when GhostMapHeadLayer is actually going to replace it,
-        // otherwise ghosts vanish from the map entirely for anyone not spectating.
+        // This layer owns ghost icons when available, including hiding them with Draw Heads.
+        // Otherwise keep vanilla heads for players who cannot see the custom ghost icons.
         if (drawPlayer?.active == true && drawPlayer.ghost && GhostMapHeadLayer.WillDrawGhostIcons)
             return;
 
@@ -40,15 +40,15 @@ internal sealed class GhostDrawMapHeads : ModSystem
 internal sealed class GhostMapHeadLayer : ModMapLayer
 {
     /// <summary>
-    /// Whether this layer draws ghost icons. <see cref="GhostDrawMapHeads"/> reads the same
-    /// property so the two cannot drift apart and leave ghosts undrawn by both.
+    /// Whether this layer owns ghost icons. Draw Heads can still hide those icons;
+    /// <see cref="GhostDrawMapHeads"/> suppresses vanilla heads either way.
     /// </summary>
     internal static bool WillDrawGhostIcons =>
         SpectatorMode.CanSpectate || SpectatorMode.CanDrawOtherGhosts || Main.LocalPlayer?.ghost == true;
 
     public override void Draw(ref MapOverlayDrawContext context, ref string text)
     {
-        if (!WillDrawGhostIcons)
+        if (!WillDrawGhostIcons || !DrawAllPlayerHeadsOnMapSystem.ShouldDrawHeads)
             return;
 
         Texture2D ghostRight = Ass.GhostRight.Value;

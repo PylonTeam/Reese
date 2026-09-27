@@ -87,7 +87,9 @@ internal static class ReplayClientSettings
     public static bool IsDrawItemsOn { get; set; } = true;
     public static bool IsDrawChatOn { get; set; } = true;
     public static bool IsNameplatesOn { get; set; } = true;
+    public static bool IsDrawHeadsOn { get; set; } = true;
     public static void ToggleNameplates() => IsNameplatesOn = !IsNameplatesOn;
+    public static void ToggleHeads() => IsDrawHeadsOn = !IsDrawHeadsOn;
     public static void TogglePlayers() => IsDrawPlayersOn = !IsDrawPlayersOn;
     public static void ToggleGhosts() => IsDrawGhostsOn = !IsDrawGhostsOn;
     public static void ToggleProjectiles() => IsDrawProjectilesOn = !IsDrawProjectilesOn;

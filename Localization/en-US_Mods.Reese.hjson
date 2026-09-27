@@ -152,6 +152,7 @@ ReplayHud: {
 			DrawItems: Draw Items:
 			DrawChat: Draw Chat:
 			DrawNameplates: Draw Nameplates:
+			DrawHeads: Draw Heads:
 			ShowSpectateHud: Show Spectate HUD:
 			RowsVisible: Rows:
 			SortBy: Sort By:
@@ -179,6 +180,7 @@ ReplayHud: {
 			DrawItems: Draw Items: {0}
 			DrawChat: Draw Chat: {0}
 			DrawNameplates: Draw Nameplates: {0}
+			DrawHeads: Draw Heads: {0}
 			ShowSpectateHud: Show Spectate HUD: {0}
 			RowsVisible: Rows Visible: {0}
 			SortBy: Sort By: {0}
