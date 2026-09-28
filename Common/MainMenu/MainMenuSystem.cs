@@ -1,5 +1,9 @@
+using Reese.Common.MainMenu.UI;
 using Microsoft.Xna.Framework.Input;
+using Mono.Cecil;
+using Mono.Cecil.Cil;
 using MonoMod.Cil;
+using ReLogic.Graphics;
 using Reese.Common.Replayer;
 using Reese.Core.Configs;
 using System;
@@ -12,7 +16,7 @@ using static Reese.Common.MainMenu.MainMenuActions;
 namespace Reese.Common.MainMenu;
 
 /// <summary>
-/// Adds a custom Reese Replays button to the main menu buttons (the button is added inbetween workshop and settings)
+/// Adds a custom Reese Replays button after Pylon (or Multiplayer when Pylon is absent).
 /// Adds a <see cref="MainMenuUIState"/> with the <see cref="ReplayBrowserPanel"/>
 /// </summary>
 [Autoload(Side = ModSide.Client)]
@@ -61,6 +65,7 @@ public class MainMenuSystem : ModSystem
         On_Main.DrawVersionNumber -= DrawMenuUI;
         On_Main.UpdateUIStates -= PostUpdateUIStates;
 
+        MainMenuTextThemeDrawer.Unload();
         ui = null;
         reeseMainMenuUI = null;
         reeseMainMenuState = null;
@@ -95,6 +100,16 @@ public class MainMenuSystem : ModSystem
                 return;
             }
 
+            // Pylon inserts at the preceding index increment, keeping Reese directly below it.
+            if (!c.TryGotoPrev(MoveType.Before,
+                    i => i.MatchLdloc(buttonIndexIndex),
+                    i => i.MatchLdsfld<Lang>("menu"),
+                    i => i.MatchLdcI4(131)))
+            {
+                Log.Warn("Failed to find main menu insertion point before Achievements.");
+                return;
+            }
+
             c.EmitLdloc(buttonNamesIndex);
             c.EmitLdloc(buttonScalesIndex);
             c.EmitLdloca(buttonIndexIndex);
@@ -106,7 +121,7 @@ public class MainMenuSystem : ModSystem
             });
 
             c.Index = 0;
-            PatchButtonColor(c, buttonNamesIndex);
+            PatchButtonText(c, buttonNamesIndex);
 
             c.Index = 0;
 
@@ -179,97 +194,94 @@ public class MainMenuSystem : ModSystem
         return true;
     }
 
-    private static void PatchButtonColor(ILCursor c, int buttonNamesIndex)
+    private delegate bool DrawButtonTextDelegate(
+        SpriteBatch batch, DynamicSpriteFont font, string text, Vector2 position,
+        Color color, float rotation, Vector2 origin, float scale,
+        SpriteEffects effects, float layerDepth, int drawPass, bool hovered);
+
+    private static void PatchButtonText(ILCursor c, int buttonNamesIndex)
     {
-        int colorIndex = -1;
-        int rIndex = -1;
-        int gIndex = -1;
-        int bIndex = -1;
-        int aIndex = -1;
+        int buttonIndex = -1;
+        int drawPassIndex = -1;
         int hoveredIndex = -1;
-        int outerIteratorIndex = -1;
-        int innerIteratorIndex = -1;
-        int interpolatorIndex = -1;
 
-        ILLabel jumpColorCtorTarget = c.DefineLabel();
-
-        for (int i = 0; i < 5; i++)
-        {
-            if (!c.TryGotoNext(MoveType.After,
-                    i => i.MatchLdloca(out colorIndex),
-                    i => i.MatchLdloc(out rIndex),
-                    i => i.MatchConvU1(),
-                    i => i.MatchLdloc(out gIndex),
-                    i => i.MatchConvU1(),
-                    i => i.MatchLdloc(out bIndex),
-                    i => i.MatchConvU1(),
-                    i => i.MatchLdloc(out aIndex),
-                    i => i.MatchConvU1(),
-                    i => i.MatchCall<Color>(".ctor")))
-            {
-                Log.Warn("Failed to patch main menu button color constructor.");
-                return;
-            }
-
-            if (i == 4)
-                break;
-        }
-
-        c.MarkLabel(jumpColorCtorTarget);
-
+        // Find the final menu-label loop by its own text array, rather than counting color constructors.
         if (!c.TryGotoNext(MoveType.After,
-                i => i.MatchLdloc(out innerIteratorIndex),
+                i => i.MatchLdloc(buttonNamesIndex),
+                i => i.MatchLdloc(out buttonIndex),
+                i => i.MatchLdelemRef(),
+                i => i.MatchCallvirt<DynamicSpriteFont>(nameof(DynamicSpriteFont.MeasureString))) ||
+            !c.TryGotoNext(MoveType.After,
+                i => i.MatchLdloc(out hoveredIndex),
+                i => i.MatchLdloc(buttonIndex),
+                i => i.MatchBneUn(out _),
+                i => i.MatchLdloc(out drawPassIndex),
                 i => i.MatchLdcI4(4),
                 i => i.MatchBneUn(out _)))
         {
-            Log.Warn("Failed to find main menu draw-pass check for button color patch.");
+            Log.Warn("Failed to find the main menu text draw loop for flame effects.");
             return;
         }
 
-        if (!c.TryGotoPrev(MoveType.Before,
-                i => i.MatchLdloc(out hoveredIndex),
-                i => i.MatchLdloc(out outerIteratorIndex),
-                i => i.MatchBneUn(out _),
-                i => i.MatchLdloc(out _),
-                i => i.MatchLdcI4(4),
-                i => i.MatchBneUn(out _),
-                i => i.MatchLdloc(out interpolatorIndex)))
+        int patchedDrawCalls = 0;
+
+        // Terraria has centered and left-aligned paths. Preserve each native call so another mod
+        // can wrap it too, regardless of load order, while skipping it when our label is rendered.
+        while (patchedDrawCalls < 2 && c.TryGotoNext(MoveType.Before,
+                   i => i.MatchCall(typeof(DynamicSpriteFontExtensionMethods), "DrawString")))
         {
-            Log.Warn("Failed to find main menu hover-color block for button color patch.");
-            return;
+            MethodReference drawMethod = (MethodReference)c.Next.Operand;
+            if (drawMethod.Parameters.Count != 10 || drawMethod.Parameters[7].ParameterType.FullName != "System.Single")
+            {
+                Log.Warn("Unexpected main menu DrawString signature; flame effects were not applied.");
+                return;
+            }
+
+            VariableDefinition[] arguments = new VariableDefinition[drawMethod.Parameters.Count];
+            for (int i = 0; i < arguments.Length; i++)
+            {
+                arguments[i] = new VariableDefinition(drawMethod.Parameters[i].ParameterType);
+                c.Context.Body.Variables.Add(arguments[i]);
+            }
+
+            ILLabel afterDraw = c.DefineLabel();
+            c.MoveAfterLabels();
+            for (int i = arguments.Length - 1; i >= 0; i--)
+                c.Emit(OpCodes.Stloc, arguments[i]);
+            foreach (VariableDefinition argument in arguments)
+                c.Emit(OpCodes.Ldloc, argument);
+
+            c.EmitLdloc(drawPassIndex);
+            c.EmitLdloc(buttonIndex);
+            c.EmitLdloc(hoveredIndex);
+            c.Emit(OpCodes.Ceq);
+            c.EmitDelegate<DrawButtonTextDelegate>(TryDrawButtonText);
+            c.EmitBrtrue(afterDraw);
+
+            foreach (VariableDefinition argument in arguments)
+                c.Emit(OpCodes.Ldloc, argument);
+            c.Index++; // Leave the original DrawString call in place.
+            c.MarkLabel(afterDraw);
+            patchedDrawCalls++;
         }
 
-        c.MoveAfterLabels();
-
-        c.EmitLdloca(colorIndex);
-        c.EmitLdloc(buttonNamesIndex);
-        c.EmitLdloc(innerIteratorIndex);
-        c.EmitLdloc(outerIteratorIndex);
-        c.EmitLdloc(hoveredIndex);
-        c.EmitLdloc(interpolatorIndex);
-
-        c.EmitDelegate((ref Color color, string[] buttonNames, int drawPass, int buttonIndex, int hoveredIndex, int interpolator) =>
-        {
-            if (drawPass != 4)
-                return false;
-
-            if (buttonNames == null || (uint)buttonIndex >= (uint)buttonNames.Length)
-                return false;
-
-            if (buttonNames[buttonIndex] != ButtonLabel)
-                return false;
-
-            //Color TextColor = new(255, 64, 96);
-            //Color HoverColor = new(255, 92, 92); // brighter red
-            //Color HoverColor = new(255, 200, 255);
-            Color TextColor = new(90, 210, 255);
-            Color HoverColor = new(255, 240, 80);
-            color = Color.Lerp(TextColor, HoverColor, hoveredIndex == buttonIndex ? interpolator / 255f : 0f);
-            return true;
-        });
-
-        c.EmitBrtrue(jumpColorCtorTarget);
+        if (patchedDrawCalls != 2)
+            Log.Warn("Could not patch both main menu text alignment paths for flame effects.");
     }
+
+    private static bool TryDrawButtonText(
+        SpriteBatch batch, DynamicSpriteFont font, string text, Vector2 position,
+        Color color, float rotation, Vector2 origin, float scale,
+        SpriteEffects effects, float layerDepth, int drawPass, bool hovered)
+    {
+        if (!Main.gameMenu || Main.menuMode != 0 || drawPass != 4 || text != ButtonLabel)
+            return false;
+
+        MainMenuTextThemeDrawer.Draw(batch, font, text, position, color, rotation, origin,
+            Vector2.One * scale, effects, layerDepth, hovered);
+        return true;
+    }
+
     #endregion
 
     private void DrawMenuUI(On_Main.orig_DrawVersionNumber orig, Color menuColor, float upBump)
