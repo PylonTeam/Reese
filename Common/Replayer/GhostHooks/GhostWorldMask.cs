@@ -63,6 +63,15 @@ internal static class GhostWorldMask
         Unmask();
     }
 
+    internal static bool IsMasked(Player player)
+    {
+        foreach (Player candidate in masked)
+            if (ReferenceEquals(candidate, player))
+                return true;
+
+        return false;
+    }
+
     private static bool AnyRealPlayerActive()
     {
         for (int i = 0; i < Main.maxPlayers; i++)
