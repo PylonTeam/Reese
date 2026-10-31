@@ -155,14 +155,19 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
             vec.X -= 22f + num2;
             vec.Y += 8f;
             vec = vec.Floor();
-            Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, this.player, vec, 1f, 0.8f, playerHeadBordersColor);
 
             if (!player.ghost)
+            {
+                bool hovered = WorldSpectateSystem.TryHoverHead(player, vec, 32f);
+                float scale = hovered ? 1f : 0.8f;
+                Main.MapPlayerRenderer.DrawPlayerHead(Main.Camera, this.player, vec, 1f, scale, playerHeadBordersColor);
                 return;
+            }
 
             Texture2D texture = this.player.direction == -1 ? Ass.GhostLeft.Value : Ass.GhostRight.Value;
             Vector2 ghostPos = vec + new Vector2(12f, 0f);
-            float ghostScale = 1.0f;
+            bool ghostHovered = WorldSpectateSystem.TryHoverHead(player, ghostPos, 24f);
+            float ghostScale = ghostHovered ? 1.25f : 1f;
 
             Main.spriteBatch.Draw(texture, ghostPos, null, Color.White, 0f, texture.Size() * 0.5f, ghostScale, SpriteEffects.None, 0f);
         }
@@ -195,6 +200,7 @@ internal sealed class GhostDrawNameplatesSpectator : ModSystem
 
     public void VanillaDraw()
     {
+        WorldSpectateSystem.BeginHeadHoverFrame();
         int teamNamePlateDistance = Main.teamNamePlateDistance;
         if (teamNamePlateDistance <= 0)
         {

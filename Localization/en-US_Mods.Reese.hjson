@@ -238,6 +238,7 @@ ReplayHud: {
 			'''
 		StopSpectatingPlayer: Click to stop spectating {0}
 		SpectatePlayer: Click to spectate {0}
+		ClickToSpectate: Click to spectate
 		SpectatingPlayer: Spectating {0}
 		SpectatingNpc: Spectating {0}
 		SpectatingNpcQuoted: Spectating "{0}"

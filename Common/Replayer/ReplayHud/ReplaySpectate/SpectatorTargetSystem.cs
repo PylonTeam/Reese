@@ -20,7 +20,7 @@ public class SpectatorTargetSystem : ModSystem
         return SpectatorMode.CanSpectate && (CanTarget(target) || CanTargetNPC(npcTarget));
     }
 
-    private static bool CanTarget(int playerId)
+    internal static bool CanTarget(int playerId)
     {
         if (playerId < 0 || playerId >= Main.maxPlayers || playerId == Main.myPlayer)
             return false;
