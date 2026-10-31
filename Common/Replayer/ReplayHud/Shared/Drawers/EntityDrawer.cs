@@ -1,10 +1,8 @@
 ﻿using Microsoft.Xna.Framework.Graphics;
-using Reese.Common.Replayer.GhostHooks;
 using Reese.Core.Configs;
 using ReLogic.Graphics;
 using System;
 using Terraria.GameContent;
-using Terraria.Graphics;
 using Terraria.ID;
 
 namespace Reese.Common.Replayer.ReplayHud.Shared.Drawers;
@@ -71,34 +69,39 @@ public static class EntityDrawer
     #endregion
 
     #region Player
-    public static void DrawPlayerCardPreview(SpriteBatch sb, Player player, Rectangle area)
+    public static void DrawPlayerCardPreview(SpriteBatch sb, Player player, Rectangle area) =>
+        DrawPlayerPreview(sb, player, area);
+
+    public static void DrawPlayerCardHead(SpriteBatch sb, Player player, Rectangle area)
     {
-        //PlayerOutlines.ForcePreviewOutline = true;
+        if (player?.active != true || area.Width <= 4 || area.Height <= 4)
+            return;
 
-        try
+        if (player.ghost)
         {
-            DrawPlayerPreview(sb, player, area);
-        }
-        finally
-        {
-            //PlayerOutlines.ForcePreviewOutline = false;
+            Texture2D texture = player.direction < 0 ? Ass.GhostLeft.Value : Ass.GhostRight.Value;
+            float scale = Math.Min(1.4f, Math.Min((area.Width - 4f) / texture.Width, (area.Height - 4f) / texture.Height));
+            sb.Draw(texture, area.Center.ToVector2(), null, Color.White, 0f, texture.Size() * 0.5f, scale, SpriteEffects.None, 0f);
+            return;
         }
 
-        //switch (SpectatorClientSettings.DrawPlayers)
-        //{
-        //    case SpectatorPlayerDrawMode.FullPlayer:
-        //        DrawPlayerPreview(sb, player, area);
-        //        break;
-        //    case SpectatorPlayerDrawMode.PlayerHeads:
-        //        DrawPlayerHead(sb, player, area.Center.ToVector2(), Math.Min(area.Width, area.Height) / 42f);
-        //        break;
-        //}
+        DrawPlayerHead(sb, player, area.Center.ToVector2() + new Vector2(2f, -2f), scale: 0.6f);
     }
 
     public static void DrawPlayerPreview(SpriteBatch sb, Player player, Rectangle area)
     {
         if (player?.active != true || area.Width <= 0 || area.Height <= 0)
             return;
+
+        if (player.ghost)
+        {
+            Texture2D texture = TextureAssets.Ghost.Value;
+            Rectangle frame = GetGhostFrame(texture, player);
+            float ghostScale = Math.Min(GetPlayerScale(), Math.Min((area.Width - 4f) / frame.Width, (area.Height - 4f) / frame.Height));
+            if (ghostScale > 0f)
+                DrawGhost(sb, player, area.Center.ToVector2(), ghostScale);
+            return;
+        }
 
         float scale = GetPlayerScale();
 
@@ -184,10 +187,11 @@ public static class EntityDrawer
         if (player?.active != true)
             return;
 
-        // Resolved before any override is applied, because it reads the player's real ghost/dead state.
-        bool drawAsGhost = (player.ghost || player.dead)
-            && GhostDrawSystem.ShouldDrawGhost(player)
-            && player.statLife > 0;
+        if (player.ghost)
+        {
+            DrawGhost(sb, player, position + new Vector2(player.width, player.height) * scale * 0.5f, scale);
+            return;
+        }
 
         Rectangle oldScissor = sb.GraphicsDevice.ScissorRectangle;
         RasterizerState oldRasterizer = sb.GraphicsDevice.RasterizerState;
@@ -201,13 +205,7 @@ public static class EntityDrawer
 
         try
         {
-            if (drawAsGhost)
-            {
-                position.X += 2f;
-                position.Y += 8f;
-                DrawGhost(Main.Camera, player, position + Main.screenPosition, scale);
-            }
-            else if (player.statLife > 0)
+            if (player.statLife > 0)
             {
                 player.ghost = false;
                 player.dead = false;
@@ -331,18 +329,19 @@ public static class EntityDrawer
         }
     }
 
-    private static void DrawGhost(Camera camera, Player drawPlayer, Vector2 position, float scale)
+    private static Rectangle GetGhostFrame(Texture2D texture, Player player)
     {
-        byte mouseTextColor = Main.mouseTextColor;
-        SpriteEffects effects = drawPlayer.direction == 1 ? SpriteEffects.None : SpriteEffects.FlipHorizontally;
-        Color baseColor = new(mouseTextColor / 2 + 100, mouseTextColor / 2 + 100, mouseTextColor / 2 + 100, mouseTextColor / 2 + 100);
-        Color color = drawPlayer.GetImmuneAlpha(baseColor, 0f);
+        int frameHeight = texture.Height / 4;
+        return new Rectangle(0, frameHeight * Math.Clamp(player.ghostFrame, 0, 3), texture.Width, frameHeight);
+    }
 
-        Rectangle frame = new(0, TextureAssets.Ghost.Height() / 4 * drawPlayer.ghostFrame, TextureAssets.Ghost.Width(), TextureAssets.Ghost.Height() / 4);
-        Vector2 origin = new(frame.Width * 0.5f, frame.Height * 0.5f);
-        Vector2 center = new(position.X - camera.UnscaledPosition.X + drawPlayer.width * scale * 0.5f, position.Y - camera.UnscaledPosition.Y + drawPlayer.height * scale * 0.5f);
+    private static void DrawGhost(SpriteBatch sb, Player player, Vector2 center, float scale)
+    {
+        Texture2D texture = TextureAssets.Ghost.Value;
+        Rectangle frame = GetGhostFrame(texture, player);
+        SpriteEffects effects = player.direction < 0 ? SpriteEffects.FlipHorizontally : SpriteEffects.None;
 
-        camera.SpriteBatch.Draw(TextureAssets.Ghost.Value, center, frame, color, 0f, origin, scale, effects, 0f);
+        sb.Draw(texture, center, frame, Color.White, 0f, frame.Size() * 0.5f, scale, effects, 0f);
     }
     #endregion
 

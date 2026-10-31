@@ -54,11 +54,7 @@ internal sealed class UIPlayerCard : UIEntityCard<Player>
 
     protected override void DrawHeadIcon(SpriteBatch sb, Player player, Rectangle area)
     {
-        //Vector2 headPos = area.TopLeft() + new Vector2(8, 4);
-        Vector2 headPos = area.Center.ToVector2() + new Vector2(2,-2);
-        //float scale = Math.Min(area.Width, area.Height) / 26f;
-        float scale = 0.6f;
-        EntityDrawer.DrawPlayerHead(sb, player, headPos, scale: scale);
+        EntityDrawer.DrawPlayerCardHead(sb, player, area);
     }
 
     protected override void DrawStats(SpriteBatch sb, Player player, Rectangle stat, int statGap, float scale)
