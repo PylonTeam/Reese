@@ -25,10 +25,10 @@ internal static class ReplayDrawGate
         if (player?.active != true || !player.ghost)
             return true;
 
-        if (ReplayPlayback.IsReplayPlayback)
+        if (ReplayPlayback.IsReplayPlayback || SpectatorMode.IsLocalGhost)
             return ReplayClientSettings.IsDrawGhostsOn;
 
-        return ReplayClientSettings.IsDrawGhostsOn && SpectatorMode.ShouldDrawGhost(player);
+        return SpectatorMode.ShouldDrawGhost(player);
     }
 
     public static bool ShouldDrawNameplate(Player player, bool isSpectator)
@@ -42,7 +42,7 @@ internal static class ReplayDrawGate
             if (!ShouldDrawGhost(player))
                 return false;
 
-            if (ReplayPlayback.IsReplayPlayback)
+            if (ReplayPlayback.IsReplayPlayback || SpectatorMode.IsLocalGhost)
                 return ReplayClientSettings.IsNameplatesOn;
 
             return SpectatorMode.ShouldDrawGhostNameplate(player);

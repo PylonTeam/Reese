@@ -14,8 +14,9 @@ internal static class SpectatorMode
     public static bool CanSpectate => IsLocalReplayClient || IsGhostSpectatingEnabled && IsLocalGhost;
     private static ServerConfig.GhostSpectatingConfig GhostSpectatingConfig => ModContent.GetInstance<ServerConfig>()?.ghostSpectatingConfig;
     public static bool IsGhostSpectatingEnabled => GhostSpectatingConfig?.IsGhostSpectatingEnabled == true;
-    public static bool CanDrawOtherGhosts => IsGhostSpectatingEnabled && GhostSpectatingConfig?.DrawGhosts == true;
-    public static bool CanDrawOtherGhostNameplates => IsGhostSpectatingEnabled && GhostSpectatingConfig?.DrawGhostsNameplates == true;
+    // Ghost viewers can see one another; the server options apply to living viewers.
+    public static bool CanDrawOtherGhosts => IsLocalGhost || IsGhostSpectatingEnabled && GhostSpectatingConfig?.DrawGhosts == true;
+    public static bool CanDrawOtherGhostNameplates => IsLocalGhost || IsGhostSpectatingEnabled && GhostSpectatingConfig?.DrawGhostsNameplates == true;
 
     public static bool IsSpectator(Player player)
     {
