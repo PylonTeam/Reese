@@ -20,6 +20,8 @@ internal sealed class GhostHud : UIElement
     private ITab currentTab;
     private TabBar tabBar;
     private UIText titleText;
+    private PanelVisibilityToggle visibilityToggle;
+    private bool panelVisible = true;
     private bool isShiftedForTeammateAccessoriesHud;
 
     public GhostHud()
@@ -63,6 +65,27 @@ internal sealed class GhostHud : UIElement
         Append(ContentPanel);
 
         ShowTab(currentTab?.Tab ?? SpectatorTab.World);
+
+        visibilityToggle = new PanelVisibilityToggle(() => panelVisible, TogglePanelVisible);
+        Append(visibilityToggle);
+    }
+
+    private void TogglePanelVisible()
+    {
+        panelVisible = !panelVisible;
+        RemoveAllChildren();
+
+        if (panelVisible)
+        {
+            Append(TitlePanel);
+            Append(tabBar);
+            Append(ContentPanel);
+        }
+
+        Append(visibilityToggle);
+        Width.Set(panelVisible ? InfoHud.PanelWidth : PanelVisibilityToggle.SlotSize, 0f);
+        Height.Set(panelVisible ? 525f : PanelVisibilityToggle.SlotSize, 0f);
+        Recalculate();
     }
 
     public override void Update(GameTime gameTime)
@@ -96,7 +119,7 @@ internal sealed class GhostHud : UIElement
     {
         TitlePanel = new UIPanel();
         TitlePanel.Height.Set(InfoHud.HeaderHeight, 0f);
-        TitlePanel.Width.Set(0f, 1f);
+        TitlePanel.Width.Set(-PanelVisibilityToggle.SlotSize, 1f);
         TitlePanel.SetPadding(0f);
         TitlePanel.BackgroundColor = new Color(31, 43, 95);
         TitlePanel.BorderColor = Color.Black;

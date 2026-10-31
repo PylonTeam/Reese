@@ -133,6 +133,8 @@ ReplayHud: {
 	}
 
 	Settings: {
+		HidePanel: Hide settings panel
+		ShowPanel: Show settings panel
 		TabTooltip: Fine-tune your experience
 		VisualizationHeader: Settings
 		DrawHeader: Draw Settings
