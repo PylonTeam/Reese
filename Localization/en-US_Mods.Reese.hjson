@@ -74,6 +74,18 @@ Replayer.ReplayWelcomeMessage:
 ReplayHud: {
 	Common.Kilobytes: "{0} KB"
 
+	MapReveal: {
+		EnableMap: Enable the map before revealing it.
+		Started: Revealing map. Switch Reveal Map off to cancel.
+		Progress: Revealing map: {0}%
+		Completed: Map fully revealed!
+		Cleared: Map exploration cleared!
+		Rejected: Map reveal stopped: the server did not authorize the terrain request.
+		TimedOut: Map reveal stopped: terrain download timed out. Check that both the client and server have the updated Reese mod, then try again.
+		Failed: Map reveal stopped because of an error. See the client log for details.
+		IncompleteRecording: Revealed the available replay terrain. {0} sections are missing from this recording.
+	}
+
 	Playback: {
 		Title: Replay
 		GoToStart: Go to start
@@ -366,12 +378,12 @@ Configs: {
 
 		DrawGhosts: {
 			Label: Draw Ghosts
-			Tooltip: Whether players can see other ghosts' sprites. Disabling this also hides their nameplates and hover names/HP.
+			Tooltip: Whether living players can see ghosts' sprites. Disabling this also hides their nameplates and hover names/HP. Ghosts can see one another using their own Draw Ghosts setting.
 		}
 
 		DrawGhostsNameplates: {
 			Label: Draw Ghost Nameplates
-			Tooltip: Whether players can see other ghosts' nameplates and hover names/HP. Requires Draw Ghosts.
+			Tooltip: Whether living players can see ghosts' nameplates and hover names/HP. Requires Draw Ghosts. Ghosts use their own Draw Nameplates setting.
 		}
 
 		ShowSpectatorJoinPanel: {

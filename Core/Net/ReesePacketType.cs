@@ -3,5 +3,6 @@
 internal enum ReesePacketType : byte
 {
     RecorderStatus,
-    RequestToggleSpectateMode
+    RequestToggleSpectateMode,
+    MapReveal
 }

@@ -1,51 +1,104 @@
-using Reese.Core.Utilities;
+using Reese.Common.Spectator;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Threading;
 using Terraria.ID;
+using Terraria.IO;
+using Terraria.Map;
+using Terraria.Net.Sockets;
 
-namespace Reese.Common.Replayer.ReplayHud.ReplaySpectate;
+namespace Reese.Common.Replayer;
 
 internal static class MapRevealHelper
 {
-    private enum MapRevealOperation
+    private const int TilesPerUpdate = 12_000;
+    private const long ReceiveTimeoutMilliseconds = 30_000;
+    private static ClientReveal clientReveal;
+
+    private sealed class ClientReveal
     {
-        None,
-        Reveal,
-        Clear
+        internal readonly Guid Operation = Guid.NewGuid();
+        internal readonly WorldMap Map = Main.Map;
+        internal readonly PlayerFileData File = Main.ActivePlayerFileData;
+        internal readonly Player Player = Main.LocalPlayer;
+        internal readonly int WorldId = Main.worldID;
+        internal readonly Guid WorldGuid = Main.ActiveWorldFileData.UniqueId;
+        internal readonly int Mode = Main.netMode;
+        internal readonly bool IsReplay = ReplayPlayback.IsReplayPlayback;
+        internal readonly ISocket Socket = Netplay.Connection?.Socket;
+        internal readonly int Width = Main.maxTilesX;
+        internal readonly int Height = Main.maxTilesY;
+        internal int SectionsX => (Width + 199) / 200;
+        internal int SectionCount => SectionsX * ((Height + 149) / 150);
+        internal int Section;
+        internal int Tile;
+        internal int RequestedThrough;
+        internal long RequestedAt;
+        internal int Progress;
+        internal int MissingReplaySections;
+
+        internal bool IsCurrent => !Main.gameMenu && Mode == Main.netMode &&
+            IsReplay == ReplayPlayback.IsReplayPlayback && ReferenceEquals(Map, Main.Map) &&
+            ReferenceEquals(File, Main.ActivePlayerFileData) && ReferenceEquals(Player, Main.LocalPlayer) &&
+            WorldId == Main.worldID && WorldGuid == Main.ActiveWorldFileData?.UniqueId &&
+            Width == Main.maxTilesX && Height == Main.maxTilesY &&
+            (Mode != NetmodeID.MultiplayerClient || ReferenceEquals(Socket, Netplay.Connection?.Socket));
+
+        internal bool DownloadsTerrain => Mode == NetmodeID.MultiplayerClient && !IsReplay &&
+            Socket is not Replayer.ReplaySocket;
+
+        internal bool SectionAvailable => Mode != NetmodeID.MultiplayerClient ||
+            Main.sectionManager?.SectionLoaded(Section % SectionsX, Section / SectionsX) == true;
+
+        internal void Advance()
+        {
+            Stopwatch budget = Stopwatch.StartNew();
+            int remaining = TilesPerUpdate;
+
+            while (Section < SectionCount && remaining > 0 && budget.ElapsedMilliseconds < 4)
+            {
+                if (!SectionAvailable)
+                {
+                    if (!IsReplay)
+                        break;
+
+                    // A replay socket cannot answer requests. Older recordings may lack terrain.
+                    MissingReplaySections++;
+                    Section++;
+                    continue;
+                }
+
+                int startX = Section % SectionsX * 200;
+                int startY = Section / SectionsX * 150;
+                int width = Math.Min(200, Width - startX);
+                int height = Math.Min(150, Height - startY);
+                int x = startX + Tile % width;
+                int y = startY + Tile / width;
+
+                if (x >= WorldMap.BlackEdgeWidth && y >= WorldMap.BlackEdgeWidth &&
+                    x < Width - WorldMap.BlackEdgeWidth && y < Height - WorldMap.BlackEdgeWidth)
+                    Map.Update(x, y, byte.MaxValue);
+
+                Tile++;
+                remaining--;
+
+                if (Tile == width * height)
+                {
+                    MapRevealSystem.QueueSectionRedraw(Section % SectionsX, Section / SectionsX);
+                    Section++;
+                    Tile = 0;
+                }
+            }
+        }
     }
 
-    private enum MapRevealStage
-    {
-        Idle,
-        Initialize,
-        RevealTiles,
-        RebuildSections
-    }
-
-    private const int ProgressStepCount = 4;
-    private const int TilesPerFrame = 100_000;
-    private const int SectionsPerFrame = 4;
-
-    private static MapRevealOperation operation;
-    private static MapRevealStage stage;
-
-    private static int tileX;
-    private static int tileY;
-    private static int processedTiles;
-    private static int totalTiles;
-    private static int nextTileProgressPercent;
-
-    private static int sectionX;
-    private static int sectionY;
-    private static int maxSectionX;
-    private static int maxSectionY;
-    private static int processedSections;
-    private static int totalSections;
-    private static int nextSectionProgressPercent;
-
-    private static bool loggedWaitingForMapRenderer;
-    private static bool loggedWaitingForMapEnabled;
-
-    public static bool Enabled => true;
     public static bool Revealed { get; private set; }
+
+    private static bool CanReveal => !Main.dedServ && Main.netMode != NetmodeID.Server &&
+        (SpectatorMode.CanUseReplayHud || SpectatorMode.CanUseGhostHud) &&
+        (Main.netMode != NetmodeID.MultiplayerClient || Netplay.Connection?.Socket is ISocket socket &&
+            (ReplayPlayback.IsReplayPlayback || socket is not Replayer.ReplaySocket));
 
     public static void SetRevealed(bool revealed)
     {
@@ -57,309 +110,275 @@ internal static class MapRevealHelper
 
     public static void RevealLocalMap()
     {
-        BeginOperation(MapRevealOperation.Reveal);
+        if (!CanReveal)
+            return;
+
+        if (!Main.mapEnabled || Main.Map == null || Main.ActivePlayerFileData == null ||
+            Main.ActiveWorldFileData == null || Main.maxTilesX <= 0 || Main.maxTilesY <= 0)
+        {
+            ShowMessage("EnableMap");
+            return;
+        }
+
+        if (clientReveal?.IsCurrent == true)
+            return;
+
+        Cancel();
+        clientReveal = new ClientReveal();
+        Revealed = true;
+        ShowMessage("Started");
     }
 
     public static void ClearLocalMap()
     {
-        BeginOperation(MapRevealOperation.Clear);
+        if (!CanReveal || Main.Map == null)
+            return;
+
+        Cancel();
+        lock (MapHelper.IOLock)
+            Main.Map.Clear();
+        MapRevealSystem.RequestRebuild();
+        ShowMessage("Cleared");
     }
 
-    internal static void Reset(bool resetRevealed = false)
+    internal static void Cancel()
     {
-        operation = MapRevealOperation.None;
-        stage = MapRevealStage.Idle;
-        tileX = 0;
-        tileY = 0;
-        processedTiles = 0;
-        totalTiles = 0;
-        sectionX = 0;
-        sectionY = 0;
-        processedSections = 0;
-        totalSections = 0;
-        loggedWaitingForMapRenderer = false;
-        loggedWaitingForMapEnabled = false;
+        ClientReveal previous = clientReveal;
+        clientReveal = null;
+        Revealed = false;
 
-        if (resetRevealed)
-            Revealed = false;
+        if (previous?.IsCurrent == true && previous.DownloadsTerrain)
+            MapRevealNetHandler.Cancel(previous.Operation);
+    }
+
+    internal static void Reject(Guid operation)
+    {
+        if (clientReveal?.Operation != operation || !clientReveal.IsCurrent)
+            return;
+
+        Cancel();
+        ShowMessage("Rejected");
+    }
+
+    internal static void MapLoaded(WorldMap map)
+    {
+        ClientReveal previous = clientReveal;
+        if (previous?.IsCurrent != true || !ReferenceEquals(previous.Map, map))
+            return;
+
+        // Another mod can load its character's map after joining. Restart against that data.
+        Cancel();
+        clientReveal = new ClientReveal();
+        Revealed = true;
+        MapRevealSystem.RequestRebuild();
     }
 
     internal static void UpdateOperation()
     {
-        if (operation == MapRevealOperation.None || Main.dedServ)
+        ClientReveal job = clientReveal;
+        if (job == null)
             return;
 
-        if (!Enabled || Main.gameMenu || Main.maxTilesX <= 0 || Main.maxTilesY <= 0)
+        if (!job.IsCurrent || !CanReveal || !Main.mapEnabled)
         {
-            Reset();
+            Cancel();
             return;
         }
 
-        switch (stage)
-        {
-            case MapRevealStage.Initialize:
-                InitializeOperation();
-                break;
-            case MapRevealStage.RevealTiles:
-                RevealTileChunk();
-                break;
-        }
-    }
-
-    internal static void RebuildRenderedSections(Main self, On_Main.orig_DrawToMap_Section drawSection)
-    {
-        if (operation == MapRevealOperation.None || stage != MapRevealStage.RebuildSections)
+        if (job.IsReplay && (ReplayPlayback.IsSeeking || !ReplayPlayback.HasEnteredReplayWorld))
             return;
 
-        if (!Main.mapEnabled)
+        if (job.Section < job.SectionCount && !job.SectionAvailable && job.DownloadsTerrain)
         {
-            if (!loggedWaitingForMapEnabled)
+            if (job.Section >= job.RequestedThrough)
             {
-                loggedWaitingForMapEnabled = true;
-                LogProgress(3, "Waiting for the map to be enabled before rebuilding rendered sections.");
+                job.RequestedThrough = Math.Min(job.Section + MapRevealNetHandler.SectionsPerBatch, job.SectionCount);
+                job.RequestedAt = Environment.TickCount64;
+                MapRevealNetHandler.RequestSections(job.Operation, job.WorldId, job.WorldGuid, job.Section);
+            }
+            else if (Environment.TickCount64 - job.RequestedAt >= ReceiveTimeoutMilliseconds)
+            {
+                Cancel();
+                ShowMessage("TimedOut");
             }
 
             return;
         }
 
-        loggedWaitingForMapEnabled = false;
-
-        if (drawSection is null)
-        {
-            if (!loggedWaitingForMapRenderer)
-            {
-                loggedWaitingForMapRenderer = true;
-                LogProgress(3, "Waiting for the map renderer before rebuilding rendered sections.");
-            }
-
-            return;
-        }
-
-        loggedWaitingForMapRenderer = false;
-
-        int budget = SectionsPerFrame;
-
-        while (budget-- > 0)
-        {
-            if (sectionY >= maxSectionY)
-            {
-                FinishOperation();
-                return;
-            }
-
-            drawSection(self, sectionX, sectionY);
-            processedSections++;
-            LogSectionProgress();
-
-            sectionX++;
-
-            if (sectionX >= maxSectionX)
-            {
-                sectionX = 0;
-                sectionY++;
-            }
-        }
-    }
-
-    private static void BeginOperation(MapRevealOperation nextOperation)
-    {
-        if (!Enabled || Main.dedServ)
-            return;
-
-        Reset();
-
-        operation = nextOperation;
-        stage = MapRevealStage.Initialize;
-        Revealed = nextOperation == MapRevealOperation.Reveal;
-
-        LogProgress(1, nextOperation == MapRevealOperation.Reveal
-            ? "Reveal map requested."
-            : "Hide map requested.");
-    }
-
-    private static void InitializeOperation()
-    {
-        if (operation == MapRevealOperation.Reveal)
-        {
-            LoadMultiplayerMapIfNeeded();
-            StartRevealTiles();
-            return;
-        }
-
-        Main.Map.Clear();
-        LogProgress(2, "Cleared local map data.");
-        StartRenderedSectionRebuild();
-    }
-
-    private static void LoadMultiplayerMapIfNeeded()
-    {
-        if (Main.netMode != NetmodeID.MultiplayerClient)
+        if (!Monitor.TryEnter(MapHelper.IOLock))
             return;
 
         try
         {
-            Main.Map.Load();
-            LogProgress(2, "Loaded multiplayer map data before reveal.");
-        }
-        catch (System.Exception e)
-        {
-            Log.Chat($"2/{ProgressStepCount} Progress: Multiplayer map load failed before reveal: {e.Message}");
-        }
-    }
+            job.Advance();
+            int progress = job.Section * 4 / job.SectionCount;
 
-    private static void StartRevealTiles()
-    {
-        tileX = 0;
-        tileY = 0;
-        processedTiles = 0;
-        totalTiles = Main.maxTilesX * Main.maxTilesY;
-        nextTileProgressPercent = 10;
-        stage = MapRevealStage.RevealTiles;
-
-        LogProgress(2, $"Revealing local map tiles 0/{totalTiles}.");
-    }
-
-    private static void RevealTileChunk()
-    {
-        int budget = TilesPerFrame;
-
-        while (budget-- > 0 && tileY < Main.maxTilesY)
-        {
-            Main.Map.Update(tileX, tileY, 255);
-
-            processedTiles++;
-            tileX++;
-
-            if (tileX >= Main.maxTilesX)
+            if (job.Section == job.SectionCount)
             {
-                tileX = 0;
-                tileY++;
+                job.Map.ClearEdges();
+                MapRevealSystem.RequestRebuild();
+                job.Map.Save();
+                Cancel();
+                Revealed = true;
+                if (job.MissingReplaySections > 0)
+                    ShowMessage("IncompleteRecording", job.MissingReplaySections);
+                else
+                    ShowMessage("Completed");
+            }
+            else if (progress > job.Progress)
+            {
+                job.Progress = progress;
+                ShowMessage("Progress", progress * 25);
             }
         }
-
-        LogTileProgress();
-
-        if (tileY < Main.maxTilesY)
-            return;
-
-        LogProgress(2, $"Finished revealing local map tiles {processedTiles}/{totalTiles}.");
-        StartRenderedSectionRebuild();
-    }
-
-    private static void StartRenderedSectionRebuild()
-    {
-        sectionX = 0;
-        sectionY = 0;
-        maxSectionX = (Main.maxTilesX + 199) / 200;
-        maxSectionY = (Main.maxTilesY + 149) / 150;
-        processedSections = 0;
-        totalSections = maxSectionX * maxSectionY;
-        nextSectionProgressPercent = 10;
-        loggedWaitingForMapRenderer = false;
-        loggedWaitingForMapEnabled = false;
-
-        Main.mapReady = false;
-        Main.clearMap = true;
-        Main.loadMap = true;
-        Main.loadMapLock = true;
-        Main.loadMapLastX = 0;
-        Main.refreshMap = false;
-
-        stage = MapRevealStage.RebuildSections;
-
-        LogProgress(3, $"Rebuilding rendered map sections 0/{totalSections}.");
-    }
-
-    private static void FinishOperation()
-    {
-        MapRevealOperation finishedOperation = operation;
-
-        Main.mapReady = true;
-        Main.clearMap = false;
-        Main.loadMap = false;
-        Main.loadMapLock = false;
-        Main.refreshMap = false;
-
-        Reset();
-
-        LogProgress(4, finishedOperation == MapRevealOperation.Reveal
-            ? "Reveal map complete."
-            : "Hide map complete.");
-    }
-
-    private static void LogTileProgress()
-    {
-        if (totalTiles <= 0)
-            return;
-
-        int percent = processedTiles * 100 / totalTiles;
-
-        while (percent >= nextTileProgressPercent && nextTileProgressPercent <= 90)
+        catch (Exception error)
         {
-            LogProgress(2, $"Revealed {nextTileProgressPercent}% of local map tiles.");
-            nextTileProgressPercent += 10;
+            Cancel();
+            Log.Error($"Map reveal failed: {error}");
+            ShowMessage("Failed");
+        }
+        finally
+        {
+            Monitor.Exit(MapHelper.IOLock);
         }
     }
 
-    private static void LogSectionProgress()
+    private static void ShowMessage(string key, params object[] args)
     {
-        if (totalSections <= 0)
-            return;
-
-        int percent = processedSections * 100 / totalSections;
-
-        while (percent >= nextSectionProgressPercent && nextSectionProgressPercent <= 90)
-        {
-            LogProgress(3, $"Rebuilt {processedSections}/{totalSections} rendered map sections ({nextSectionProgressPercent}%).");
-            nextSectionProgressPercent += 10;
-        }
-    }
-
-    private static void LogProgress(int step, string message)
-    {
-        Log.Chat($"{step}/{ProgressStepCount} Progress: {message}");
+        string text = Loc.Get("ReplayHud.MapReveal." + key, args);
+        Log.Info(text);
+        Main.NewText(text, Color.White);
     }
 }
 
 [Autoload(Side = ModSide.Client)]
 internal sealed class MapRevealSystem : ModSystem
 {
-    private static On_Main.orig_DrawToMap_Section drawToMapSection;
+    private const int SectionsPerFrame = 4;
+    private static readonly Queue<Point> redrawSections = new();
+    private static readonly HashSet<Point> queuedSections = new();
+    private static bool rebuildPending;
+    private static int sectionX;
+    private static int sectionY;
+    private TimeSpan? lastUpdateTime;
 
     public override void Load()
     {
         On_Main.DrawToMap += HookDrawToMap;
-        On_Main.DrawToMap_Section += HookDrawToMapSection;
+        On_WorldMap.Load += HookLoadMap;
+        ReplayPlaybackEvents.ReplayStateReset += OnReplayStateReset;
     }
 
     public override void Unload()
     {
         On_Main.DrawToMap -= HookDrawToMap;
-        On_Main.DrawToMap_Section -= HookDrawToMapSection;
-
-        drawToMapSection = null;
-        MapRevealHelper.Reset(resetRevealed: true);
+        On_WorldMap.Load -= HookLoadMap;
+        ReplayPlaybackEvents.ReplayStateReset -= OnReplayStateReset;
+        Reset();
     }
 
-    public override void OnWorldUnload()
-    {
-        MapRevealHelper.Reset(resetRevealed: true);
-    }
+    public override void OnWorldLoad() => Reset();
+    public override void OnWorldUnload() => Reset();
+    public override void PreSaveAndQuit() => MapRevealHelper.Cancel();
 
-    public override void PostUpdateEverything()
+    public override void UpdateUI(GameTime gameTime)
     {
+        // UI updates still run while playback is paused. Extra replay updates reuse this time.
+        if (lastUpdateTime == gameTime.TotalGameTime)
+            return;
+
+        lastUpdateTime = gameTime.TotalGameTime;
         MapRevealHelper.UpdateOperation();
+    }
+
+    internal static void QueueSectionRedraw(int x, int y)
+    {
+        Point section = new(x, y);
+        if (queuedSections.Add(section))
+            redrawSections.Enqueue(section);
+        Main.updateMap = true;
+    }
+
+    internal static void RequestRebuild()
+    {
+        redrawSections.Clear();
+        queuedSections.Clear();
+        rebuildPending = true;
+        sectionX = sectionY = 0;
+        Main.mapReady = false;
+        Main.clearMap = true;
+        Main.loadMap = true;
+        Main.loadMapLock = true;
+        Main.loadMapLastX = 0;
+        Main.refreshMap = false;
+    }
+
+    private static void HookLoadMap(On_WorldMap.orig_Load orig, WorldMap self)
+    {
+        lock (MapHelper.IOLock)
+            orig(self);
+        MapRevealHelper.MapLoaded(self);
     }
 
     private static void HookDrawToMap(On_Main.orig_DrawToMap orig, Main self)
     {
         orig(self);
-        MapRevealHelper.RebuildRenderedSections(self, drawToMapSection);
+
+        if (!Main.mapEnabled)
+            return;
+
+        int sectionsX = (Main.maxTilesX + 199) / 200;
+        int sectionsY = (Main.maxTilesY + 149) / 150;
+
+        for (int remaining = SectionsPerFrame; remaining > 0; remaining--)
+        {
+            if (rebuildPending)
+            {
+                if (sectionY >= sectionsY)
+                {
+                    FinishRebuild();
+                    continue;
+                }
+
+                self.DrawToMap_Section(sectionX, sectionY);
+                if (++sectionX >= sectionsX)
+                {
+                    sectionX = 0;
+                    sectionY++;
+                }
+            }
+            else if (redrawSections.TryDequeue(out Point section))
+            {
+                queuedSections.Remove(section);
+                self.DrawToMap_Section(section.X, section.Y);
+            }
+            else
+                break;
+        }
+
+        if (rebuildPending && sectionY >= sectionsY)
+            FinishRebuild();
     }
 
-    private static void HookDrawToMapSection(On_Main.orig_DrawToMap_Section orig, Main self, int x, int y)
+    private static void FinishRebuild()
     {
-        drawToMapSection ??= orig;
-        orig(self, x, y);
+        rebuildPending = false;
+        Main.mapReady = true;
+        Main.clearMap = false;
+        Main.loadMap = false;
+        Main.loadMapLock = false;
+        Main.refreshMap = false;
+    }
+
+    private static void OnReplayStateReset(ReplayStateResetEventArgs args) => Reset();
+
+    private static void Reset()
+    {
+        MapRevealHelper.Cancel();
+        if (rebuildPending)
+            FinishRebuild();
+        redrawSections.Clear();
+        queuedSections.Clear();
+        sectionX = sectionY = 0;
     }
 }

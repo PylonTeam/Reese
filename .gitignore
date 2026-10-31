@@ -1,4 +1,9 @@
 .idea
 .vs
+
+# Ignore build folders
 bin
 obj
+
+# Ignore work folders
+/_Work

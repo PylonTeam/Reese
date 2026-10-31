@@ -143,6 +143,10 @@ public class Reese : Mod
                 SpectatorModeNetHandler.Receive(reader, whoAmI);
                 break;
 
+            case ReesePacketType.MapReveal:
+                MapRevealNetHandler.Receive(reader, whoAmI);
+                break;
+
             default:
                 Log.Warn($"Unknown Reese packet type: {(byte)packetType}");
                 break;

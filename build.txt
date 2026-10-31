@@ -1,6 +1,6 @@
 displayName = Reese
 author = resin <hey@amberres.in>, Erky, Prince
-buildIgnore = *.csproj, *.user, *.md, obj\*, bin\*, .vs\*, Assets\Old\*, Assets\Workshop\*, *.psd
+buildIgnore = *.csproj, *.user, *.md, obj\*, bin\*, .vs\*, _Work\*, Assets\Old\*, Assets\Workshop\*, *.psd
 version = 0.3.1
 hideCode = true
 homepage = https://amberres.in
